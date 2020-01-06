@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.3",
     author="Alexis M Hill",
     author_email="alexismhill3@gmail.com",
-    description="A computational pipeline for identifying CRISPR-Transposon elements",
+    description="A suite of tools for finding and annotating putative CRISPR-Transposon elements",
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/alexismhill3/CRISPR-Transposons",
