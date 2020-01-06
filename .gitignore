@@ -1,0 +1,6 @@
+# virtual environments
+env/
+
+# distribution stuff
+crisposon.egg-info/
+dist/
