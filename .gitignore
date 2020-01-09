@@ -4,3 +4,9 @@ env/
 # distribution stuff
 crisposon.egg-info/
 dist/
+
+# build stuff
+__pycache__/
+
+# dev tools
+.vscode
