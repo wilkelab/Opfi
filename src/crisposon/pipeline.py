@@ -1,5 +1,5 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
-from crisposon.blastutils import get_neighborhood_ranges, concatenate
+from crisposon.utils import get_neighborhood_ranges, concatenate, build_blastp_db
 from crisposon.xmlparser import parse_blast
 
 from Bio import SeqIO
@@ -20,7 +20,7 @@ class BlastStep:
         self.working_dir = working_dir
         self.orfs = None
         self.is_seed = False
-        self.is_filter = False
+        self.is_filter = False  
 
 class Blastpsi(BlastStep):
 
@@ -36,6 +36,12 @@ class Blastpsi(BlastStep):
         blast_cline()
 
         return blast_out
+    
+    def execute(self, orfs):
+
+        self.orfs = orfs
+        blast_out = self.run_blast()
+        self.hits = parse_blast(blast_out, self.name)
 
 class Blastp(BlastStep):
 
@@ -51,6 +57,12 @@ class Blastp(BlastStep):
         blast_cline()
 
         return blast_out
+    
+    def execute(self, orfs):
+
+        self.orfs = orfs
+        blast_out = self.run_blast()
+        self.hits = parse_blast(blast_out, self.name)
 
 class SeedBlastpsi(Blastpsi):
 
@@ -132,7 +144,7 @@ class Pipeline:
 
         for rang in ranges:
             key = "{}_{}".format(rang[0], rang[1])
-            self.results[key] = {"neighborhood_start": int(rang[0]), "neighborhood_stop": int(rang[1]), "keep": False, "hits": {}}
+            self.results[key] = {"n_start": int(rang[0]), "n_stop": int(rang[1]), "keep": False, "hits": {}}
     
     def _results_update(self, hits):
 
@@ -140,7 +152,7 @@ class Pipeline:
             for neighborhood in self.results.keys():
                 h_start = min(int(hits[hit]["query_start"]), int(hits[hit]["query_stop"]))
                 h_stop = max(int(hits[hit]["query_start"]), int(hits[hit]["query_stop"]))
-                if h_start >= self.results[neighborhood]["neighborhood_start"] and h_stop <= self.results[neighborhood]["neighborhood_stop"]:
+                if h_start >= self.results[neighborhood]["n_start"] and h_stop <= self.results[neighborhood]["n_stop"]:
                     self.results[neighborhood]["hits"][hit] = hits[hit]
         
     def _results_filter(self, hits):
@@ -149,7 +161,7 @@ class Pipeline:
             for neighborhood in self.results.keys():
                 h_start = min(int(hits[hit]["query_start"]), int(hits[hit]["query_stop"]))
                 h_stop = max(int(hits[hit]["query_start"]), int(hits[hit]["query_stop"]))
-                if h_start >= self.results[neighborhood]["neighborhood_start"] and h_stop <= self.results[neighborhood]["neighborhood_stop"]:
+                if h_start >= self.results[neighborhood]["n_start"] and h_stop <= self.results[neighborhood]["n_stop"]:
                     self.results[neighborhood]["hits"][hit] = hits[hit]
                     self.results[neighborhood]["keep"] = True
         
@@ -170,12 +182,12 @@ class Pipeline:
 
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, outdir=self._working_dir.name, min_prot_len=self.min_prot_len, description=self.name)
 
-        for rang in ranges:
-            key = "{}_{}".format(rang[0], rang[1])
-            path = os.path.join(self._working_dir.name, "orf_{}_{}.fasta".format(rang[0], rang[1]))
+        for r in ranges:
+            key = "{}_{}".format(r[0], r[1])
+            path = os.path.join(self._working_dir.name, "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
-    def add_seed_step(self, db, name, e_val, blast_type):
+    def add_blast_seed_step(self, db, name, e_val, blast_type):
 
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(SeedBlastp(db, name, e_val, self._working_dir.name, self.span))
@@ -184,7 +196,16 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not available for seed step".format(blast_type))
 
-    def add_filter_step(self, db, name, e_val, blast_type):
+    def add_blast_filter_step(self, db, name, e_val, blast_type):
+
+        if blast_type in BLASTP_KEYWORDS:
+            self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
+        elif blast_type in PSIBLAST_KEYWORDS:
+            self._steps.append(FilterBlastpsi(db, name, e_val, self._working_dir.name))
+        else:
+            raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
+    
+    def add_blast_step(self, db, name, e_val, blast_type):
 
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
@@ -195,22 +216,24 @@ class Pipeline:
 
     def run(self):
 
+        neighborhood_orfs = None
         for step in self._steps:
-            
-            if len(self._neighborhood_orfs) > 0:
-                neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
-            else:
-                neighborhood_orfs = None
             
             if step.is_seed:
                 step.execute(self._all_orfs)
                 self._get_neighborhood_orfs(step.neighborhood_ranges)
                 self._results_init(step.neighborhood_ranges)
                 self._results_update(step.hits)
+                neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
 
             elif step.is_filter:
                 step.execute(neighborhood_orfs)
                 self._results_filter(step.hits)
+                neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
+            
+            else:
+                step.execute(neighborhood_orfs)
+                self._results_update(step.hits)
 
         results = self.results
         return results
@@ -224,10 +247,16 @@ if __name__ == "__main__":
     out = "/home/alexis/Projects/CRISPR-Transposons/data/"
     seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
     filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_uniref/blast_db"
+    final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc/blast_db"
+
+    """in_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/tns_cd/"
+    db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"
+    build_blastp_db(input=in_dir, db_dir=db_dir)"""
     
-    p = Pipeline(genome, "v_crass", out, span=5000)
-    p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
-    p.add_filter_step(filter_db, "cas", 0.001, "PROT")
+    p = Pipeline(genome, "v_crass", out, span=10000)
+    p.add_blast_seed_step(seed_db, "tnsAB", 0.001, "PSI")
+    p.add_blast_filter_step(filter_db, "cas", 0.001, "PROT")
+    p.add_blast_step(final_db, "tnsCD", 0.001, "PROT")
     results = p.run()
 
     print(json.dumps(results, indent=4))

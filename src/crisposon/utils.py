@@ -13,6 +13,8 @@ import os, subprocess, shutil
 
 def concatenate(in_dir, file_names):
     out = os.path.join(in_dir, "merged_input.fasta")
+    if os.path.exists(out):
+        os.remove(out)
     
     with open(out,"wb") as outfile:
         for name in file_names:
@@ -21,6 +23,7 @@ def concatenate(in_dir, file_names):
     
     return out
 
+# TO DO: move build blast db stuff to its own file
 def reader(path):
     files = os.listdir(path)
     merged = False
