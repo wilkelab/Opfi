@@ -1,10 +1,13 @@
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+import os
 
 def build_protein_fasta(orfs, out_dir, description):
     records = []
-    orfs.sort(key=lambda x: len(x[1]), reverse=True) # sort by seq len in desc order
+    # sort orfs by position in parent
+    orfs.sort(key=lambda x: min(x[0][0], x[0][1]))
+    
     for orf in orfs:
         prot_id = "lcl|" + "|".join(str(x) for x in orf[0])
         prot_seq = Seq(orf[1])
@@ -15,6 +18,8 @@ def build_protein_fasta(orfs, out_dir, description):
 # Convert the index of an amino acid to it's position in the parent 
 # nucleotide sequence.
 def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
+    nuc_index = 0
+    
     if strand == 1:
         if start:
             nuc_index = aa_index * 3 + 1 + frame
@@ -25,7 +30,20 @@ def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
             nuc_index = parent_len - aa_index * 3 - frame
         else:
             nuc_index = parent_len - aa_index * 3 - 2 - frame
+    
     return nuc_index
+
+def get_orfs_in_range(all_orfs, rang):
+    
+    orfs_in_range = []
+    for orf in all_orfs:
+        lower = min(orf[0][0], orf[0][1])
+        upper = max(orf[0][0], orf[0][1])
+
+        if lower >= rang[0] and upper <= rang[1]:
+            orfs_in_range.append(orf)
+
+    return orfs_in_range
 
 def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
     parent_len = len(seq)
@@ -71,7 +89,7 @@ def reader(contig):
         print("Cannot read input file. Input should be in fasta format and contain only one record.")
     return record.seq
 
-# Actual public function to call
+# Actual function to call
 def orffinder(sequence, output, min_prot_len=30, description="putative protein"):
     """Find all open reading frames in a nucleotide sequence.
 
@@ -92,3 +110,14 @@ def orffinder(sequence, output, min_prot_len=30, description="putative protein")
     parent_seq = reader(sequence)
     all_orfs = get_all_orfs(parent_seq, min_prot_len)
     build_protein_fasta(all_orfs, output, description)
+
+def neighborhood_orffinder(sequence, ranges, outdir, min_prot_len=30, description="putative protein"):
+    
+    parent_seq = reader(sequence)
+    all_orfs = get_all_orfs(parent_seq, min_prot_len)
+
+    for rang in ranges:
+        orfs_in_range = get_orfs_in_range(all_orfs, rang)
+        outfil = "orf_{}_{}.fasta".format(str(rang[0]), str(rang[1]))
+        out = os.path.join(outdir, outfil)
+        build_protein_fasta(orfs_in_range, out, description)
