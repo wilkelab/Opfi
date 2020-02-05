@@ -16,14 +16,14 @@ def parse_blast(blast_xml, blast_id):
             
             query = iteration.find("Iteration_query-def").text
             query = query.split().pop(0)
-            hit_dic["query_id"] = query
+            hit_dic["q_id"] = query
 
             query = query.split("|")
-            hit_dic["query_start"] = query[1]
-            hit_dic["query_stop"] = query[2]
+            hit_dic["q_start"] = query[1]
+            hit_dic["q_stop"] = query[2]
 
             hit_def = hit.find("Hit_def").text.split()
-            hit_dic["gene_name"] = hit_def.pop(1)
+            hit_dic["common_name"] = hit_def.pop(1)
             hit_dic["ref_acc"] = hit_def.pop(0)
             hit_dic["ref_des"] = " ".join(hit_def)
 
