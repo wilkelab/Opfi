@@ -1,18 +1,20 @@
-from Bio import SeqIO
-import os, subprocess, shutil
-
-"""def concatenate(in_dir, file_names):
-    outstr = "merged_input.fasta"
-    
-    with open(str(in_dir + "/" + outstr),"wb") as outfile:
-        for name in file_names:
-            with open(str(in_dir + "/" + name),"rb") as infile:
-                shutil.copyfileobj(infile, outfile)
-    
-    return outstr"""
+import os, shutil
 
 def concatenate(in_dir, file_names):
+    """Concatenate two or more fasta files.
+
+    Merged file is written to the same
+    directory as the input files.
+
+    Args:
+        in_dir (str): Path to input file directory.
+        file_names (list): List of files names.
+    
+    """
+
     out = os.path.join(in_dir, "merged_input.fasta")
+    if os.path.exists(out):
+        os.remove(out)
     
     with open(out,"wb") as outfile:
         for name in file_names:
@@ -21,58 +23,50 @@ def concatenate(in_dir, file_names):
     
     return out
 
-def reader(path):
-    files = os.listdir(path)
-    merged = False
-
-    if len(files) == 0:
-        raise Exception("No files present in input directory")
-    else:
-        if len(files) > 1:
-            m_file = concatenate(path, files)
-            path = os.path.join(path, m_file)
-            merged = True
-        else:
-            path = os.path.join(path, files[0])
-    
-    return path, merged
-
-def build_blastp_db(input, db_dir=None, db_name="blast_db"):
-    in_file, merged = reader(input)
-    
-    if db_dir == None:
-        db_dir = os.path.join(input, "blast_db")
-    
-    if not os.path.exists(db_dir):
-        os.mkdir(db_dir)
-    
-    db = os.path.join(db_dir, db_name)
-    blastdb_params = ['makeblastdb', '-in', in_file, '-dbtype', 'prot', '-out', db, '-hash_index']
-    blastdb_cmd = " ".join(blastdb_params)
-    subprocess.call(blastdb_cmd, shell=True)
-
-    if merged:
-        os.remove(in_file)
-
-
 def get_neighborhood_ranges(hits, span=20000):
+    """Determine the start and end positions of genomic
+    neighborhoods surrounding one or more blast hit.
+
+    Neighborhood size is set by the span parameter; specifically,
+    this is the number of nucleotides directly to the left and right
+    of the hit.
+
+    The position of the hit is given by the corresponding ORF used 
+    as the query.
+
+    When two or more hits have overlapping neighborhood regions, 
+    the result is merged - i.e, a single neighborhood range is
+    returned for these hits.
+
+    Args:
+        hits (dict): Parsed blast output. 
+        span (int, optional): Number of nucleotides directly to the 
+            left and right of the hit to retain. Default is 20000.
+
+    """
 
     hit_coords = []
-    keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["query_start"]), int(hits[k]["query_stop"])))
+    # sort the hit dictionary dictionary keys by hit start position
+    keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["q_start"]), int(hits[k]["q_stop"])))
     
+    # use sorted keys to construct a sorted list of hit coordinates
     for key in keys_sorted:
-        start = int(hits[key]["query_start"])
-        stop = int(hits[key]["query_stop"])
+        start = int(hits[key]["q_start"])
+        stop = int(hits[key]["q_stop"])
         lower = min(start, stop)
         upper = max(start, stop)
         hit_coords.append((lower, upper))
     
+    # Construct the first neighborhood 
     ranges = []
     first_coord = hit_coords.pop(0)
     lower = max((first_coord[0] - span), 0)
     upper = first_coord[1] + span
     ranges.append((lower, upper))
     
+    # iterate through the remaining hit coordinates, checking if they
+    # should be placed in the previous neighborhood or used to
+    # construct a new neighborhood
     for coord in hit_coords:
         found_new = False
         last_range = ranges[-1]
@@ -88,5 +82,4 @@ def get_neighborhood_ranges(hits, span=20000):
             ranges.append((lower, upper))
 
     return ranges
-
     

@@ -4,6 +4,8 @@ from Bio.SeqRecord import SeqRecord
 import os
 
 def build_protein_fasta(orfs, out_dir, description):
+    """Write orfs to a single fasta file"""
+
     records = []
     # sort orfs by position in parent
     orfs.sort(key=lambda x: min(x[0][0], x[0][1]))
@@ -15,9 +17,12 @@ def build_protein_fasta(orfs, out_dir, description):
 
     SeqIO.write(records, out_dir, "fasta")
 
-# Convert the index of an amino acid to it's position in the parent 
-# nucleotide sequence.
 def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
+    """Convert the index of an amino acid to it's position in the parent 
+    nucleotide sequence.
+
+    """
+
     nuc_index = 0
     
     if strand == 1:
@@ -34,6 +39,12 @@ def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
     return nuc_index
 
 def get_orfs_in_range(all_orfs, rang):
+    """Given a list of orfs, return only those contained in
+    within a range.
+
+    Called by neighborhood_orffinder.
+
+    """
     
     orfs_in_range = []
     for orf in all_orfs:
@@ -46,6 +57,12 @@ def get_orfs_in_range(all_orfs, rang):
     return orfs_in_range
 
 def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
+    """Get all orfs in a single reading frame.
+
+    Called by get_all_orfs.
+
+    """
+
     parent_len = len(seq)
     trans = str(seq[frame:].translate())
     trans_len = len(trans)
@@ -74,9 +91,10 @@ def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
             aa_start = aa_stop + 1
 
 def get_all_orfs(seq, min_prot_len):
+    """Get orfs in all six reading frames."""
+
     all_orfs = []
 
-    # Look for orfs in all six reading frames
     for strand, nuc in [(+1, seq), (-1, seq.reverse_complement())]:
         for frame in range(3):
             get_orfs_in_frame(nuc, frame, strand, min_prot_len, all_orfs)
@@ -112,6 +130,19 @@ def orffinder(sequence, output, min_prot_len=30, description="putative protein")
     build_protein_fasta(all_orfs, output, description)
 
 def neighborhood_orffinder(sequence, ranges, outdir, min_prot_len=30, description="putative protein"):
+    """Find open reading frames in a nucleotide sequence that occur 
+    within a certain range/ranges.
+
+    Args:
+        sequence (str): Path to the input sequence file (in fasta format).
+        ranges (list): List of tuples containing the start and stop position
+            for each range.
+        outdir (str): Path to the output directory.
+        min_prot_len (int, optional): Minimal ORF length (amino acids). 
+            Defaults to 30 residues.
+        description (str, optional): Will be applied to all output records. 
+            Defaults to "putative protein".
+    """
     
     parent_seq = reader(sequence)
     all_orfs = get_all_orfs(parent_seq, min_prot_len)
