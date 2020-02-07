@@ -15,14 +15,13 @@ class Pipeline:
     Takes a single genome of interest as input, and performs a series of
     alignment/filter steps specified by the user after initialization.
 
-    Steps will be executed in order, determined by the order in which
-    they were added (see the 'add_step' methods below for details).
+    Steps are executed in the same order that they are added.
 
     Args:
         genome (str): Path to genome/contig fasta file.
         id (str): Unique identifier for this genome/contig.
-        min_prot_len (int, optional): Min residue size of putative 
-        proteins in query genome. Default is 30.
+        min_prot_len (int, optional): Min residue size of ORFs
+        in query genome. Default is 30.
         span (int, optional): Size of nt regions to keep around hits after the
         seed phase (see add_blast_seed_step method for details).
 
@@ -34,7 +33,7 @@ class Pipeline:
         >>> p = Pipeline(genome="v_crass.fasta", id="v_crass", span=15000)
 
         Add alignment steps to the pipeline. First, we will do a blast
-        for TnsA/B genes in the query genome. Regions that fall outside
+        for TnsA/B genes - "seeds" - in the query genome. Regions that fall outside
         of the span around each hit will be filtered out of subsequent searches.
 
         >>> p.add_blast_seed_step(db="blast_databases/tnsAB", name="tnsAB", e_val=0.001, blast_type="PROT")
@@ -58,6 +57,7 @@ class Pipeline:
         systems!
 
         >>> results = p.run()
+
     """
 
     def __init__(self, genome, id, min_prot_len=30, span=20000):
@@ -97,47 +97,71 @@ class Pipeline:
         self._working_dir.cleanup()
     
     def _results_init(self, neighborhood_ranges):
-        """
-        
+        """Create an entry for every gene neighborhood identified
+        during seed phase. All hits will be recorded here.
+
         """
 
         for r in neighborhood_ranges:
             key = "{}_{}".format(r[0], r[1])
-            self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "marked": False, "hits": {}}
+            self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "do_not_filter": False, "hits": {}}
     
     def _results_update(self, hits):
+        """Add hits to the results tracker (grouped by neighborhood)."""
 
         for hit in hits.keys():
             for neighborhood in self._results.keys():
+
+                # note that the begining and end of the hit is denoted by the begining and
+                # end of the orf used as the query
                 h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
                 h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+                
+                # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
         
     def _results_filter(self, hits):
+        """Add hits to the results tracker (grouped by neighbohood).
+        Remove neighborhoods that don't get updated.
+
+        """
 
         for hit in hits.keys():
             for neighborhood in self._results.keys():
+
+                # note that the begining and end of the hit is denoted by the begining and
+                # end of the orf used as the query
                 h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
                 h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+
+                # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
-                    self._results[neighborhood]["marked"] = True
+
+                    # This neighborhood contains at least one hit, so mark it
+                    self._results[neighborhood]["do_not_filter"] = True 
         
+        # remove unmarked neighborhood from results and query library
         remove = [neighborhood for neighborhood in self._results if not self._results[neighborhood]["marked"]]
         for neighborhood in remove:
             del self._results[neighborhood]
             del self._neighborhood_orfs[neighborhood]
         
         for neighborhood in self._results.keys():
-            self._results[neighborhood]["marked"] = False
+            self._results[neighborhood]["do_not_filter"] = False
 
     def _get_all_orfs(self):
+        """Get all of the (translated) open reading frames in this genome."""
 
         self._all_orfs = os.path.join(self._working_dir.name, "all_orfs.fasta")
         orffinder(sequence=self.genome, output=self._all_orfs, min_prot_len=self.min_prot_len, description=self.id)
 
     def _get_orfs_in_neighborhood(self, ranges):
+        """Grab all of the open reading frames within a subsequence
+        (neighborhood) from the original parent. 
+        
+        """
 
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, outdir=self._working_dir.name, min_prot_len=self.min_prot_len, description=self.id)
 
@@ -147,24 +171,81 @@ class Pipeline:
             self._neighborhood_orfs[key] = path
 
     def add_blast_seed_step(self, db, name, e_val, blast_type):
+        """Add a seed step to the pipeline. 
+
+        Internally, this will queue a series of sub-steps that
+        serve to identify genomic "neighborhoods" around the proteins of 
+        interest - "seeds" - in the parent genome. 
+
+        The individual steps can be summarized as follows:
+        1. Translate all open reading frames contained in the parent genome,
+        creating a protein "database" to use as a query.
+        2. Blast each ORF against a reference database of target proteins/seeds
+        3. Record the span to the left and right of each hit (set by the span 
+        parameter during pipeline initialization). This region is a potential 
+        CRISPR-transposon gene neighborhood. Hits with overlapping regions 
+        are merged into a single neighborhood.
+        4. Add nighborhood and hit info to the results tracker.
+        5. Remove ORFs that are not contained within the neighborhood regions
+        from the query database.
+
+        Args:
+            db (str): Path to the target (seed) protein database.
+            e_val (float): Blast expect value to use as a threshhold. 
+            See NCBI BLAST documentation for details.
+            blast_type (str): Specifies which blast program to use. 
+            Currently only blastp and psiblast are supported. 
+
+        Notes:
+            Only one seed step should be added to the pipeline, and it should
+            be first. Additional steps can occur in any order.
+        
+        """
 
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(SeedBlastp(db, name, e_val, self._working_dir.name, self.span))
         elif blast_type in PSIBLAST_KEYWORDS:
             self._steps.append(SeedBlastpsi(db, name, e_val, self._working_dir.name, self.span))
         else:
-            raise ValueError("blast type option '{}' not available for seed step".format(blast_type))
+            raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
     def add_blast_filter_step(self, db, name, e_val, blast_type):
+        """Add a filter step to the pipeline.
+
+        Blast genomic neighborhoods against the target database. 
+        Neighborhoods that don't contain hits are filtered out of 
+        the results and will not be used in subsequent searches.
+
+        Args:
+            db (str): Path to the target protein database.
+            e_val (float): Blast expect value to use as a threshhold. 
+            See NCBI BLAST documentation for details.
+            blast_type (str): Specifies which blast program to use. 
+            Currently only blastp and psiblast are supported. 
+
+        """
 
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
         elif blast_type in PSIBLAST_KEYWORDS:
             self._steps.append(FilterBlastpsi(db, name, e_val, self._working_dir.name))
         else:
-            raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
+            raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
     def add_blast_step(self, db, name, e_val, blast_type):
+        """Add a non-filtering blast step to the pipeline.
+
+        Blast genomic neighborhoods against the target database. 
+        Any hits are appended to the results.
+
+        Args:
+            db (str): Path to the target protein database.
+            e_val (float): Blast expect value to use as a threshhold. 
+            See NCBI BLAST documentation for details.
+            blast_type (str): Specifies which blast program to use. 
+            Currently only blastp and psiblast are supported. 
+            
+        """
 
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(Blastp(db, name, e_val, self._working_dir.name))
@@ -174,6 +255,15 @@ class Pipeline:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
 
     def run(self):
+        """Sequentially execute each step in the pipeline.
+
+        Currently, results from the run are returned as a dictionary
+        which can, for example, be parsed or pretty-printed using 
+        json:
+
+        >>> print(json.dumps(results, indent=4))
+
+        """
 
         neighborhood_orfs = None
         for step in self._steps:
