@@ -57,7 +57,6 @@ class Pipeline:
         systems!
 
         >>> results = p.run()
-
     """
 
     def __init__(self, genome, id, min_prot_len=30, span=20000):
@@ -74,9 +73,7 @@ class Pipeline:
         helps to simplify filtering and results reporting.
 
         Set up a temporary working directory for intermediate files.
-
         """
-
         self.genome = genome
         self.id = id
         self.min_prot_len = min_prot_len
@@ -91,17 +88,13 @@ class Pipeline:
     def __del__(self):
         """Delete the working directory and its contents when 
         this object is garbage collected.
-
         """
-
         self._working_dir.cleanup()
     
     def _results_init(self, neighborhood_ranges):
         """Create an entry for every gene neighborhood identified
         during seed phase. All hits will be recorded here.
-
         """
-
         for r in neighborhood_ranges:
             key = "{}_{}".format(r[0], r[1])
             self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "do_not_filter": False, "hits": {}}
@@ -124,9 +117,7 @@ class Pipeline:
     def _results_filter(self, hits):
         """Add hits to the results tracker (grouped by neighbohood).
         Remove neighborhoods that don't get updated.
-
         """
-
         for hit in hits.keys():
             for neighborhood in self._results.keys():
 
@@ -159,10 +150,8 @@ class Pipeline:
 
     def _get_orfs_in_neighborhood(self, ranges):
         """Grab all of the open reading frames within a subsequence
-        (neighborhood) from the original parent. 
-        
+        (neighborhood) from the original parent.   
         """
-
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, outdir=self._working_dir.name, min_prot_len=self.min_prot_len, description=self.id)
 
         for r in ranges:
@@ -199,9 +188,7 @@ class Pipeline:
         Notes:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
-        
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(SeedBlastp(db, name, e_val, self._working_dir.name, self.span))
         elif blast_type in PSIBLAST_KEYWORDS:
@@ -222,9 +209,7 @@ class Pipeline:
             See NCBI BLAST documentation for details.
             blast_type (str): Specifies which blast program to use. 
             Currently only blastp and psiblast are supported. 
-
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
         elif blast_type in PSIBLAST_KEYWORDS:
@@ -243,10 +228,8 @@ class Pipeline:
             e_val (float): Blast expect value to use as a threshhold. 
             See NCBI BLAST documentation for details.
             blast_type (str): Specifies which blast program to use. 
-            Currently only blastp and psiblast are supported. 
-            
+            Currently only blastp and psiblast are supported.     
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(Blastp(db, name, e_val, self._working_dir.name))
         elif blast_type in PSIBLAST_KEYWORDS:
@@ -262,9 +245,7 @@ class Pipeline:
         json:
 
         >>> print(json.dumps(results, indent=4))
-
         """
-
         neighborhood_orfs = None
         for step in self._steps:
             
