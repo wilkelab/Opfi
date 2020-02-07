@@ -9,12 +9,76 @@ BLASTP_KEYWORDS = ['Blastp', 'BlastP', 'BLASTP', 'PROT']
 PSIBLAST_KEYWORDS = ['psiBlast', 'psiblast', 'PSIBLAST', 'PSI']
 
 class Pipeline:
+    """
+    Main class for running the CRISPR-transposon identification pipeline.
+    
+    Takes a single genome of interest as input, and performs a series of
+    alignment/filter steps specified by the user after initialization.
 
-    def __init__(self, genome, id, outdir=None, min_prot_len=30, span=20000):
+    Steps will be executed in order, determined by the order in which
+    they were added (see the 'add_step' methods below for details).
+
+    Args:
+        genome (str): Path to genome/contig fasta file.
+        id (str): Unique identifier for this genome/contig.
+        min_prot_len (int, optional): Min residue size of putative 
+        proteins in query genome. Default is 30.
+        span (int, optional): Size of nt regions to keep around hits after the
+        seed phase (see add_blast_seed_step method for details).
+
+    Example:
+
+        Create a pipeline to search for CRISPR-transposon systems
+        in the Vibrio crassostreae genome.
+        . 
+        >>> p = Pipeline(genome="v_crass.fasta", id="v_crass", span=15000)
+
+        Add alignment steps to the pipeline. First, we will do a blast
+        for TnsA/B genes in the query genome. Regions that fall outside
+        of the span around each hit will be filtered out of subsequent searches.
+
+        >>> p.add_blast_seed_step(db="blast_databases/tnsAB", name="tnsAB", e_val=0.001, blast_type="PROT")
+
+        Now add a filter step for cas proteins. This will tell the program to
+        to run a blast against a cas reference database, but only for the
+        regions around the hits from the previous step. Regions ("neighborhoods")
+        that do not contain hits for cas proteins will be filtered out of
+        subsequent searches, as well as the results.
+
+        >>> p.add_blast_filter_step(db="blast_databases/cas", name="cas", e_val=0.001, blast_type="PSI")
+
+        Finally, add a blast step for tnsC and tnsD proteins using any remaining 
+        neighborhoods as queries. Neighborhoods that do not contain hits will NOT
+        be filtered out during this step.
+
+        >>> p.add_blast_step(db="blast_databases/tnsCD", name="tnsCD", e_val=0.001, blast_type="PROT")
+
+        Now, run the pipeline. Results are returned as a dictionary object containing
+        the hits associated with each neighborhood. These are your putative CRISPR-transposon
+        systems!
+
+        >>> results = p.run()
+    """
+
+    def __init__(self, genome, id, min_prot_len=30, span=20000):
+        """Initialize a Pipeline object with a genome/contig (path),
+        unique id, and (optionally) a minimum putative protein
+        length and the size of neighborhood regions.
+
+        Initialize an empty list to keep track of steps (which will
+        be added later) and an empty dictionary to track results.
+
+        Also initialize an empty dictionary to keep track of the ORFs
+        associated with each gene neighborhood. All blasts are
+        executed using ORFs from the parent genome as queries, which
+        helps to simplify filtering and results reporting.
+
+        Set up a temporary working directory for intermediate files.
+
+        """
 
         self.genome = genome
         self.id = id
-        self.outdir = outdir
         self.min_prot_len = min_prot_len
         self.span = span
         
@@ -25,10 +89,17 @@ class Pipeline:
         self._get_all_orfs()
 
     def __del__(self):
+        """Delete the working directory and its contents when 
+        this object is garbage collected.
+
+        """
 
         self._working_dir.cleanup()
     
     def _results_init(self, neighborhood_ranges):
+        """
+        
+        """
 
         for r in neighborhood_ranges:
             key = "{}_{}".format(r[0], r[1])
