@@ -8,7 +8,7 @@ def concatenate(in_dir, file_names):
 
     Args:
         in_dir (str): Path to input file directory.
-        file_names (list): List of files names.
+        file_names (list): List of file names.
     """
     out = os.path.join(in_dir, "merged_input.fasta")
     if os.path.exists(out):

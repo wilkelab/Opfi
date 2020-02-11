@@ -1,6 +1,6 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
-from crisposon.dbbuilders import build_blastp_db
+from crisposon.build_blast_db import build_blastp_db
 from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi
 
 import tempfile, os

@@ -38,3 +38,6 @@ def parse_blast(blast_xml, blast_id):
             hit_num += 1
 
     return hits
+
+def parse_pilercr(pilercr_out):
+    pass
