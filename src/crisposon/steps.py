@@ -27,7 +27,7 @@ class Blastpsi(BlastStep):
 
         file_name = "{}_blast.xml".format(self.name)
         blast_out = os.path.join(self.working_dir, file_name)
-        blast_cline = NcbipsiblastCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out)
+        blast_cline = NcbipsiblastCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out, num_threads=8)
         blast_cline()
 
         return blast_out
@@ -48,7 +48,7 @@ class Blastp(BlastStep):
 
         file_name = "{}_blast.xml".format(self.name)
         blast_out = os.path.join(self.working_dir, file_name)
-        blast_cline = NcbiblastpCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out)
+        blast_cline = NcbiblastpCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out, num_threads=8)
         blast_cline()
 
         return blast_out
