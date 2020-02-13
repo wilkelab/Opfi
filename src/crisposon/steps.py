@@ -1,7 +1,7 @@
 from Bio.Blast.Applications import NcbiblastpCommandline, NcbipsiblastCommandline
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import parse_blast
+from crisposon.parsers import parse_blast_xml
 
 import os
 
@@ -36,7 +36,7 @@ class Blastpsi(BlastStep):
 
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class Blastp(BlastStep):
 
@@ -57,7 +57,7 @@ class Blastp(BlastStep):
 
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class SeedBlastpsi(Blastpsi):
 
@@ -71,7 +71,7 @@ class SeedBlastpsi(Blastpsi):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
         self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
 
 class SeedBlastp(Blastp):
@@ -86,7 +86,7 @@ class SeedBlastp(Blastp):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
         self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
 
 class FilterBlastpsi(Blastpsi):
@@ -100,7 +100,7 @@ class FilterBlastpsi(Blastpsi):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class FilterBlastp(Blastp):
 
@@ -113,4 +113,4 @@ class FilterBlastp(Blastp):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)

@@ -105,8 +105,8 @@ class Pipeline:
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
-                h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
-                h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
+                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
                 
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
@@ -122,8 +122,8 @@ class Pipeline:
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
-                h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
-                h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
+                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
 
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
