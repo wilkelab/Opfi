@@ -1,9 +1,9 @@
 from Bio.Blast.Applications import NcbiblastpCommandline, NcbipsiblastCommandline
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import parse_blast_xml
+from crisposon.parsers import parse_blast_xml, parse_pilercr_summary
 
-import os
+import os, subprocess
 
 class BlastStep:
 
@@ -16,6 +16,7 @@ class BlastStep:
         self.orfs = None
         self.is_seed = False
         self.is_filter = False  
+        self.is_crispr = False
 
 class Blastpsi(BlastStep):
 
@@ -114,3 +115,26 @@ class FilterBlastp(Blastp):
         self.orfs = orfs
         blast_out = self.run_blast()
         self.hits = parse_blast_xml(blast_out, self.name)
+
+class CrisprStep:
+
+    def __init__(self, working_dir):
+
+        self.working_dir = working_dir
+        self.genome = None
+        self.is_seed = False
+        self.is_filter = False
+        self.is_crispr = True
+
+    def run_pilercr(self):
+
+        pilercr_out = os.path.join(self.working_dir, "pilercr_results")
+        cmd = ["pilercr", "-in", self.genome, "-out", pilercr_out]
+        subprocess.run(cmd, check=True)
+        return pilercr_out
+    
+    def execute(self, genome):
+
+        self.genome = genome
+        pilercr_out = self.run_pilercr()
+        self.hits = parse_pilercr_summary(pilercr_out)

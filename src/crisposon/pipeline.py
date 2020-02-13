@@ -1,7 +1,7 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
 from crisposon.build_blast_db import build_blastp_db
-from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi
+from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi, CrisprStep
 
 import tempfile, os
 
@@ -110,6 +110,16 @@ class Pipeline:
                 
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
+                    self._results[neighborhood]["hits"][hit] = hits[hit]
+    
+    def _results_update_crispr(self, hits):
+        """Add hits for CRISPR arrays to the results tracker."""
+
+        for hit in hits.keys():
+            for neighborhood in self._results.keys():
+
+                h_start = int(hits[hit]["Position"])
+                if h_start >= self._results[neighborhood]["n_start"] and h_start <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
         
     def _results_filter(self, hits):
@@ -234,6 +244,11 @@ class Pipeline:
             self._steps.append(Blastpsi(db, name, e_val, self._working_dir.name))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
+    
+    def add_crispr_step(self):
+        """Add a pilercr step to search for CRISPR arrays."""
+
+        self._steps.append(CrisprStep(self._working_dir.name))
 
     def run(self):
         """Sequentially execute each step in the pipeline.
@@ -262,8 +277,12 @@ class Pipeline:
                 neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
             
             else:
-                step.execute(neighborhood_orfs)
-                self._results_update(step.hits)
+                if step.is_crispr:
+                    step.execute(self.genome)
+                    self._results_update_crispr(step.hits)
+                else:
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits)
 
         results = self._results
         return results
@@ -273,8 +292,8 @@ if __name__ == "__main__":
 
     import json
 
-    genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
-    out = "/home/alexis/Projects/CRISPR-Transposons/data/"
+    #genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
+    genome = "/home/alexis/Projects/CRISPR-Transposons/data/contigs/C2558"
     seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
     filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_uniref/blast_db"
     final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc/blast_db"
@@ -287,6 +306,7 @@ if __name__ == "__main__":
     p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
     p.add_filter_step(filter_db, "cas", 0.001, "PROT")
     p.add_blast_step(final_db, "tnsCD", 0.001, "PROT")
+    p.add_crispr_step()
     results = p.run()
 
     print(json.dumps(results, indent=4))

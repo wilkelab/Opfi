@@ -57,24 +57,37 @@ def parse_blast_xml(blast_xml, blast_id):
 
     return hits
 
-def _get_field_lables(line):
-    """Extract the following field lables from 
+def _is_int(string):
+    """Check if a string can be cast to an int.
+
+    Helps parse_pilercr_summary determine if 
+    a line contains array information.
+    """
+    try: 
+        int(string)
+        return True
+    except ValueError:
+        return False
+
+def _get_column_lables(line):
+    """Extract the following column lables from 
     pilercr "SUMMARY BY POSITION" table: "Position",
-    "Length", "Copies", "Repeat", "Spacer", 
-    "Consensus".
+    "Length", "Copies", "Repeat", "Spacer", "Strand",
+     "Consensus".
 
     Used by parse_pilercr_summary.
     """
-    fields = line.split()
-    fields_to_remove = ["Array", "Sequence", "#", "Distance"]
-    fields = [field for field in fields if field not in fields_to_remove]
+    lables = line.split()
+    lables_to_remove = ["Array", "Sequence", "#", "+"]
+    lables = [lable for lable in lables if lable not in lables_to_remove]
+    lables.insert(5, "Strand")
     
-    return fields
+    return lables
 
 def _get_array_info(line):
     """Extract the following information for an array
-    in pilercr "SUMMARY BY POSITION" table: "Position",
-    "Length", "Copies", "Repeat", "Spacer", 
+    in pilercr "SUMMARY BY SIMILARITY" table: "Position",
+    "Length", "Copies", "Repeat", "Spacer", "Strand",
     "Consensus".
 
     Used by parse_pilercr_summary.
@@ -82,8 +95,6 @@ def _get_array_info(line):
     array_info = line.split("  ")
     array_info = map(str.strip, array_info)
     array_info = [info for info in array_info if info != ""]
-    if len(array_info) == 9:
-        array_info.pop(7)
     array_info.pop(1)
     array_num = array_info.pop(0)
     array_id = "array_{}".format(array_num)
@@ -114,40 +125,44 @@ def parse_pilercr_summary(pilercr_out):
         }
 
     """    
-    summary_reached = False
+    headers_reached = False
     array_info_start = False
-    fields = []
+    lables = []
     arrays = {}
 
     with open(pilercr_out) as f:
         for line in f:
             line = line.strip()
 
-            if summary_reached and not len(line.split()) == 0:
+            if headers_reached and not len(line.split()) == 0:
                 if line.split()[0] == "Array":
-                    fields = _get_field_lables(line)
+                    lables = _get_column_lables(line)
                     array_info_start = True
-                    summary_reached = False
+                    headers_reached = False
 
             elif array_info_start and not len(line.split()) == 0:
-                if line.split()[0] != "==========":
+                if _is_int(line.split()[0]):
                     array_id, array_info = _get_array_info(line)
                     arrays[array_id] = {}
-                    for field, value in zip(fields, array_info):
-                        arrays[array_id][field] = value
+                    for lable, value in zip(lables, array_info):
+                        arrays[array_id][lable] = value
+
+            elif line == "SUMMARY BY SIMILARITY":
+                headers_reached = True
 
             elif line == "SUMMARY BY POSITION":
-                summary_reached = True
+                array_info_start = False
 
     return arrays
 
 if __name__ == "__main__":
     #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/vcrass"
     #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/a_brierleyi"
+    pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/C2558"
 
-    #arrays = parse_pilercr_summary(pilercr_out)
-    #print(json.dumps(arrays, indent=4))
+    arrays = parse_pilercr_summary(pilercr_out)
+    print(json.dumps(arrays, indent=4))
 
-    blast_out = "/home/alexis/Projects/CRISPR-Transposons/data/tmp/v_crass.xml"
-    hits = parse_blast_xml(blast_out, blast_id="v_crass")
-    print(json.dumps(hits, indent=4))
+    #blast_out = "/home/alexis/Projects/CRISPR-Transposons/data/tmp/v_crass.xml"
+    #hits = parse_blast_xml(blast_out, blast_id="v_crass")
+    #print(json.dumps(hits, indent=4))
