@@ -42,3 +42,4 @@ def build_blastp_db(input, db_dir=None, db_name="blast_db"):
 
     if merged:
         os.remove(in_file)
+        

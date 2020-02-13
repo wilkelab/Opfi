@@ -20,9 +20,7 @@ def build_protein_fasta(orfs, out_dir, description):
 def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
     """Convert the index of an amino acid to it's position in the parent 
     nucleotide sequence.
-
     """
-
     nuc_index = 0
     
     if strand == 1:
@@ -43,9 +41,7 @@ def get_orfs_in_range(all_orfs, rang):
     within a range.
 
     Called by neighborhood_orffinder.
-
     """
-    
     orfs_in_range = []
     for orf in all_orfs:
         lower = min(orf[0][0], orf[0][1])
@@ -60,9 +56,7 @@ def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
     """Get all orfs in a single reading frame.
 
     Called by get_all_orfs.
-
     """
-
     parent_len = len(seq)
     trans = str(seq[frame:].translate())
     trans_len = len(trans)
@@ -143,7 +137,6 @@ def neighborhood_orffinder(sequence, ranges, outdir, min_prot_len=30, descriptio
         description (str, optional): Will be applied to all output records. 
             Defaults to "putative protein".
     """
-    
     parent_seq = reader(sequence)
     all_orfs = get_all_orfs(parent_seq, min_prot_len)
 

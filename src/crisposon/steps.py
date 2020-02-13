@@ -1,9 +1,9 @@
 from Bio.Blast.Applications import NcbiblastpCommandline, NcbipsiblastCommandline
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.xmlparser import parse_blast
+from crisposon.parsers import parse_blast_xml, parse_pilercr_summary
 
-import os
+import os, subprocess
 
 class BlastStep:
 
@@ -16,6 +16,7 @@ class BlastStep:
         self.orfs = None
         self.is_seed = False
         self.is_filter = False  
+        self.is_crispr = False
 
 class Blastpsi(BlastStep):
 
@@ -27,7 +28,7 @@ class Blastpsi(BlastStep):
 
         file_name = "{}_blast.xml".format(self.name)
         blast_out = os.path.join(self.working_dir, file_name)
-        blast_cline = NcbipsiblastCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out)
+        blast_cline = NcbipsiblastCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out, num_threads=4)
         blast_cline()
 
         return blast_out
@@ -36,7 +37,7 @@ class Blastpsi(BlastStep):
 
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class Blastp(BlastStep):
 
@@ -48,7 +49,7 @@ class Blastp(BlastStep):
 
         file_name = "{}_blast.xml".format(self.name)
         blast_out = os.path.join(self.working_dir, file_name)
-        blast_cline = NcbiblastpCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out)
+        blast_cline = NcbiblastpCommandline(query=self.orfs, db=self.db, evalue=self.e_val, outfmt=5, max_target_seqs=1, out=blast_out, num_threads=4)
         blast_cline()
 
         return blast_out
@@ -57,7 +58,7 @@ class Blastp(BlastStep):
 
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class SeedBlastpsi(Blastpsi):
 
@@ -71,7 +72,7 @@ class SeedBlastpsi(Blastpsi):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
         self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
 
 class SeedBlastp(Blastp):
@@ -86,7 +87,7 @@ class SeedBlastp(Blastp):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
         self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
 
 class FilterBlastpsi(Blastpsi):
@@ -100,7 +101,7 @@ class FilterBlastpsi(Blastpsi):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
 
 class FilterBlastp(Blastp):
 
@@ -113,4 +114,27 @@ class FilterBlastp(Blastp):
         
         self.orfs = orfs
         blast_out = self.run_blast()
-        self.hits = parse_blast(blast_out, self.name)
+        self.hits = parse_blast_xml(blast_out, self.name)
+
+class CrisprStep:
+
+    def __init__(self, working_dir):
+
+        self.working_dir = working_dir
+        self.genome = None
+        self.is_seed = False
+        self.is_filter = False
+        self.is_crispr = True
+
+    def run_pilercr(self):
+
+        pilercr_out = os.path.join(self.working_dir, "pilercr_results")
+        cmd = ["pilercr", "-in", self.genome, "-out", pilercr_out]
+        subprocess.run(cmd, check=True)
+        return pilercr_out
+    
+    def execute(self, genome):
+
+        self.genome = genome
+        pilercr_out = self.run_pilercr()
+        self.hits = parse_pilercr_summary(pilercr_out)

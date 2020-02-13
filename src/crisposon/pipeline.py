@@ -1,7 +1,7 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
-from crisposon.dbbuilders import build_blastp_db
-from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi
+from crisposon.build_blast_db import build_blastp_db
+from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi, CrisprStep
 
 import tempfile, os
 
@@ -13,9 +13,7 @@ class Pipeline:
     Main class for running the CRISPR-transposon identification pipeline.
     
     Takes a single genome of interest as input, and performs a series of
-    alignment/filter steps specified by the user after initialization.
-
-    Steps are executed in the same order that they are added.
+     user-specified alignment steps to identify putative CRISPR-transposon elements.
 
     Args:
         genome (str): Path to genome/contig fasta file.
@@ -57,13 +55,12 @@ class Pipeline:
         systems!
 
         >>> results = p.run()
-
     """
 
     def __init__(self, genome, id, min_prot_len=30, span=20000):
         """Initialize a Pipeline object with a genome/contig (path),
-        unique id, and (optionally) a minimum putative protein
-        length and the size of neighborhood regions.
+        unique id, and (optionally) a minimum ORF length and the 
+        size of neighborhood regions.
 
         Initialize an empty list to keep track of steps (which will
         be added later) and an empty dictionary to track results.
@@ -74,9 +71,7 @@ class Pipeline:
         helps to simplify filtering and results reporting.
 
         Set up a temporary working directory for intermediate files.
-
         """
-
         self.genome = genome
         self.id = id
         self.min_prot_len = min_prot_len
@@ -91,17 +86,13 @@ class Pipeline:
     def __del__(self):
         """Delete the working directory and its contents when 
         this object is garbage collected.
-
         """
-
         self._working_dir.cleanup()
     
     def _results_init(self, neighborhood_ranges):
         """Create an entry for every gene neighborhood identified
-        during seed phase. All hits will be recorded here.
-
+        during the seed phase. All hits will be recorded here.
         """
-
         for r in neighborhood_ranges:
             key = "{}_{}".format(r[0], r[1])
             self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "do_not_filter": False, "hits": {}}
@@ -114,26 +105,35 @@ class Pipeline:
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
-                h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
-                h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
+                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
                 
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
+    
+    def _results_update_crispr(self, hits):
+        """Add hits for CRISPR arrays to the results tracker."""
+
+        for hit in hits.keys():
+            for neighborhood in self._results.keys():
+
+                h_start = int(hits[hit]["Position"])
+                if h_start >= self._results[neighborhood]["n_start"] and h_start <= self._results[neighborhood]["n_stop"]:
+                    self._results[neighborhood]["hits"][hit] = hits[hit]
         
     def _results_filter(self, hits):
         """Add hits to the results tracker (grouped by neighbohood).
-        Remove neighborhoods that don't get updated.
-
+        Once all hits are added, remove neighborhood that were not
+        updated.
         """
-
         for hit in hits.keys():
             for neighborhood in self._results.keys():
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
-                h_start = min(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
-                h_stop = max(int(hits[hit]["q_start"]), int(hits[hit]["q_stop"]))
+                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
+                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
 
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
@@ -143,7 +143,7 @@ class Pipeline:
                     self._results[neighborhood]["do_not_filter"] = True 
         
         # remove unmarked neighborhood from results and query library
-        remove = [neighborhood for neighborhood in self._results if not self._results[neighborhood]["marked"]]
+        remove = [neighborhood for neighborhood in self._results if not self._results[neighborhood]["do_not_filter"]]
         for neighborhood in remove:
             del self._results[neighborhood]
             del self._neighborhood_orfs[neighborhood]
@@ -159,10 +159,8 @@ class Pipeline:
 
     def _get_orfs_in_neighborhood(self, ranges):
         """Grab all of the open reading frames within a subsequence
-        (neighborhood) from the original parent. 
-        
+        (neighborhood) from the original parent.   
         """
-
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, outdir=self._working_dir.name, min_prot_len=self.min_prot_len, description=self.id)
 
         for r in ranges:
@@ -170,17 +168,16 @@ class Pipeline:
             path = os.path.join(self._working_dir.name, "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
-    def add_blast_seed_step(self, db, name, e_val, blast_type):
+    def add_seed_step(self, db, name, e_val, blast_type):
         """Add a seed step to the pipeline. 
 
-        Internally, this will queue a series of sub-steps that
+        Internally, this queues a series of sub-steps that
         serve to identify genomic "neighborhoods" around the proteins of 
         interest - "seeds" - in the parent genome. 
 
         The individual steps can be summarized as follows:
-        1. Translate all open reading frames contained in the parent genome,
-        creating a protein "database" to use as a query.
-        2. Blast each ORF against a reference database of target proteins/seeds
+        1. Translate all open reading frames contained in the parent genome.
+        2. Blast each ORF against a reference database of target proteins (seeds)
         3. Record the span to the left and right of each hit (set by the span 
         parameter during pipeline initialization). This region is a potential 
         CRISPR-transposon gene neighborhood. Hits with overlapping regions 
@@ -199,9 +196,7 @@ class Pipeline:
         Notes:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
-        
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(SeedBlastp(db, name, e_val, self._working_dir.name, self.span))
         elif blast_type in PSIBLAST_KEYWORDS:
@@ -209,7 +204,7 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
-    def add_blast_filter_step(self, db, name, e_val, blast_type):
+    def add_filter_step(self, db, name, e_val, blast_type):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -222,9 +217,7 @@ class Pipeline:
             See NCBI BLAST documentation for details.
             blast_type (str): Specifies which blast program to use. 
             Currently only blastp and psiblast are supported. 
-
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
         elif blast_type in PSIBLAST_KEYWORDS:
@@ -243,16 +236,19 @@ class Pipeline:
             e_val (float): Blast expect value to use as a threshhold. 
             See NCBI BLAST documentation for details.
             blast_type (str): Specifies which blast program to use. 
-            Currently only blastp and psiblast are supported. 
-            
+            Currently only blastp and psiblast are supported.     
         """
-
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(Blastp(db, name, e_val, self._working_dir.name))
         elif blast_type in PSIBLAST_KEYWORDS:
             self._steps.append(Blastpsi(db, name, e_val, self._working_dir.name))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
+    
+    def add_crispr_step(self):
+        """Add a pilercr step to search for CRISPR arrays."""
+
+        self._steps.append(CrisprStep(self._working_dir.name))
 
     def run(self):
         """Sequentially execute each step in the pipeline.
@@ -262,9 +258,9 @@ class Pipeline:
         json:
 
         >>> print(json.dumps(results, indent=4))
-
         """
 
+        # TODO: Add error handling for seed execution
         neighborhood_orfs = None
         for step in self._steps:
             
@@ -281,8 +277,12 @@ class Pipeline:
                 neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
             
             else:
-                step.execute(neighborhood_orfs)
-                self._results_update(step.hits)
+                if step.is_crispr:
+                    step.execute(self.genome)
+                    self._results_update_crispr(step.hits)
+                else:
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits)
 
         results = self._results
         return results
@@ -292,8 +292,8 @@ if __name__ == "__main__":
 
     import json
 
-    genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
-    out = "/home/alexis/Projects/CRISPR-Transposons/data/"
+    #genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
+    genome = "/home/alexis/Projects/CRISPR-Transposons/data/contigs/C2558"
     seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
     filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_uniref/blast_db"
     final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc/blast_db"
@@ -302,10 +302,11 @@ if __name__ == "__main__":
     db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"
     build_blastp_db(input=in_dir, db_dir=db_dir)"""
     
-    p = Pipeline(genome, "v_crass", out, span=10000)
-    p.add_blast_seed_step(seed_db, "tnsAB", 0.001, "PSI")
-    p.add_blast_filter_step(filter_db, "cas", 0.001, "PROT")
+    p = Pipeline(genome, "v_crass", min_prot_len=30, span=10000)
+    p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
+    p.add_filter_step(filter_db, "cas", 0.001, "PROT")
     p.add_blast_step(final_db, "tnsCD", 0.001, "PROT")
+    p.add_crispr_step()
     results = p.run()
 
     print(json.dumps(results, indent=4))
