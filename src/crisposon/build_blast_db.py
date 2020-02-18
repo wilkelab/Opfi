@@ -1,19 +1,29 @@
 import os, subprocess, shutil
 
 def concatenate(in_dir, file_names):
-    outstr = "merged_input.fasta"
+    """Merge two or more fasta files."""
     
-    with open(str(in_dir + "/" + outstr),"wb") as outfile:
+    path_to_mergefile = os.path.join(in_dir, "merged_input.fasta")
+
+    with open(path_to_mergefile,"wb") as mergefile:
         for name in file_names:
-            with open(str(in_dir + "/" + name),"rb") as infile:
-                shutil.copyfileobj(infile, outfile)
+            path_to_infile = os.path.join(in_dir, name)
+            with open(path_to_infile,"rb") as infile:
+                shutil.copyfileobj(infile, mergefile)
     
-    return outstr
+    return path_to_mergefile
 
 def reader(path):
-    files = os.listdir(path)
-    merged = False
+    """Determine if the input should be merged.
 
+    """
+    # TODO: Refactor so that build_blastp_db can
+    # accept a single file OR one or more files
+    # living in a directory
+    
+    merged = False
+    files = os.listdir(path)
+    
     if len(files) == 0:
         raise Exception("No files present in input directory")
     else:
@@ -36,9 +46,8 @@ def build_blastp_db(input, db_dir=None, db_name="blast_db"):
         os.mkdir(db_dir)
     
     db = os.path.join(db_dir, db_name)
-    blastdb_params = ['makeblastdb', '-in', in_file, '-dbtype', 'prot', '-out', db, '-hash_index']
-    blastdb_cmd = " ".join(blastdb_params)
-    subprocess.call(blastdb_cmd, shell=True)
+    cmd = ['makeblastdb', '-in', in_file, '-dbtype', 'prot', '-out', db, '-hash_index']
+    subprocess.run(cmd, check=True)
 
     if merged:
         os.remove(in_file)

@@ -51,8 +51,7 @@ class Pipeline:
         >>> p.add_blast_step(db="blast_databases/tnsCD", name="tnsCD", e_val=0.001, blast_type="PROT")
 
         Now, run the pipeline. Results are returned as a dictionary object containing
-        the hits associated with each neighborhood. These are your putative CRISPR-transposon
-        systems!
+        the hits associated with each neighborhood.
 
         >>> results = p.run()
     """
@@ -246,7 +245,11 @@ class Pipeline:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
     def add_crispr_step(self):
-        """Add a pilercr step to search for CRISPR arrays."""
+        """Add a step to search for CRISPR arrays.
+        
+        Uses pilercr with default parameters. Hits that 
+        overlap with a genomic neighborhood are appended to
+        the resutls"""
 
         self._steps.append(CrisprStep(self._working_dir.name))
 

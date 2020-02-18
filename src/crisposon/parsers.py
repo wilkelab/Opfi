@@ -16,46 +16,51 @@ def parse_blast_xml(blast_xml, blast_id):
         blast_id(str, optional): A unique ID for the
             blast step.
     """
-    tree = ET.parse(blast_xml)
-    blast_output = tree.getroot()
-    
-    hits = {}
-    hit_num = 0
-    for iteration in blast_output.iter('Iteration'):
-        hit = iteration.find('Iteration_hits').find('Hit')
+    try:
+        tree = ET.parse(blast_xml)
+        blast_output = tree.getroot()
         
-        if hit is not None:
-            hit_dic = {}
+        hits = {}
+        hit_num = 0
+        for iteration in blast_output.iter('Iteration'):
+            hit = iteration.find('Iteration_hits').find('Hit')
             
-            # get the ORF id
-            query = iteration.find("Iteration_query-def").text
-            query = query.split().pop(0)
-            hit_dic["ORFID"] = query
+            if hit is not None:
+                hit_dic = {}
+                
+                # get the ORF id
+                query = iteration.find("Iteration_query-def").text
+                query = query.split().pop(0)
+                hit_dic["ORFID"] = query
 
-            # get query start/stop pos (nt) from ORF id
-            query = query.split("|")
-            hit_dic["Start"] = query[1]
-            hit_dic["Stop"] = query[2]
+                # get query start/stop pos (nt) from ORF id
+                query = query.split("|")
+                hit_dic["Start"] = query[1]
+                hit_dic["Stop"] = query[2]
 
-            # information about the reference protein
-            hit_def = hit.find("Hit_def").text.split()
-            hit_dic["Name"] = hit_def.pop(1)
-            hit_dic["Accession"] = hit_def.pop(0)
-            hit_dic["Description"] = " ".join(hit_def)
+                # information about the reference protein
+                hit_def = hit.find("Hit_def").text.split()
+                hit_dic["Name"] = hit_def.pop(1)
+                hit_dic["Accession"] = hit_def.pop(0)
+                hit_dic["Description"] = " ".join(hit_def)
 
-            # e val for this hsp
-            e_val = hit.find("Hit_hsps").find("Hsp").find("Hsp_evalue").text
-            hit_dic["Expect"] = e_val
+                # e val for this hsp
+                e_val = hit.find("Hit_hsps").find("Hsp").find("Hsp_evalue").text
+                hit_dic["Expect"] = e_val
 
-            # Sequence of the translated ORF used as the query
-            query_sequence = hit.find("Hit_hsps").find("Hsp").find("Hsp_qseq").text
-            hit_dic["QuerySeq"] = query_sequence
+                # Sequence of the translated ORF used as the query
+                query_sequence = hit.find("Hit_hsps").find("Hsp").find("Hsp_qseq").text
+                hit_dic["QuerySeq"] = query_sequence
 
-            hit_name = blast_id + "_hit_" + str(hit_num)
-            hits[hit_name] = hit_dic
-            hit_num += 1
+                hit_name = blast_id + "_hit_" + str(hit_num)
+                hits[hit_name] = hit_dic
+                hit_num += 1
 
-    return hits
+        return hits
+    
+    except ET.ParseError:
+
+        return {}
 
 def _is_int(string):
     """Check if a string can be cast to an int.
@@ -84,6 +89,8 @@ def _get_column_lables(line):
     
     return lables
 
+# TODO: Refactor -> Remove the first 23 characters in the
+# line, and then split normally. 
 def _get_array_info(line):
     """Extract the following information for an array
     in pilercr "SUMMARY BY SIMILARITY" table: "Position",
