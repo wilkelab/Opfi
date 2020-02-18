@@ -168,11 +168,8 @@ if __name__ == "__main__":
     pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/C2558"
 
     arrays = parse_pilercr_summary(pilercr_out)
-    #print(json.dumps(arrays, indent=4))
+    print(json.dumps(arrays, indent=4))
 
     #blast_out = "/home/alexis/Projects/CRISPR-Transposons/data/tmp/v_crass.xml"
     #hits = parse_blast_xml(blast_out, blast_id="v_crass")
     #print(json.dumps(hits, indent=4))
-
-    out = "empty.txt"
-    print(parse_blast_xml(out, "empty"))
