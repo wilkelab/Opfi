@@ -51,8 +51,7 @@ class Pipeline:
         >>> p.add_blast_step(db="blast_databases/tnsCD", name="tnsCD", e_val=0.001, blast_type="PROT")
 
         Now, run the pipeline. Results are returned as a dictionary object containing
-        the hits associated with each neighborhood. These are your putative CRISPR-transposon
-        systems!
+        the hits associated with each neighborhood.
 
         >>> results = p.run()
     """
