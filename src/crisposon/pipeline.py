@@ -1,6 +1,6 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
-from crisposon.build_blast_db import build_blastp_db
+from crisposon.build_blast_db import build_blast_db
 from crisposon.steps import SeedBlastp, SeedBlastpsi, FilterBlastp, FilterBlastpsi, Blastp, Blastpsi, CrisprStep
 
 import tempfile, os
@@ -264,6 +264,10 @@ class Pipeline:
         """
 
         # TODO: Add error handling for seed execution
+
+        # TODO: Logic to handle early termination of the run
+        # in the event that all ORFs have been discarded 
+
         neighborhood_orfs = None
         for step in self._steps:
             
@@ -303,7 +307,7 @@ if __name__ == "__main__":
 
     """in_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/tns_cd/"
     db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"
-    build_blastp_db(input=in_dir, db_dir=db_dir)"""
+    build_blast_db(input=in_dir, db_dir=db_dir)"""
     
     p = Pipeline(genome, "v_crass", min_prot_len=30, span=10000)
     p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
