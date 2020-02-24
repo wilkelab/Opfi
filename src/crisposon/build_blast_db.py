@@ -14,9 +14,7 @@ def concatenate(in_dir, file_names):
     return path_to_mergefile
 
 def reader(path):
-    """Determine if the input should be merged.
-
-    """
+    """Determine if the input should be merged."""
     # TODO: Refactor so that build_blastp_db can
     # accept a single file OR one or more files
     # living in a directory
@@ -36,7 +34,7 @@ def reader(path):
     
     return path, merged
 
-def build_blastp_db(input, db_dir=None, db_name="blast_db"):
+def build_blast_db(input, db_dir=None, db_name="blast_db"):
     in_file, merged = reader(input)
     
     if db_dir == None:

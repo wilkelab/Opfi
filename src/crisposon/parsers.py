@@ -88,10 +88,8 @@ def _get_column_lables(line):
     lables.insert(5, "Strand")
     
     return lables
-
-# TODO: Refactor -> Remove the first 23 characters in the
-# line, and then split normally. 
-def _get_array_info(line):
+ 
+def _get_array_info(line, array_num):
     """Extract the following information for an array
     in pilercr "SUMMARY BY SIMILARITY" table: "Position",
     "Length", "Copies", "Repeat", "Spacer", "Strand",
@@ -99,18 +97,16 @@ def _get_array_info(line):
 
     Used by parse_pilercr_summary.
     """
-    array_info = line.split("  ")
-    array_info = map(str.strip, array_info)
-    array_info = [info for info in array_info if info != ""]
-    array_info.pop(1)
-    array_num = array_info.pop(0)
+    line = line[25:]
+    array_info = line.split()
     array_id = "array_{}".format(array_num)
     
     return array_id, array_info
 
 def parse_pilercr_summary(pilercr_out):
-    """Parse pilercr output - "summary
-    by position" section only.
+    """Parse pilercr output.
+    
+    "summary by position" section only.
 
     Returns a dictionary of dictionaries, containing
     key-value pairs of infomation associated with
@@ -136,36 +132,37 @@ def parse_pilercr_summary(pilercr_out):
     array_info_start = False
     lables = []
     arrays = {}
+    array_num = 0
 
     with open(pilercr_out) as f:
         for line in f:
-            line = line.strip()
 
-            if headers_reached and not len(line.split()) == 0:
-                if line.split()[0] == "Array":
+            if headers_reached and not line.isspace():
+                if line.strip().split()[0] == "Array":
                     lables = _get_column_lables(line)
                     array_info_start = True
                     headers_reached = False
 
-            elif array_info_start and not len(line.split()) == 0:
-                if _is_int(line.split()[0]):
-                    array_id, array_info = _get_array_info(line)
+            elif array_info_start and not line.isspace():
+                if _is_int(line.strip().split()[0]):
+                    array_id, array_info = _get_array_info(line, array_num)
                     arrays[array_id] = {}
+                    array_num += 1
                     for lable, value in zip(lables, array_info):
                         arrays[array_id][lable] = value
 
-            elif line == "SUMMARY BY SIMILARITY":
+            if line.strip() == "SUMMARY BY SIMILARITY":
                 headers_reached = True
 
-            elif line == "SUMMARY BY POSITION":
+            if line.strip() == "SUMMARY BY POSITION":
                 array_info_start = False
 
     return arrays
 
 if __name__ == "__main__":
-    #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/vcrass"
+    pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/vcrass"
     #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/a_brierleyi"
-    pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/C2558"
+    #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/C2558"
 
     arrays = parse_pilercr_summary(pilercr_out)
     print(json.dumps(arrays, indent=4))
