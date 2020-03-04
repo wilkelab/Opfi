@@ -89,8 +89,8 @@ void PILERCR()
 		g_ShowProgress = false;
 
 	g_DraftMinArraySize = g_MinArraySize - 2;
-	if (g_DraftMinArraySize < 3)
-		g_DraftMinArraySize = 3;
+	if (g_DraftMinArraySize < 2)
+		g_DraftMinArraySize = 2;
 
 	Progress("Reading sequences from %s", InFileName);
 	g_SeqQ = ReadMFA(InFileName, &SeqLengthQ, &ContigsQ,
