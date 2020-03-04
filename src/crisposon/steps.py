@@ -129,7 +129,7 @@ class CrisprStep:
     def run_pilercr(self):
 
         pilercr_out = os.path.join(self.working_dir, "pilercr_results")
-        cmd = ["pilercr", "-in", self.genome, "-out", pilercr_out]
+        cmd = ["pilercr", "-in", self.genome, "-out", pilercr_out, "-minarray", "2"]
         subprocess.run(cmd, check=True)
         return pilercr_out
     
