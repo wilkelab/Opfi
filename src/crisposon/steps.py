@@ -73,7 +73,11 @@ class SeedBlastpsi(Blastpsi):
         self.orfs = orfs
         blast_out = self.run_blast()
         self.hits = parse_blast_xml(blast_out, self.name)
-        self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
+
+        if len(self.hits) != 0:
+            self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
+        else:
+            self.neighborhood_ranges = None
 
 class SeedBlastp(Blastp):
 
@@ -88,7 +92,11 @@ class SeedBlastp(Blastp):
         self.orfs = orfs
         blast_out = self.run_blast()
         self.hits = parse_blast_xml(blast_out, self.name)
-        self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
+        
+        if len(self.hits) != 0:
+            self.neighborhood_ranges = get_neighborhood_ranges(self.hits, self.span)
+        else:
+            self.neighborhood_ranges = None
 
 class FilterBlastpsi(Blastpsi):
 
