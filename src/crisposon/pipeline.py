@@ -265,31 +265,59 @@ class Pipeline:
 
         # TODO: Add error handling for seed execution
 
-        # TODO: Logic to handle early termination of the run
-        # in the event that all ORFs have been discarded 
-
         neighborhood_orfs = None
         for step in self._steps:
             
             if step.is_seed:
+                #print("Begin seed step: {}".format(step.name))
                 step.execute(self._all_orfs)
-                self._get_orfs_in_neighborhood(step.neighborhood_ranges)
-                self._results_init(step.neighborhood_ranges)
-                self._results_update(step.hits)
-                neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
+
+                if len(step.hits) != 0:
+                    self._get_orfs_in_neighborhood(step.neighborhood_ranges)
+                    self._results_init(step.neighborhood_ranges)
+                    self._results_update(step.hits)
+                    neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
+                    #print("Seed step complete")
+                
+                else:
+                    #print("No hits for seed gene - terminating run")
+                    return {}
 
             elif step.is_filter:
-                step.execute(neighborhood_orfs)
-                self._results_filter(step.hits)
-                neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
+                #print("Begin filter step: {}".format(step.name))
+                
+                if len(self._neighborhood_orfs) != 0:
+                    step.execute(neighborhood_orfs)
+                    self._results_filter(step.hits)
+                    neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
+                    #print("Filtering for {} genes complete".format(step.name))
+                
+                else:
+                    #print("No putative neighborhoods remain - terminating run")
+                    return {}
             
-            else:
-                if step.is_crispr:
+            elif step.is_crispr:
+                #print("Begin CRISPR array search")
+                
+                if len(self._neighborhood_orfs) != 0:
                     step.execute(self.genome)
                     self._results_update_crispr(step.hits)
+                    #print("CRISPR array search complete")
+                
                 else:
+                    #print("No putative neighborhoods remain - terminating run")
+                    return {}
+                    
+            else:
+                #print("Begin blast step: {}".format(step.name))
+                if len(self._neighborhood_orfs) != 0:
                     step.execute(neighborhood_orfs)
                     self._results_update(step.hits)
+                    #print("Blast step complete")
+                
+                else:
+                    #print("No putative neighborhoods remain - terminating run")
+                    return {}
 
         results = self._results
         return results

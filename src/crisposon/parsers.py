@@ -8,8 +8,8 @@ def parse_blast_xml(blast_xml, blast_id):
     Queries (ORFs) for which no alignments were returned
     are excluded from the output.
 
-    Returns a dictionary of dictionaries if hits 
-    were found; otherwise, returns an empty dictionary.
+    Returns a dictionary of dictionaries if hits print(len(self.hits))
+    were found; otherwise, returns None.
 
     Args:
         blast_xml(str): Path to blast output.
