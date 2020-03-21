@@ -15,23 +15,27 @@ def concatenate(in_dir, file_names):
 
 def reader(path):
     """Determine if the input should be merged."""
-    # TODO: Refactor so that build_blastp_db can
-    # accept a single file OR one or more files
-    # living in a directory
     
     merged = False
-    files = os.listdir(path)
+    if os.path.isfile(path):
+        pass
     
-    if len(files) == 0:
-        raise Exception("No files present in input directory")
-    else:
-        if len(files) > 1:
+    elif os.path.isdir(path):
+        files = os.listdir(path)
+        if len(files) == 0:
+            raise Exception("No files present in input directory")
+        
+        elif len(files) > 1:
             m_file = concatenate(path, files)
             path = os.path.join(path, m_file)
             merged = True
+        
         else:
             path = os.path.join(path, files[0])
     
+    else:
+        raise Exception("Invalid input")
+
     return path, merged
 
 def build_blast_db(input, db_dir=None, db_name="blast_db"):
@@ -49,4 +53,15 @@ def build_blast_db(input, db_dir=None, db_name="blast_db"):
 
     if merged:
         os.remove(in_file)
-        
+
+if __name__ == "__main__":
+    
+    ref_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/cas_uniref"
+    db_home_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_ALL_sep"
+
+    for fil in os.listdir(ref_dir):
+
+        gene = fil.split("-")[1]
+        db_dir = os.path.join(db_home_dir, gene)
+        os.mkdir(db_dir)
+        build_blast_db(os.path.join(ref_dir, fil), db_dir)
