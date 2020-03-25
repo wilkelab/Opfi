@@ -38,3 +38,5 @@ p.add_crispr_step()
 
 results = p.run()
 ```
+The docstrings in pipeline.py provide more details about pipeline usage, paramaters, etc.
+Also, I tried to clean up some of the scripts I've been using to run jobs - they can be found under extras/
