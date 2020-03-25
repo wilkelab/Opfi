@@ -53,15 +53,3 @@ def build_blast_db(input, db_dir=None, db_name="blast_db"):
 
     if merged:
         os.remove(in_file)
-
-if __name__ == "__main__":
-    
-    ref_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/cas_uniref"
-    db_home_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_ALL_sep"
-
-    for fil in os.listdir(ref_dir):
-
-        gene = fil.split("-")[1]
-        db_dir = os.path.join(db_home_dir, gene)
-        os.mkdir(db_dir)
-        build_blast_db(os.path.join(ref_dir, fil), db_dir)

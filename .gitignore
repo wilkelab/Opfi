@@ -1,5 +1,6 @@
 # virtual environments
 env/
+env_test/
 
 # distribution stuff
 crisposon.egg-info/
@@ -15,4 +16,4 @@ __pycache__/
 junk/
 data/
 out
-scripts/
+job_scripts/
