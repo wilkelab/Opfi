@@ -94,13 +94,27 @@ class Pipeline:
         """
         for r in neighborhood_ranges:
             key = "{}_{}".format(r[0], r[1])
-            self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "do_not_filter": False, "hits": {}}
+            self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "new_hit_count": 0, "hits": {}}
+
+    def _filter(self, min_prot_count):
+        """
+        Remove neighborhood from results if the number of new hits added 
+        during the filter step is less than the user specified cutoff.
+
+        Note that if no cutoff is given, the default used is 1.
+        """
+
+        remove = [neighborhood for neighborhood in self._results if self._results[neighborhood]["new_hit_count"] < min_prot_count]
+        for neighborhood in remove:
+            del self._results[neighborhood]
+            del self._neighborhood_orfs[neighborhood]
+        
     
-    def _results_update(self, hits):
+    def _results_update(self, hits, min_prot_count):
         """Add hits to the results tracker (grouped by neighborhood)."""
 
-        for hit in hits.keys():
-            for neighborhood in self._results.keys():
+        for hit in hits:
+            for neighborhood in self._results:
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
@@ -110,45 +124,24 @@ class Pipeline:
                 # check whether this hit is contained within the neighborhood
                 if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
+                    self._results[neighborhood]["new_hit_count"] += 1
+        
+        if min_prot_count >= 1:
+            self._filter(min_prot_count)
+        
+        for neighborhood in self._results:
+            self._results[neighborhood]["new_hit_count"] = 0
+
     
     def _results_update_crispr(self, hits):
         """Add hits for CRISPR arrays to the results tracker."""
 
-        for hit in hits.keys():
-            for neighborhood in self._results.keys():
+        for hit in hits:
+            for neighborhood in self._results:
 
                 h_start = int(hits[hit]["Position"])
                 if h_start >= self._results[neighborhood]["n_start"] and h_start <= self._results[neighborhood]["n_stop"]:
                     self._results[neighborhood]["hits"][hit] = hits[hit]
-        
-    def _results_filter(self, hits):
-        """Add hits to the results tracker (grouped by neighbohood).
-        Once all hits are added, remove neighborhood that were not
-        updated.
-        """
-        for hit in hits.keys():
-            for neighborhood in self._results.keys():
-
-                # note that the begining and end of the hit is denoted by the begining and
-                # end of the orf used as the query
-                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
-                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
-
-                # check whether this hit is contained within the neighborhood
-                if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
-                    self._results[neighborhood]["hits"][hit] = hits[hit]
-
-                    # This neighborhood contains at least one hit, so mark it
-                    self._results[neighborhood]["do_not_filter"] = True 
-        
-        # remove unmarked neighborhood from results and query library
-        remove = [neighborhood for neighborhood in self._results if not self._results[neighborhood]["do_not_filter"]]
-        for neighborhood in remove:
-            del self._results[neighborhood]
-            del self._neighborhood_orfs[neighborhood]
-        
-        for neighborhood in self._results.keys():
-            self._results[neighborhood]["do_not_filter"] = False
 
     def _get_all_orfs(self):
         """Get all of the (translated) open reading frames in this genome."""
@@ -203,24 +196,27 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
-    def add_filter_step(self, db, name, e_val, blast_type):
+    def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
-        Neighborhoods that don't contain hits are filtered out of 
-        the results and will not be used in subsequent searches.
+        Neighborhoods with no hits against the target database will 
+        be filtered out of the results and will not be used in subsequent 
+        searches.
 
         Args:
             db (str): Path to the target protein database.
             e_val (float): Blast expect value to use as a threshhold. 
-            See NCBI BLAST documentation for details.
+                See NCBI BLAST documentation for details.
             blast_type (str): Specifies which blast program to use. 
-            Currently only blastp and psiblast are supported. 
+                Currently only blastp and psiblast are supported.
+            min_prot_count (int, optional): Sets a minimum number of
+                hits required to keep neighborhoods. 
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name))
+            self._steps.append(FilterBlastp(db, name, e_val, self._working_dir.name, min_prot_count))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(FilterBlastpsi(db, name, e_val, self._working_dir.name))
+            self._steps.append(FilterBlastpsi(db, name, e_val, self._working_dir.name, min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
@@ -275,7 +271,7 @@ class Pipeline:
                 if len(step.hits) != 0:
                     self._get_orfs_in_neighborhood(step.neighborhood_ranges)
                     self._results_init(step.neighborhood_ranges)
-                    self._results_update(step.hits)
+                    self._results_update(step.hits, min_prot_count=0)
                     neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
                     #print("Seed step complete")
                 
@@ -288,7 +284,7 @@ class Pipeline:
                 
                 if len(self._neighborhood_orfs) != 0:
                     step.execute(neighborhood_orfs)
-                    self._results_filter(step.hits)
+                    self._results_update(step.hits, min_prot_count=step.min_prot_count)
                     neighborhood_orfs = concatenate(self._working_dir.name, self._neighborhood_orfs.values())
                     #print("Filtering for {} genes complete".format(step.name))
                 
@@ -312,7 +308,7 @@ class Pipeline:
                 #print("Begin blast step: {}".format(step.name))
                 if len(self._neighborhood_orfs) != 0:
                     step.execute(neighborhood_orfs)
-                    self._results_update(step.hits)
+                    self._results_update(step.hits, min_prot_count=0)
                     #print("Blast step complete")
                 
                 else:
@@ -330,8 +326,8 @@ if __name__ == "__main__":
     #genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
     genome = "/home/alexis/Projects/CRISPR-Transposons/data/contigs/C2558"
     seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
-    filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_uniref/blast_db"
-    final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc/blast_db"
+    filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_ALL/blast_db"
+    final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsCD/blast_db"
 
     """in_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/tns_cd/"
     db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"

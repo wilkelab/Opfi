@@ -100,10 +100,11 @@ class SeedBlastp(Blastp):
 
 class FilterBlastpsi(Blastpsi):
 
-    def __init__(self, db, name, e_val, working_dir):
+    def __init__(self, db, name, e_val, working_dir, min_prot_count):
 
         Blastp.__init__(self, db, name, e_val, working_dir)
         self.is_filter = True
+        self.min_prot_count = min_prot_count
 
     def execute(self, orfs):
         
@@ -113,10 +114,12 @@ class FilterBlastpsi(Blastpsi):
 
 class FilterBlastp(Blastp):
 
-    def __init__(self, db, name, e_val, working_dir):
+    def __init__(self, db, name, e_val, working_dir, min_prot_count):
 
         Blastp.__init__(self, db, name, e_val, working_dir)
         self.is_filter = True
+        self.min_prot_count = min_prot_count
+
 
     def execute(self, orfs):
         
