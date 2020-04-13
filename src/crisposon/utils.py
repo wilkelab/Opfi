@@ -43,12 +43,12 @@ def get_neighborhood_ranges(hits, span=20000):
     """
     hit_coords = []
     # sort the hit dictionary dictionary keys by hit start position
-    keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["Start"]), int(hits[k]["Stop"])))
+    keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["Query_start-pos"]), int(hits[k]["Query_end-pos"])))
     
     # use sorted keys to construct a sorted list of hit coordinates
     for key in keys_sorted:
-        start = int(hits[key]["Start"])
-        stop = int(hits[key]["Stop"])
+        start = int(hits[key]["Query_start-pos"])
+        stop = int(hits[key]["Query_end-pos"])
         lower = min(start, stop)
         upper = max(start, stop)
         hit_coords.append((lower, upper))

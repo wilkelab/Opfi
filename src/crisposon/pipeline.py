@@ -93,8 +93,8 @@ class Pipeline:
         during the seed phase. All hits will be recorded here.
         """
         for r in neighborhood_ranges:
-            key = "{}_{}".format(r[0], r[1])
-            self._results[key] = {"n_start": int(r[0]), "n_stop": int(r[1]), "new_hit_count": 0, "hits": {}}
+            key = "Loc_{}-{}".format(r[0], r[1])
+            self._results[key] = {"Loc_start": int(r[0]), "Loc_end": int(r[1]), "new_hit_count": 0, "Hits": {}}
 
     def _filter(self, min_prot_count):
         """
@@ -118,12 +118,12 @@ class Pipeline:
 
                 # note that the begining and end of the hit is denoted by the begining and
                 # end of the orf used as the query
-                h_start = min(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
-                h_stop = max(int(hits[hit]["Start"]), int(hits[hit]["Stop"]))
+                h_start = min(int(hits[hit]["Query_start-pos"]), int(hits[hit]["Query_end-pos"]))
+                h_stop = max(int(hits[hit]["Query_start-pos"]), int(hits[hit]["Query_end-pos"]))
                 
                 # check whether this hit is contained within the neighborhood
-                if h_start >= self._results[neighborhood]["n_start"] and h_stop <= self._results[neighborhood]["n_stop"]:
-                    self._results[neighborhood]["hits"][hit] = hits[hit]
+                if h_start >= self._results[neighborhood]["Loc_start"] and h_stop <= self._results[neighborhood]["Loc_end"]:
+                    self._results[neighborhood]["Hits"][hit] = hits[hit]
                     self._results[neighborhood]["new_hit_count"] += 1
         
         if min_prot_count >= 1:
@@ -140,8 +140,8 @@ class Pipeline:
             for neighborhood in self._results:
 
                 h_start = int(hits[hit]["Position"])
-                if h_start >= self._results[neighborhood]["n_start"] and h_start <= self._results[neighborhood]["n_stop"]:
-                    self._results[neighborhood]["hits"][hit] = hits[hit]
+                if h_start >= self._results[neighborhood]["Loc_start"] and h_start <= self._results[neighborhood]["Loc_end"]:
+                    self._results[neighborhood]["Hits"][hit] = hits[hit]
 
     def _get_all_orfs(self):
         """Get all of the (translated) open reading frames in this genome."""
@@ -156,7 +156,7 @@ class Pipeline:
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, outdir=self._working_dir.name, min_prot_len=self.min_prot_len, description=self.id)
 
         for r in ranges:
-            key = "{}_{}".format(r[0], r[1])
+            key = "Loc_{}-{}".format(r[0], r[1])
             path = os.path.join(self._working_dir.name, "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
@@ -245,11 +245,21 @@ class Pipeline:
         
         Uses pilercr with default parameters. Hits that 
         overlap with a genomic neighborhood are appended to
-        the resutls"""
+        the resutls.
+        """
 
         self._steps.append(CrisprStep(self._working_dir.name))
 
-    def run(self):
+    def _format_results(outfrmt, outfile):
+        
+        # Remove temporary hit counter tag
+        for neighborhood in self._results:
+            del self._results[neighborhood]["new_hit_count"]
+        
+        if outfrmt is not None:
+
+
+    def run(self, outfrmt=None, outfile=None):
         """Sequentially execute each step in the pipeline.
 
         Currently, results from the run are returned as a dictionary
