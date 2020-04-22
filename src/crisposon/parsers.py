@@ -31,28 +31,29 @@ def parse_blast_xml(blast_xml, blast_id):
                 # get the ORF id
                 query = iteration.find("Iteration_query-def").text
                 query = query.split().pop(0)
-                hit_dic["ORFID"] = query
+                hit_dic["Query_ORFID"] = query
 
                 # get query start/stop pos (nt) from ORF id
                 query = query.split("|")
-                hit_dic["Start"] = query[1]
-                hit_dic["Stop"] = query[2]
+                hit_dic["Query_start-pos"] = query[1]
+                hit_dic["Query_end-pos"] = query[2]
 
                 # information about the reference protein
                 hit_def = hit.find("Hit_def").text.split()
-                hit_dic["Name"] = hit_def.pop(1)
-                hit_dic["Accession"] = hit_def.pop(0)
-                hit_dic["Description"] = " ".join(hit_def)
+                hit_dic["Hit_name"] = hit_def.pop(1)
+                hit_dic["Hit_accession"] = hit_def.pop(0)
+                hit_dic["Hit_description"] = " ".join(hit_def)
 
                 # e val for this hsp
                 e_val = hit.find("Hit_hsps").find("Hsp").find("Hsp_evalue").text
-                hit_dic["Expect"] = e_val
+                hit_dic["Hit_e-val"] = e_val
 
                 # Sequence of the translated ORF used as the query
                 query_sequence = hit.find("Hit_hsps").find("Hsp").find("Hsp_qseq").text
-                hit_dic["QuerySeq"] = query_sequence
+                hit_dic["Query_sequence"] = query_sequence
 
-                hit_name = blast_id + "_hit_" + str(hit_num)
+                # Capitalize first letter only of blast_id (set by pipeline.add_step() name param)
+                hit_name = "{}{}_hit-{}".format(blast_id[:1].upper(), blast_id[1:], str(hit_num))
                 hits[hit_name] = hit_dic
                 hit_num += 1
 
@@ -99,7 +100,7 @@ def _get_array_info(line, array_num):
     """
     line = line[25:]
     array_info = line.split()
-    array_id = "array_{}".format(array_num)
+    array_id = "Array_{}".format(array_num)
     
     return array_id, array_info
 
