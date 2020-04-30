@@ -1,5 +1,6 @@
 import os, json
 import xml.etree.ElementTree as ET
+import pandas as pd
 
 def parse_blast_xml(blast_xml, blast_id):
     """Parse blast xml output generated from 
@@ -8,7 +9,7 @@ def parse_blast_xml(blast_xml, blast_id):
     Queries (ORFs) for which no alignments were returned
     are excluded from the output.
 
-    Returns a dictionary of dictionaries if hits print(len(self.hits))
+    Returns a dictionary of dictionaries if hits
     were found; otherwise, returns None.
 
     Args:
@@ -159,6 +160,50 @@ def parse_pilercr_summary(pilercr_out):
                 array_info_start = False
 
     return arrays
+
+def parse_mmseqs(mmseqs_tsv, step_id, fields):
+
+    try:
+        df = pd.read_csv(mmseqs_tsv, sep="\t", names=fields)
+
+        # remove all but the best (lowest evalue) hit for each query that had
+        # had hits
+        df = df.sort_values("evalue", ascending=True).drop_duplicates(["query"])
+
+        hits = {}
+        hit_num = 0
+        for row in df.itertuples():
+            hit_dic = {}
+            local_query_id = row.qheader.split()[0]
+            hit_dic["Query_ORFID"] = local_query_id
+
+            # get query start/stop pos (nt) from ORF id
+            local_query_id = local_query_id.split("|")
+            hit_dic["Query_start-pos"] = local_query_id[1]
+            hit_dic["Query_end-pos"] = local_query_id[2]
+
+            # information about the reference protein
+            hit_def = row.theader.split()
+            hit_dic["Hit_name"] = hit_def.pop(1)
+            hit_dic["Hit_accession"] = hit_def.pop(0)
+            hit_dic["Hit_description"] = " ".join(hit_def)
+
+            # e val for this hsp
+            hit_dic["Hit_e-val"] = row.evalue
+
+            # Sequence of the translated ORF used as the query
+            hit_dic["Query_sequence"] = row.qseq
+
+            # Capitalize first letter only of blast_id (set by pipeline.add_step() name param)
+            hit_name = "{}{}_hit-{}".format(step_id[:1].upper(), step_id[1:], str(hit_num))
+            hits[hit_name] = hit_dic
+            hit_num += 1
+
+        return hits
+    
+    except pd.errors.EmptyDataError:
+
+        return {}
 
 if __name__ == "__main__":
     pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/vcrass"
