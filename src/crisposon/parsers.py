@@ -1,4 +1,4 @@
-import os, json
+import os, json, csv
 import xml.etree.ElementTree as ET
 import pandas as pd
 
@@ -161,7 +161,7 @@ def parse_pilercr_summary(pilercr_out):
 
     return arrays
 
-def parse_mmseqs(mmseqs_tsv, step_id, fields):
+"""def parse_mmseqs(mmseqs_tsv, step_id, fields):
 
     try:
         df = pd.read_csv(mmseqs_tsv, sep="\t", names=fields)
@@ -203,6 +203,84 @@ def parse_mmseqs(mmseqs_tsv, step_id, fields):
     
     except pd.errors.EmptyDataError:
 
+        return {}"""
+
+def _keep_row(row, hits):
+    """parse_mmseqs helper function.
+
+    Determine if given row represents the best hit for this
+    query so far. 
+    """
+
+    if row["query"] in hits:
+        if float(row["evalue"]) < float(hits[row["query"]]["Hit_e-val"]):
+            return True
+        else:
+            return False
+    else:
+        return True
+
+def _reformat_mmseqs_hit_ids(hits, step_id):
+    """parse_mmseqs helper function.
+
+    Copy over hit info from a dict where keys are in the mmseq query ID format
+    to a dict where keys are in the format created by the other crisposon 
+    parsers.
+    """
+
+    re_hits = {}
+    hit_num = 0
+    for hit in hits.values():
+        hit_id = "{}{}_hit-{}".format(step_id[:1].upper(), step_id[1:], str(hit_num))
+        re_hits[hit_id] = hit
+        hit_num += 1
+    
+    return re_hits
+
+def parse_mmseqs(mmseqs_tsv, step_id, fields):
+    """Parse mmseqs output (in blast tabular format).
+
+    Expects an mmseqs output tsv file with the following 
+    fields: "query,target,evalue,qseq,qheader,theader,qcov,tset"
+
+    Returns a dictionary of best hits for each query that had a 
+    hit, where "best" means the lowest e-value score.
+    """
+
+    try:
+        hits = {}
+        with open(mmseqs_tsv, newline='') as tsvfile:
+            reader = csv.DictReader(tsvfile, fieldnames=fields, delimiter="\t")
+
+            for row in reader:
+                if _keep_row(row, hits):
+                    hit_dic = {}
+                    local_query_id = row["qheader"].split()[0]
+                    hit_dic["Query_ORFID"] = local_query_id
+
+                    # get query start/stop pos (nt) from ORF id
+                    local_query_id = local_query_id.split("|")
+                    hit_dic["Query_start-pos"] = local_query_id[1]
+                    hit_dic["Query_end-pos"] = local_query_id[2]
+
+                    # information about the reference protein
+                    hit_dic["Hit_description"] = row["theader"]
+                    hit_dic["Hit_name"] = row["tset"]
+                    hit_dic["Hit_accession"] = row["target"]
+                    
+                    # e val for this hsp
+                    hit_dic["Hit_e-val"] = row["evalue"]
+
+                    # Sequence of the translated ORF used as the query
+                    hit_dic["Query_sequence"] = row["qseq"]
+
+                    hit_name = row["query"]
+                    hits[hit_name] = hit_dic
+
+        hits = _reformat_mmseqs_hit_ids(hits, step_id)
+        return hits
+    
+    except csv.Error:
         return {}
 
 if __name__ == "__main__":
