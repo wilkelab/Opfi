@@ -1,14 +1,17 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
 from crisposon.build_blast_db import build_blast_db
-from crisposon.steps import (SeedBlastp, SeedBlastpsi, FilterBlastp, 
-                            FilterBlastpsi, Blastp, Blastpsi, CrisprStep)
+from crisposon.steps import (SearchStep, FilterStep, 
+                                SeedStep, CrisprStep, Blastp, 
+                                Blastpsi, MMseqs, Diamond)
 from crisposon.output_writers import CSVWriter
 
 import tempfile, os
 
-BLASTP_KEYWORDS = ['Blastp', 'BlastP', 'BLASTP', 'PROT']
-PSIBLAST_KEYWORDS = ['psiBlast', 'psiblast', 'PSIBLAST', 'PSI']
+BLASTP_KEYWORDS = ["blastp", "PROT"]
+PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
+MMSEQS_KEYWORDS = ["mmseqs"]
+DIAMOND_KEYWORDS = ["diamond"]
 
 class Pipeline:
     """
@@ -178,7 +181,7 @@ class Pipeline:
                                 "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
-    def add_seed_step(self, db, name, e_val, blast_type):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, extra_args=None):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -208,15 +211,22 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SeedBlastp(db, name, e_val, 
-                                            self._working_dir.name, self.span))
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SeedBlastpsi(db, name, e_val, 
-                                            self._working_dir.name, self.span))
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Blastpsi(db, e_val, name)))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
-    def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1):
+    def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
+                        sensitivity=None, extra_args=None):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -234,15 +244,22 @@ class Pipeline:
                 hits required to keep neighborhoods. 
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(FilterBlastp(db, name, e_val, 
-                                            self._working_dir.name, min_prot_count))
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                            Blastp(db, e_val, name), min_prot_count))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(FilterBlastpsi(db, name, e_val, 
-                                                self._working_dir.name, min_prot_count))
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                            Blastpsi(db, e_val, name), min_prot_count))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                Diamond(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
-    def add_blast_step(self, db, name, e_val, blast_type):
+    def add_blast_step(self, db, name, e_val, blast_type, 
+                        sensitivity=None, extra_args=None):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -256,9 +273,17 @@ class Pipeline:
             Currently only blastp and psiblast are supported.     
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(Blastp(db, name, e_val, self._working_dir.name))
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                            Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(Blastpsi(db, name, e_val, self._working_dir.name))
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                            Blastpsi(db, e_val, name)))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
@@ -301,9 +326,9 @@ class Pipeline:
         neighborhood_orfs = None
         for step in self._steps:
             
-            if step.is_seed:
+            if isinstance(step, SeedStep):
                 #print("Begin seed step: {}".format(step.name))
-                step.execute(self._all_orfs)
+                step.execute(self._all_orfs, self.span)
 
                 if len(step.hits) != 0:
                     self._get_orfs_in_neighborhood(step.neighborhood_ranges)
@@ -317,7 +342,7 @@ class Pipeline:
                     #print("No hits for seed gene - terminating run")
                     return {}
 
-            elif step.is_filter:
+            elif isinstance(step, FilterStep):
                 #print("Begin filter step: {}".format(step.name))
                 
                 if len(self._neighborhood_orfs) != 0:
@@ -331,7 +356,7 @@ class Pipeline:
                     #print("No putative neighborhoods remain - terminating run")
                     return {}
             
-            elif step.is_crispr:
+            elif isinstance(step, CrisprStep):
                 #print("Begin CRISPR array search")
                 
                 if len(self._neighborhood_orfs) != 0:
