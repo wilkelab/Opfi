@@ -1,10 +1,18 @@
 import unittest
-import tempfile, os, yaml, json
+import tempfile, os, yaml
 from crisposon.pipeline import Pipeline
 
 class TestPipeline(unittest.TestCase):
+    """Pipeline integration tests.
+    
+    Runs pipeline on a single contig (NZ_CCKB01000071.1,
+    Vibrio crassostreae strain J5-20) with a known I-F3
+    system.
+    """
 
     def test_with_blast(self):
+        """Test pipeline using BLAST as the alignment tool."""
+
         genomic_data = "tests/test_data/contigs/v_crass_J520_whole.fasta"
         conf_file = "tests/configs/blast_functional_test.yaml"
 
@@ -12,17 +20,21 @@ class TestPipeline(unittest.TestCase):
         stream = open(conf_file, 'r')
         conf = yaml.load(stream)
 
-        p = Pipeline(genome=genomic_data, id="v_crassostreae", min_prot_len=conf["min-prot-len"], span=conf["span"])
+        p = Pipeline(genome=genomic_data, id="v_crassostreae", 
+                    min_prot_len=conf["min-prot-len"], span=conf["span"])
         for step in conf["steps"]:
             
             if step["type"] == "seed":
-                p.add_seed_step(db=step["blast-db"], name=step["name"], e_val=step["e-val"], blast_type=step["blast-type"])
+                p.add_seed_step(db=step["blast-db"], name=step["name"], 
+                                    e_val=step["e-val"], blast_type=step["blast-type"])
             
             elif step["type"] == "filter":
-                p.add_filter_step(db=step["blast-db"], name=step["name"], e_val=step["e-val"], blast_type=step["blast-type"])
+                p.add_filter_step(db=step["blast-db"], name=step["name"],
+                                    e_val=step["e-val"], blast_type=step["blast-type"])
             
             elif step["type"] == "blast":
-                p.add_blast_step(db=step["blast-db"], name=step["name"], e_val=step["e-val"], blast_type=step["blast-type"])
+                p.add_blast_step(db=step["blast-db"], name=step["name"], 
+                                    e_val=step["e-val"], blast_type=step["blast-type"])
             
             else:
                 p.add_crispr_step()
