@@ -1,7 +1,7 @@
 from Bio.Blast.Applications import NcbiblastpCommandline, NcbipsiblastCommandline
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import parse_blast_xml, parse_pilercr_summary, parse_mmseqs
+from crisposon.parsers import parse_blast_xml, parse_pilercr_summary, parse_mmseqs, parse_diamond
 
 import os, subprocess, tempfile, multiprocessing
 
@@ -97,6 +97,7 @@ class MMseqs():
         return hits
     
     def run(self, orfs):
+        """Execute the mmseqs search command and parse output."""
 
         # setup necessary files and directories for mmseqs run
         query_db = self._make_query_db(orfs)
@@ -107,10 +108,12 @@ class MMseqs():
         cmd = ["mmseqs", "search", query_db, self.target_db, result_db, mmseqs_work, "-s",
                 self.sensitivity, "-e", self.e_val, "-v", "0"]
         
+        # append extra mmseqs search args if they exist
         if self.extra_args is not None:
             cmd = cmd + self.extra_args
         subprocess.run(cmd, check=True)
         
+        # parse output
         hits = self._extract_best_hits(query_db, result_db)
         return hits
     
@@ -118,7 +121,7 @@ class Diamond():
     """Wrapper for diamond command line search util."""
 
     def __init__(self, db, e_val, name, sensitivity, extra_args=None):
-        """Initialize a mmseqs command line run"""
+        """Initialize a diamond command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
@@ -128,16 +131,23 @@ class Diamond():
         self.extra_args = extra_args
 
     def run(self, orfs):
+        """Execute the diamond blastp command and parse output."""
 
-        result = os.path.join(self.tmp_dir.name, "result.xml")
-        cmd = ["diamond", "blastp", "-q", orfs, "-d", self.db, "-o", result,
-                self.sensitivity, "-e", self.e_val, "-k", "1", "-f", "5", "--quiet"]
+        result = os.path.join(self.tmp_dir.name, "result.tsv")
+        tsv_fields = 'qseqid sseqid full_qseq evalue stitle'
         
+        cmd = ["diamond", "blastp", "-q", orfs, "-d", self.db, "-o", result,
+                self.sensitivity, "-e", self.e_val, "-k", "1", "--quiet", "-f", 
+                "6", str(tsv_fields)]
+        
+        # append extra diamond blastp args if they exist
         if self.extra_args is not None:
             cmd = cmd + self.extra_args
-        subprocess.run(cmd, check=True)
+        cmd = " ".join(cmd) 
+        subprocess.run(cmd, check=True, shell=True)
         
-        hits = parse_blast_xml(result, self.name)
+        # parse output
+        hits = parse_diamond(result, self.name, tsv_fields.split())
         return hits       
 
 class SearchStep:
