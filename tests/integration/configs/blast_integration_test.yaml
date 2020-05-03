@@ -11,22 +11,23 @@
       name: "tnsAB"
       e-val: 1e-3
       blast-type: "PROT"
-      blast-db: "/home/alexis/projects/CRISPR-Transposons/tests/test_data/blast_databases/tnsAB/blast_db"
+      blast-db: "tests/integration/integration_data/blast_databases/tnsAB/blast_db"
     - step:
       type: "filter"
       name: "cas_all"
       e-val: 1e-5
       blast-type: "PROT"
-      blast-db: "/home/alexis/projects/CRISPR-Transposons/tests/test_data/blast_databases/cas/blast_db"
+      blast-db: "tests/integration/integration_data/blast_databases/cas/blast_db"
     - step:
       type: "blast"
       name: "tnsCD"
       e-val: 1e-3
       blast-type: "PROT"
-      blast-db: "/home/alexis/projects/CRISPR-Transposons/tests/test_data/blast_databases/tnsCD/blast_db"
+      blast-db: "tests/integration/integration_data/blast_databases/tnsCD/blast_db"
     - step:
       type: "crispr"
       name: null
       e-val: null
       blast-type: null
       blast-db: null
+      
