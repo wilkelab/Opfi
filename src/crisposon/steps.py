@@ -1,7 +1,11 @@
-from Bio.Blast.Applications import NcbiblastpCommandline, NcbipsiblastCommandline
+from Bio.Blast.Applications import (NcbiblastpCommandline, 
+                                    NcbipsiblastCommandline)
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import parse_blast_xml, parse_pilercr_summary, parse_mmseqs, parse_diamond
+from crisposon.parsers import (parse_blast_xml, 
+                                parse_pilercr_summary, 
+                                parse_mmseqs, 
+                                parse_diamond)
 
 import os, subprocess, tempfile, multiprocessing
 
@@ -60,12 +64,12 @@ class Blastpsi():
 class MMseqs():
     """Wrapper for mmseqs command line search util."""
 
-    def __init__(self, db, e_val, name, sensitivity, extra_args=None):
+    def __init__(self, db, e_val, step_id, sensitivity, extra_args=None):
         """Initialize a mmseqs command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.target_db = db
-        self.name = name
+        self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
         self.extra_args = extra_args
@@ -93,7 +97,7 @@ class MMseqs():
                             result_db, results_tsv, "--format-output", tsv_fields]
         subprocess.run(convertalis_cmd, check=True)
         
-        hits = parse_mmseqs(results_tsv, self.name, tsv_fields.split(","))
+        hits = parse_mmseqs(results_tsv, self.step_id, tsv_fields.split(","))
         return hits
     
     def run(self, orfs):
@@ -120,12 +124,12 @@ class MMseqs():
 class Diamond():
     """Wrapper for diamond command line search util."""
 
-    def __init__(self, db, e_val, name, sensitivity, extra_args=None):
+    def __init__(self, db, e_val, step_id, sensitivity, extra_args=None):
         """Initialize a diamond command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
-        self.name = name
+        self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
         self.extra_args = extra_args
@@ -147,8 +151,25 @@ class Diamond():
         subprocess.run(cmd, check=True, shell=True)
         
         # parse output
-        hits = parse_diamond(result, self.name, tsv_fields.split())
+        hits = parse_diamond(result, self.step_id, tsv_fields.split())
         return hits       
+
+class Pilercr():
+
+    def __init__(self, step_id):
+
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.step_id = step_id
+    
+    def run(self, genome):
+
+        pilercr_out = os.path.join(self.tmp_dir.name, "pilercr_results")
+        cmd = ["pilercr", "-in", genome, "-out", pilercr_out, "-minarray", "2", "-quiet"]
+        subprocess.run(cmd, check=True)
+        
+        hits = parse_pilercr_summary(pilercr_out)
+        return hits
+        
 
 class SearchStep:
 
@@ -184,22 +205,8 @@ class FilterStep(SearchStep):
         SearchStep.__init__(self, working_dir, search_tool)
         self.min_prot_count = min_prot_count
 
-class CrisprStep:
+class CrisprStep(SearchStep):
 
-    def __init__(self, working_dir):
+    def __init__(self, working_dir, search_tool):
 
-        self.working_dir = working_dir
-        self.genome = None
-
-    def run_pilercr(self):
-
-        pilercr_out = os.path.join(self.working_dir, "pilercr_results")
-        cmd = ["pilercr", "-in", self.genome, "-out", pilercr_out, "-minarray", "2", "-quiet"]
-        subprocess.run(cmd, check=True)
-        return pilercr_out
-    
-    def execute(self, genome):
-
-        self.genome = genome
-        pilercr_out = self.run_pilercr()
-        self.hits = parse_pilercr_summary(pilercr_out)
+        SearchStep.__init__(self, working_dir, search_tool)

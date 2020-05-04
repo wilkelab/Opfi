@@ -1,12 +1,19 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
 from crisposon.build_blast_db import build_blast_db
-from crisposon.steps import (SearchStep, FilterStep, 
-                                SeedStep, CrisprStep, Blastp, 
-                                Blastpsi, MMseqs, Diamond)
+from crisposon.steps import (SearchStep, 
+                                FilterStep, 
+                                SeedStep, 
+                                CrisprStep, 
+                                Blastp, 
+                                Blastpsi, 
+                                MMseqs, 
+                                Diamond,
+                                Pilercr)
+
 from crisposon.output_writers import CSVWriter
 
-import tempfile, os
+import tempfile, os, json
 
 BLASTP_KEYWORDS = ["blastp", "PROT"]
 PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
@@ -90,6 +97,7 @@ class Pipeline:
         self._working_dir = tempfile.TemporaryDirectory()
         self._neighborhood_orfs = {}
         self._results = {}
+        self._all_hits = {}
         self._get_all_orfs()
 
     def __del__(self):
@@ -295,7 +303,7 @@ class Pipeline:
         the resutls.
         """
 
-        self._steps.append(CrisprStep(self._working_dir.name))
+        self._steps.append(CrisprStep(self._working_dir.name, Pilercr("CRISPR")))
 
     def _format_results(self, outfrmt, outfile):
         
@@ -305,13 +313,37 @@ class Pipeline:
         
         if outfrmt is not None:
             if outfrmt == "JSON":
-                with open(outfile, 'w') as jsonfile:
-                    json.dump(self._results, jsonfile)
+                try:
+                    with open(outfile, 'w') as jsonfile:
+                        json.dump(self._results, jsonfile)
+                except FileNotFoundError:
+                    with open("results.json", 'w') as jsonfile:
+                        json.dump(self._results, jsonfile)
+
             elif outfrmt == "CSV":
                 csv_writer = CSVWriter(self._results, self.id, outfile)
                 csv_writer.to_csv()
+    
+    def _record_all_hits(self, outfile):
+        """Write intermediate hits to a json file."""
+        
+        try:
+            with open(outfile, "w") as jsonfile:
+                json.dump(self._all_hits, jsonfile)
+        
+        except (FileNotFoundError, TypeError) as e:
+            with open("all_hits.json", "w") as jsonfile:
+                json.dump(self._all_hits, jsonfile)
+            
+            if isinstance(e, FileNotFoundError):
+                print("Cannot open {}".format(outfile),
+                        " writing all hits to working directory")
+            else:
+                print("No file for recording all hits, writing",
+                        " to working directory")
 
-    def run(self, outfrmt=None, outfile=None):
+    def run(self, outfrmt=None, outfile=None, record_all_hits=False,
+            all_hits_outfile=None):
         """Sequentially execute each step in the pipeline.
 
         Currently, results from the run are returned as a dictionary
@@ -340,6 +372,9 @@ class Pipeline:
                 
                 else:
                     #print("No hits for seed gene - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
 
             elif isinstance(step, FilterStep):
@@ -354,6 +389,9 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
             
             elif isinstance(step, CrisprStep):
@@ -366,6 +404,9 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
                     
             else:
@@ -377,31 +418,19 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
+            
+            if record_all_hits:
+                self._all_hits[step.search_tool.step_id] = step.hits
+    
 
         self._format_results(outfrmt, outfile)
         results = self._results
+
+        if record_all_hits:
+            self._record_all_hits(all_hits_outfile)
+        
         return results
-
-if __name__ == "__main__":
-
-    import json
-
-    #genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
-    genome = "/home/alexis/Projects/CRISPR-Transposons/data/contigs/C2558"
-    seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
-    filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_ALL/blast_db"
-    final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsCD/blast_db"
-
-    """in_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/tns_cd/"
-    db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"
-    build_blast_db(input=in_dir, db_dir=db_dir)"""
-    
-    p = Pipeline(genome, "v_crass", min_prot_len=30, span=10000)
-    p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
-    p.add_filter_step(filter_db, "cas", 0.001, "PROT")
-    p.add_blast_step(final_db, "tnsCD", 0.001, "PROT")
-    p.add_crispr_step()
-    results = p.run(outfrmt="CSV", outfile="test_pipeline.csv")
-
-    #print(json.dumps(results, indent=4))
