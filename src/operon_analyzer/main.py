@@ -1,10 +1,10 @@
 import csv
 from collections import defaultdict
-from typing import List, Iterator, IO, Tuple, Callable, Union, Any
+from typing import List, Iterator, IO, Tuple, Callable, Union, Any, Optional
 
 
 def analyze(input_lines: Iterator[str], ruleset: 'RuleSet'):
-    """ 
+    """
     Takes a handle to the CSV from the CRISPR-transposon pipeline
     and user-provided rules, and produces text that describes which
     operons adhered to those rules. If an operon fails any of the rules,
@@ -59,7 +59,7 @@ class Operon(object):
     """
     Provides access to Features that were found in the same genomic region,
     which presumably comprise an actual operon. Whether this is true in reality
-    must be determined by the user, if that is meaningful.
+    must be determined by the user, if that is meaningful to them.
     """
 
     def __init__(self,
@@ -129,16 +129,13 @@ class Result(object):
 class Rule(object):
     """ Defines a requirement that elements of an operon must adhere to. """
 
-    def __init__(self,
-                 name: str,
-                 function: Callable,
-                 args: Union[str, List[Any]]):
+    def __init__(self, name: str, function: Callable, *args):
         self._name = name
         self._function = function
-        self._args = args if type(args) in (list, tuple) else (args,)
+        self._args = args
 
     def evaluate(self, operon: Operon) -> bool:
-        return self._function(operon, self._args)
+        return self._function(operon, *self._args)
 
     def __repr__(self) -> str:
         return "{name}:{args}".format(
@@ -172,18 +169,35 @@ class RuleSet(object):
         apart. Requires exactly one of each feature to be present.
         """
 
-        def func(operon: Operon, args) -> bool:
-            feature1_name, feature2_name, distance_bp = args
+        def func(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
             f1 = operon.get(feature1_name)
             f2 = operon.get(feature2_name)
             if len(f1) != 1 or len(f2) != 1:
                 return False
             f1 = f1[0]
             f2 = f2[0]
-            distance1 = f2.start - f1.end
-            distance2 = f1.start - f2.end
-            return 0 <= distance1 <= distance_bp or 0 <= distance2 <= distance_bp
-        self._rules.append(Rule('max-distance', func, [feature1_name, feature2_name, distance_bp]))
+            distance = _feature_distance(f1, f2)
+            return 0 <= distance <= distance_bp
+        self._rules.append(Rule('max-distance', func, feature1_name, feature2_name, distance_bp))
+        return self
+
+    def max_distance_to_anything(self, feature_name: str, distance_bp: int):
+        """
+        A given feature must be within distance_bp base pairs of any other feature.
+        Requires exactly one matching feature to be present.
+        Returns False if the given feature is the only feature.
+        """
+        self._rules.append(Rule('max-distance-to-anything', _max_distance_to_anything, feature_name, distance_bp))
+        return self
+
+    def same_orientation(self, exceptions: Optional[List[str]] = None):
+        """
+        All features in the operon must have the same orientation.
+        """
+        def func(operon: Operon, args=None) -> bool:
+            strands = set([feature.strand for feature in operon])
+            return len(strands) == 1
+        self._rules.append(Rule('same-orientation', func, None))
         return self
 
     def custom(self, rule: 'Rule'):
@@ -204,6 +218,27 @@ class RuleSet(object):
 
     def __repr__(self) -> str:
         return ",".join((str(rule) for rule in self._rules))
+
+
+def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    feature = operon.get(feature_name)
+    if len(feature) != 1:
+        return False
+    feature = feature[0]
+    for other_feature in operon:
+        if feature is other_feature:
+            continue
+        distance = _feature_distance(feature, other_feature) 
+        if distance <= distance_bp:
+            return True
+    return False
+
+
+def _feature_distance(f1: Feature, f2: Feature) -> int:
+    distance1 = f2.start - f1.end
+    distance2 = f1.start - f2.end
+    assert (distance1 <= 0 or distance2 <= 0) and (distance1 >= 0 or distance2 >= 0)
+    return max(distance1, distance2)
 
 
 def _parse_coordinates(coordinates: str) -> Tuple[int, int]:
@@ -235,7 +270,7 @@ def _parse_feature(line: List[str]) -> (str, Tuple[int, int], Feature):
 
 
 def _parse_pipeline_results(lines: Iterator[Tuple]) -> Iterator['Operon']:
-    """ 
+    """
     Takes the output from the CRISPR-transposon pipeline, loads all features,
     and assembles them into putative Operons.
     """
