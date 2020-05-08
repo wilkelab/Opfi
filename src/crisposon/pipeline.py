@@ -1,14 +1,24 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
 from crisposon.build_blast_db import build_blast_db
-from crisposon.steps import (SeedBlastp, SeedBlastpsi, FilterBlastp, 
-                            FilterBlastpsi, Blastp, Blastpsi, CrisprStep)
+from crisposon.steps import (SearchStep, 
+                                FilterStep, 
+                                SeedStep, 
+                                CrisprStep, 
+                                Blastp, 
+                                Blastpsi, 
+                                MMseqs, 
+                                Diamond,
+                                Pilercr)
+
 from crisposon.output_writers import CSVWriter
 
-import tempfile, os
+import tempfile, os, json
 
-BLASTP_KEYWORDS = ['Blastp', 'BlastP', 'BLASTP', 'PROT']
-PSIBLAST_KEYWORDS = ['psiBlast', 'psiblast', 'PSIBLAST', 'PSI']
+BLASTP_KEYWORDS = ["blastp", "PROT"]
+PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
+MMSEQS_KEYWORDS = ["mmseqs"]
+DIAMOND_KEYWORDS = ["diamond"]
 
 class Pipeline:
     """
@@ -87,6 +97,7 @@ class Pipeline:
         self._working_dir = tempfile.TemporaryDirectory()
         self._neighborhood_orfs = {}
         self._results = {}
+        self._all_hits = {}
         self._get_all_orfs()
 
     def __del__(self):
@@ -178,7 +189,7 @@ class Pipeline:
                                 "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
-    def add_seed_step(self, db, name, e_val, blast_type):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, extra_args=None):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -208,15 +219,22 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SeedBlastp(db, name, e_val, 
-                                            self._working_dir.name, self.span))
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SeedBlastpsi(db, name, e_val, 
-                                            self._working_dir.name, self.span))
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Blastpsi(db, e_val, name)))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(SeedStep(self._working_dir.name, 
+                                        Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
-    def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1):
+    def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
+                        sensitivity=None, extra_args=None):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -234,15 +252,22 @@ class Pipeline:
                 hits required to keep neighborhoods. 
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(FilterBlastp(db, name, e_val, 
-                                            self._working_dir.name, min_prot_count))
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                            Blastp(db, e_val, name), min_prot_count))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(FilterBlastpsi(db, name, e_val, 
-                                                self._working_dir.name, min_prot_count))
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                            Blastpsi(db, e_val, name), min_prot_count))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(FilterStep(self._working_dir.name, 
+                                Diamond(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
-    def add_blast_step(self, db, name, e_val, blast_type):
+    def add_blast_step(self, db, name, e_val, blast_type, 
+                        sensitivity=None, extra_args=None):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -256,9 +281,17 @@ class Pipeline:
             Currently only blastp and psiblast are supported.     
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(Blastp(db, name, e_val, self._working_dir.name))
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                            Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(Blastpsi(db, name, e_val, self._working_dir.name))
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                            Blastpsi(db, e_val, name)))
+        elif blast_type in MMSEQS_KEYWORDS:
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+        elif blast_type in DIAMOND_KEYWORDS:
+            self._steps.append(SearchStep(self._working_dir.name, 
+                                Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
@@ -270,7 +303,7 @@ class Pipeline:
         the resutls.
         """
 
-        self._steps.append(CrisprStep(self._working_dir.name))
+        self._steps.append(CrisprStep(self._working_dir.name, Pilercr("CRISPR")))
 
     def _format_results(self, outfrmt, outfile):
         
@@ -280,13 +313,37 @@ class Pipeline:
         
         if outfrmt is not None:
             if outfrmt == "JSON":
-                with open(outfile, 'w') as jsonfile:
-                    json.dump(self._results, jsonfile)
+                try:
+                    with open(outfile, 'w') as jsonfile:
+                        json.dump(self._results, jsonfile)
+                except FileNotFoundError:
+                    with open("results.json", 'w') as jsonfile:
+                        json.dump(self._results, jsonfile)
+
             elif outfrmt == "CSV":
                 csv_writer = CSVWriter(self._results, self.id, outfile)
                 csv_writer.to_csv()
+    
+    def _record_all_hits(self, outfile):
+        """Write intermediate hits to a json file."""
+        
+        try:
+            with open(outfile, "w") as jsonfile:
+                json.dump(self._all_hits, jsonfile)
+        
+        except (FileNotFoundError, TypeError) as e:
+            with open("all_hits.json", "w") as jsonfile:
+                json.dump(self._all_hits, jsonfile)
+            
+            if isinstance(e, FileNotFoundError):
+                print("Cannot open {}".format(outfile),
+                        " writing all hits to working directory")
+            else:
+                print("No file for recording all hits, writing",
+                        " to working directory")
 
-    def run(self, outfrmt=None, outfile=None):
+    def run(self, outfrmt=None, outfile=None, record_all_hits=False,
+            all_hits_outfile=None):
         """Sequentially execute each step in the pipeline.
 
         Currently, results from the run are returned as a dictionary
@@ -301,9 +358,9 @@ class Pipeline:
         neighborhood_orfs = None
         for step in self._steps:
             
-            if step.is_seed:
+            if isinstance(step, SeedStep):
                 #print("Begin seed step: {}".format(step.name))
-                step.execute(self._all_orfs)
+                step.execute(self._all_orfs, self.span)
 
                 if len(step.hits) != 0:
                     self._get_orfs_in_neighborhood(step.neighborhood_ranges)
@@ -315,9 +372,12 @@ class Pipeline:
                 
                 else:
                     #print("No hits for seed gene - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
 
-            elif step.is_filter:
+            elif isinstance(step, FilterStep):
                 #print("Begin filter step: {}".format(step.name))
                 
                 if len(self._neighborhood_orfs) != 0:
@@ -329,9 +389,12 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
             
-            elif step.is_crispr:
+            elif isinstance(step, CrisprStep):
                 #print("Begin CRISPR array search")
                 
                 if len(self._neighborhood_orfs) != 0:
@@ -341,6 +404,9 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
                     
             else:
@@ -352,31 +418,19 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
+                    if record_all_hits:
+                        #self._all_hits[step.search_tool.step_id] = step.hits
+                        self._record_all_hits(all_hits_outfile)
                     return {}
+            
+            if record_all_hits:
+                self._all_hits[step.search_tool.step_id] = step.hits
+    
 
         self._format_results(outfrmt, outfile)
         results = self._results
+
+        if record_all_hits:
+            self._record_all_hits(all_hits_outfile)
+        
         return results
-
-if __name__ == "__main__":
-
-    import json
-
-    #genome = "/home/alexis/Projects/CRISPR-Transposons/data/genomes/v_crass_J520_whole.fasta"
-    genome = "/home/alexis/Projects/CRISPR-Transposons/data/contigs/C2558"
-    seed_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsAB/blast_db"
-    filter_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/cas_ALL/blast_db"
-    final_db = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tnsCD/blast_db"
-
-    """in_dir = "/home/alexis/Projects/CRISPR-Transposons/data/protein_references/tns_cd/"
-    db_dir = "/home/alexis/Projects/CRISPR-Transposons/data/blast_databases/tns_dc"
-    build_blast_db(input=in_dir, db_dir=db_dir)"""
-    
-    p = Pipeline(genome, "v_crass", min_prot_len=30, span=10000)
-    p.add_seed_step(seed_db, "tnsAB", 0.001, "PSI")
-    p.add_filter_step(filter_db, "cas", 0.001, "PROT")
-    p.add_blast_step(final_db, "tnsCD", 0.001, "PROT")
-    p.add_crispr_step()
-    results = p.run(outfrmt="CSV", outfile="test_pipeline.csv")
-
-    #print(json.dumps(results, indent=4))

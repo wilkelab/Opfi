@@ -1,0 +1,33 @@
+# Example config file for a crisposon run
+#
+# Path placeholders are given for reference, but should be 
+# replaced with absolute paths to the user's resources
+---
+  min-prot-len: 30
+  span: 10000
+  steps:
+    - step:
+      type: "seed"
+      name: "tnsAB"
+      e-val: 1e-3
+      blast-type: "PROT"
+      blast-db: "tests/integration/integration_data/blast_databases/tnsAB/blast_db"
+    - step:
+      type: "filter"
+      name: "cas_all"
+      e-val: 1e-5
+      blast-type: "PROT"
+      blast-db: "tests/integration/integration_data/blast_databases/cas/blast_db"
+    - step:
+      type: "blast"
+      name: "tnsCD"
+      e-val: 1e-3
+      blast-type: "PROT"
+      blast-db: "tests/integration/integration_data/blast_databases/tnsCD/blast_db"
+    - step:
+      type: "crispr"
+      name: null
+      e-val: null
+      blast-type: null
+      blast-db: null
+      
