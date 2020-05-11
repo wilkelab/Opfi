@@ -1,4 +1,6 @@
-from operon_analyzer.main import Feature, Operon, RuleSet, _serialize_results, _feature_distance
+from operon_analyzer.genes import Feature, Operon
+from operon_analyzer.rules import RuleSet, _feature_distance
+from operon_analyzer.analyze import _serialize_results
 import pytest
 
 

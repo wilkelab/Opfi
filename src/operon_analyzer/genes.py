@@ -1,0 +1,76 @@
+from typing import List, Tuple
+
+
+class Feature(object):
+    """ Represents a gene or CRISPR repeat array. """
+
+    def __init__(self,
+                 name: str,
+                 coordinates: Tuple[int, int],
+                 orfid: str,
+                 strand: int,
+                 accession: str,
+                 e_val: float,
+                 description: str,
+                 sequence: str):
+        self.name = name
+        self.coordinates = coordinates
+        self.orfid = orfid
+        self.strand = strand
+        self.accession = accession
+        self.e_val = e_val
+        self.description = description
+        self.sequence = sequence
+
+    @property
+    def start(self) -> int:
+        """
+        The leftmost position of the Feature, relative to the
+        orientation of the Operon.
+        """
+        return min(self.coordinates)
+
+    @property
+    def end(self) -> int:
+        """
+        The rightmost position of the Feature, relative to the
+        orientation of the Operon.
+        """
+        return max(self.coordinates)
+
+
+class Operon(object):
+    """
+    Provides access to Features that were found in the same genomic region,
+    which presumably comprise an actual operon. Whether this is true in reality
+    must be determined by the user, if that is meaningful to them.
+    """
+
+    def __init__(self,
+                 contig: str,
+                 start: int,
+                 end: int,
+                 features: List[Feature]):
+        assert contig, "Missing contig name"
+        assert 0 <= start and 0 <= end, "Invalid contig position"
+        assert features, "Contig did not contain any features"
+        self.contig = contig
+        self.start = start
+        self.end = end
+        self._features = features
+
+    def __iter__(self):
+        yield from self._features
+
+    @property
+    def feature_names(self):
+        """ Iterates over the name of each feature in the operon """
+        yield from (feature.name for feature in self._features)
+
+    def get(self, feature_name: str) -> List[Feature]:
+        """ Returns a list of every Feature with a given name. """
+        features = []
+        for feature in self._features:
+            if feature.name == feature_name:
+                features.append(feature)
+        return features
