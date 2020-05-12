@@ -77,6 +77,15 @@ class RuleSet(object):
         self._rules.append(Rule('max-distance', _max_distance, feature1_name, feature2_name, distance_bp))
         return self
 
+    def min_distance_to_anything(self, feature_name: str, distance_bp: int):
+        """
+        Requires that a feature be `distance_bp` base pairs from any other feature. 
+        This is mostly useful for eliminating overlapping features.
+        """
+        self._rules.append(Rule('min-distance-to-anything', _min_distance_to_anything, feature_name, distance_bp))
+        return self
+
+
     def max_distance_to_anything(self, feature_name: str, distance_bp: int):
         """
         A given feature must be within distance_bp base pairs of any other feature.
@@ -134,6 +143,20 @@ def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distan
     return 0 <= distance <= distance_bp
 
 
+def _min_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    feature = operon.get(feature_name)
+    if len(feature) != 1:
+        return False
+    feature = feature[0]
+    for other_feature in operon:
+        if feature is other_feature:
+            continue
+        distance = _feature_distance(feature, other_feature)
+        if distance < distance_bp:
+            return False
+    return True
+
+
 def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
     feature = operon.get(feature_name)
     if len(feature) != 1:
@@ -143,9 +166,9 @@ def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
         if feature is other_feature:
             continue
         distance = _feature_distance(feature, other_feature)
-        if distance <= distance_bp:
-            return True
-    return False
+        if distance > distance_bp:
+            return False
+    return True
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:
@@ -156,5 +179,5 @@ def _same_orientation(operon: Operon, args=None) -> bool:
 def _feature_distance(f1: Feature, f2: Feature) -> int:
     distance1 = f2.start - f1.end
     distance2 = f1.start - f2.end
-    assert (distance1 <= 0 or distance2 <= 0) and (distance1 >= 0 or distance2 >= 0)
-    return max(distance1, distance2)
+    # In the case of overlapping features, the distance is defined as 0
+    return max(distance1, distance2, 0)
