@@ -2,7 +2,7 @@ import csv
 from typing import List, Iterator, IO
 from operon_analyzer.genes import Operon
 from operon_analyzer.rules import RuleSet, Result
-from operon_analyzer.parse import parse_pipeline_results
+from operon_analyzer.parse import parse_pipeline_results, _parse_coordinates
 
 
 def analyze(input_lines: Iterator[str], ruleset: RuleSet):
@@ -17,6 +17,13 @@ def analyze(input_lines: Iterator[str], ruleset: RuleSet):
     results = _evaluate_operons(operons, ruleset)
     for output_line in _serialize_results(ruleset, results):
         print(output_line)
+
+
+def load_analyzed_operons(f: IO):
+    for line in csv.reader(filter(lambda line: not line.startswith("#"), f)):
+        contig, coordinates, result = line
+        start, end = _parse_coordinates(coordinates)
+        yield contig, start, end, result
 
 
 def _serialize_results(ruleset: RuleSet, results: List[Result]) -> str:

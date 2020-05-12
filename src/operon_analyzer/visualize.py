@@ -1,12 +1,12 @@
 import csv
+import itertools
 import os
 import sys
-from typing import IO
 import matplotlib.pyplot as plt
 from dna_features_viewer import GraphicFeature, GraphicRecord
+from operon_analyzer.analyze import load_analyzed_operons
 from operon_analyzer.genes import Operon
 from operon_analyzer.parse import parse_pipeline_results
-from operon_analyzer.parse import _parse_coordinates
 
 
 blue = (.365, .647, .855)
@@ -19,17 +19,10 @@ pink = (.945, .486, .690)
 brown = (.698, .569, .184)
 purple = (.698, .463, .698)
 
-colors = [blue, yellow, green, red, gray, orange, pink, brown, purple]
+colors = itertools.cycle([blue, yellow, green, red, gray, orange, pink, brown, purple])
 
 
-def load_analyzed_operons(f: IO):
-    for line in csv.reader(filter(lambda line: not line.startswith("#"), f)):
-        contig, coordinates, result = line
-        start, end = _parse_coordinates(coordinates)
-        yield contig, start, end, result
-
-
-def generate_image_filename(operon: Operon, directory: str=None) -> str:
+def generate_image_filename(operon: Operon, directory: str = None) -> str:
     filename = "{contig}-{start}-{end}.png".format(
                 contig=operon.contig,
                 start=operon.start,
@@ -69,6 +62,9 @@ def create_operon_image(out_filename: str, operon: Operon):
 
 
 if __name__ == '__main__':
+    # TODO: This makes too many assumptions about what the user wants
+    # TODO: what if the user wants to plot failed contigs?
+    # TODO: split this functionality out and make it easier to choose what to plot
     analysis_csv, pipeline_csv, image_directory = sys.argv[1:]
     operons = {}
     with open(pipeline_csv) as f:
