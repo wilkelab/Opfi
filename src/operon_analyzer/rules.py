@@ -44,7 +44,7 @@ class Result(object):
         return bool(self._passing) and not bool(self._failing)
 
     def __repr__(self) -> str:
-        outcome = "pass" if self.is_passing else "fail %s" % ",".join(str(rule) for rule in self._failing)
+        outcome = "pass" if self.is_passing else "fail %s" % " ".join(str(rule) for rule in self._failing)
         text = "{contig},{start}..{end},{outcome}"
         return text.format(
                 contig=self.operon.contig,
@@ -166,9 +166,10 @@ def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
         if feature is other_feature:
             continue
         distance = _feature_distance(feature, other_feature)
-        if distance > distance_bp:
-            return False
-    return True
+        if distance <= distance_bp:
+            return True
+    return False
+
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:
