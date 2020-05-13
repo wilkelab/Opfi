@@ -98,6 +98,7 @@ class Pipeline:
         self._neighborhood_orfs = {}
         self._results = {}
         self._all_hits = {}
+        
         self._get_all_orfs()
 
     def __del__(self):
@@ -331,16 +332,13 @@ class Pipeline:
             with open(outfile, "w") as jsonfile:
                 json.dump(self._all_hits, jsonfile)
         
-        except (FileNotFoundError, TypeError) as e:
+        except FileNotFoundError as e:
             with open("all_hits.json", "w") as jsonfile:
                 json.dump(self._all_hits, jsonfile)
             
-            if isinstance(e, FileNotFoundError):
-                print("Cannot open {}".format(outfile),
-                        " writing all hits to working directory")
-            else:
-                print("No file for recording all hits, writing",
-                        " to working directory")
+            print("Cannot open {}".format(outfile),
+                    " writing all hits to working directory")
+            print(e)
 
     def run(self, outfrmt=None, outfile=None, record_all_hits=False,
             all_hits_outfile=None):
@@ -352,8 +350,6 @@ class Pipeline:
 
         >>> print(json.dumps(results, indent=4))
         """
-
-        # TODO: Add error handling for seed execution
 
         neighborhood_orfs = None
         for step in self._steps:
@@ -372,8 +368,7 @@ class Pipeline:
                 
                 else:
                     #print("No hits for seed gene - terminating run")
-                    if record_all_hits:
-                        #self._all_hits[step.search_tool.step_id] = step.hits
+                    if record_all_hits and all_hits_outfile is not None:
                         self._record_all_hits(all_hits_outfile)
                     return {}
 
@@ -389,8 +384,7 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits:
-                        #self._all_hits[step.search_tool.step_id] = step.hits
+                    if record_all_hits and all_hits_outfile is not None:
                         self._record_all_hits(all_hits_outfile)
                     return {}
             
@@ -404,8 +398,7 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits:
-                        #self._all_hits[step.search_tool.step_id] = step.hits
+                    if record_all_hits and all_hits_outfile is not None:
                         self._record_all_hits(all_hits_outfile)
                     return {}
                     
@@ -418,8 +411,7 @@ class Pipeline:
                 
                 else:
                     #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits:
-                        #self._all_hits[step.search_tool.step_id] = step.hits
+                    if record_all_hits and all_hits_outfile is not None:
                         self._record_all_hits(all_hits_outfile)
                     return {}
             
@@ -430,7 +422,7 @@ class Pipeline:
         self._format_results(outfrmt, outfile)
         results = self._results
 
-        if record_all_hits:
+        if record_all_hits and all_hits_outfile is not None:
             self._record_all_hits(all_hits_outfile)
         
         return results
