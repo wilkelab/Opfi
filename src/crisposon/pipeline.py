@@ -101,11 +101,13 @@ class Pipeline:
         
         self._get_all_orfs()
 
+    
     def __del__(self):
         """Delete the working directory and its contents when 
         this object is garbage collected.
         """
         self._working_dir.cleanup()
+    
     
     def _results_init(self, neighborhood_ranges):
         """Create an entry for every gene neighborhood identified
@@ -116,6 +118,7 @@ class Pipeline:
             self._results[key] = {"Loc_start-pos": int(r[0]), "Loc_end-pos": int(r[1]), 
                                     "new_hit_count": 0, "Hits": {}}
 
+    
     def _filter(self, min_prot_count):
         """
         Remove neighborhood from results if the number of new hits added 
@@ -130,6 +133,7 @@ class Pipeline:
         for neighborhood in remove:
             del self._results[neighborhood]
             del self._neighborhood_orfs[neighborhood]
+    
     
     def _results_update(self, hits, min_prot_count):
         """Add hits to the results tracker (grouped by neighborhood)."""
@@ -168,6 +172,7 @@ class Pipeline:
                     and h_start <= self._results[neighborhood]["Loc_end-pos"]):
                     self._results[neighborhood]["Hits"][hit] = hits[hit]
 
+    
     def _get_all_orfs(self):
         """Get all of the (translated) open reading frames in this genome."""
 
@@ -175,8 +180,10 @@ class Pipeline:
         orffinder(sequence=self.genome, output=self._all_orfs, 
                     min_prot_len=self.min_prot_len, description=self.id)
 
+    
     def _get_orfs_in_neighborhood(self, ranges):
-        """Grab all of the open reading frames within a subsequence
+        """
+        Grab all of the open reading frames within a subsequence
         (neighborhood) from the original parent.   
         """
         neighborhood_orffinder(sequence=self.genome, ranges=ranges, 
@@ -190,6 +197,7 @@ class Pipeline:
                                 "orf_{}_{}.fasta".format(r[0], r[1]))
             self._neighborhood_orfs[key] = path
 
+    
     def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, extra_args=None):
         """Add a seed step to the pipeline. 
 
@@ -234,6 +242,7 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
+    
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
                         sensitivity=None, extra_args=None):
         """Add a filter step to the pipeline.
@@ -267,6 +276,7 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
+    
     def add_blast_step(self, db, name, e_val, blast_type, 
                         sensitivity=None, extra_args=None):
         """Add a non-filtering blast step to the pipeline.
@@ -296,6 +306,7 @@ class Pipeline:
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
+    
     def add_crispr_step(self):
         """Add a step to search for CRISPR arrays.
         
@@ -306,6 +317,7 @@ class Pipeline:
 
         self._steps.append(CrisprStep(self._working_dir.name, Pilercr("CRISPR")))
 
+    
     def _format_results(self, outfrmt, outfile):
         
         # Remove temporary hit counter tag
@@ -325,6 +337,7 @@ class Pipeline:
                 csv_writer = CSVWriter(self._results, self.id, outfile)
                 csv_writer.to_csv()
     
+    
     def _record_all_hits(self, outfile):
         """Write intermediate hits to a json file."""
         
@@ -340,6 +353,7 @@ class Pipeline:
                     " writing all hits to working directory")
             print(e)
 
+    
     def run(self, outfrmt=None, outfile=None, record_all_hits=False,
             all_hits_outfile=None):
         """Sequentially execute each step in the pipeline.
