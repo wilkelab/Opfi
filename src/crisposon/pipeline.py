@@ -75,32 +75,27 @@ class Pipeline:
     """
 
     def __init__(self):
-        """Initialize a Pipeline object with a genome/contig (path),
-        unique id, and (optionally) a minimum ORF length and the 
-        size of neighborhood regions.
+        """
+        Initialize a Pipeline object.
 
-        Initialize an empty list to keep track of steps (which will
-        be added later) and an empty dictionary to track results.
-
-        Also initialize an empty dictionary to keep track of the ORFs
-        associated with each gene neighborhood. All blasts are
-        executed using ORFs from the parent genome as queries, which
-        helps to simplify filtering and results reporting.
-
-        Set up a temporary working directory for intermediate files.
+        Most parameters will be added later when steps are
+        added or pipeline.run() is called, so the only thing
+        setup now is the steps tracker.
         """
         self._steps = []
 
     
     def __del__(self):
-        """Delete the working directory and its contents when 
+        """
+        Delete the working directory and its contents when 
         this object is garbage collected.
         """
         self._working_dir.cleanup()
     
     
     def _results_init(self, neighborhood_ranges):
-        """Create an entry for every gene neighborhood identified
+        """
+        Create an entry for every gene neighborhood identified
         during the seed phase. All hits will be recorded here.
         """
         for r in neighborhood_ranges:
@@ -209,10 +204,17 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
-            e_val (float): Blast expect value to use as a threshhold. 
-            See NCBI BLAST documentation for details.
-            blast_type (str): Specifies which blast program to use. 
-            Currently only blastp and psiblast are supported. 
+            e_val (float): Expect value to use as a threshhold. 
+            blast_type (str): Specifies which search program to use. 
+                This can be either "PROT" (blastp), "PSI" (psiblast),
+                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
+                mmseqs2 and diamond support is currently experimental.
+            sensitivity (str): Sets the sensitivity param 
+                for mmseqs and diamond (does nothing if blast is the
+                seach type). 
+            extra_args (list, optional): List of additional aguments 
+                for mmseqs or diamond runs (currently not supported
+                if blastp/psiblast is the search type). 
 
         Notes:
             Only one seed step should be added to the pipeline, and it should
@@ -242,13 +244,21 @@ class Pipeline:
         searches.
 
         Args:
-            db (str): Path to the target protein database.
-            e_val (float): Blast expect value to use as a threshhold. 
-                See NCBI BLAST documentation for details.
-            blast_type (str): Specifies which blast program to use. 
-                Currently only blastp and psiblast are supported.
-            min_prot_count (int, optional): Sets a minimum number of
-                hits required to keep neighborhoods. 
+            db (str): Path to the target (seed) protein database.
+            e_val (float): Expect value to use as a threshhold. 
+            blast_type (str): Specifies which search program to use. 
+                This can be either "PROT" (blastp), "PSI" (psiblast),
+                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
+                mmseqs2 and diamond support is currently experimental.
+            min_prot_count (int, optional): Minimum number of hits 
+                needed for the neighborhood to be retained. Default 
+                is one.
+            sensitivity (str): Sets the sensitivity param 
+                for mmseqs and diamond (does nothing if blast is the
+                seach type). 
+            extra_args (list, optional): List of additional aguments 
+                for mmseqs or diamond runs (currently not supported
+                if blastp/psiblast is the search type). 
         """
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(FilterStep(Blastp(db, e_val, name), min_prot_count))
@@ -272,11 +282,21 @@ class Pipeline:
         Any hits are appended to the results.
 
         Args:
-            db (str): Path to the target protein database.
-            e_val (float): Blast expect value to use as a threshhold. 
-            See NCBI BLAST documentation for details.
-            blast_type (str): Specifies which blast program to use. 
-            Currently only blastp and psiblast are supported.     
+            db (str): Path to the target (seed) protein database.
+            e_val (float): Expect value to use as a threshhold. 
+            blast_type (str): Specifies which search program to use. 
+                This can be either "PROT" (blastp), "PSI" (psiblast),
+                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
+                mmseqs2 and diamond support is currently experimental.
+            min_prot_count (int, optional): Minimum number of hits 
+                needed for the neighborhood to be retained. Default 
+                is one.
+            sensitivity (str): Sets the sensitivity param 
+                for mmseqs and diamond (does nothing if blast is the
+                seach type). 
+            extra_args (list, optional): List of additional aguments 
+                for mmseqs or diamond runs (currently not supported
+                if blastp/psiblast is the search type).     
         """
         if blast_type in BLASTP_KEYWORDS:
             self._steps.append(SearchStep(Blastp(db, e_val, name)))
@@ -291,7 +311,8 @@ class Pipeline:
     
     
     def add_crispr_step(self):
-        """Add a step to search for CRISPR arrays.
+        """
+        Add a step to search for CRISPR arrays.
         
         Uses pilercr with default parameters. Hits that 
         overlap with a genomic neighborhood are appended to
@@ -302,6 +323,13 @@ class Pipeline:
 
     
     def _format_results(self, outfrmt, outfile):
+        """
+        Process results into their final format.
+
+        If an output format was specified, also 
+        writes results to either a JSON file or
+        a CSV file.
+        """
         
         # Remove temporary hit counter tag
         for contig in self._results:
@@ -323,7 +351,7 @@ class Pipeline:
     
     
     def _record_all_hits(self, outfile):
-        """Write intermediate hits to a json file."""
+        """Write all/intermediate hits to a json file."""
         
         try:
             with open(outfile, "w") as jsonfile:
@@ -341,16 +369,37 @@ class Pipeline:
                         " hits, using working directory")
 
     
-    def run(self, data, min_prot_len=30, span=10000,
+    def run(self, data, min_prot_len=60, span=10000,
             outfrmt=None, outfile=None, record_all_hits=False,
-            all_hits_outfile=None):
-        """Sequentially execute each step in the pipeline.
+            all_hits_outfile=None) -> dict:
+        """
+        Sequentially execute each step in the pipeline.
 
-        Currently, results from the run are returned as a dictionary
-        which can, for example, be parsed or pretty-printed using 
-        json:
+        Args:
+            data (str): Path to input data file. Can be a single-
+                or multi-sequence file in fasta format.
+            min_prot_len (int, optional): Minimum ORF length (aa).
+                Default is 60.
+            span (int, optional): Length (nt) upsteam and downstream
+                of each seed hit to keep. Defines the aproximate size
+                of the genomic neighborhoods that will be used as the
+                search space after the seed step.
+            outfrmt (str, optional): Specifies the output file format.
+                Can be either "CSV" or "JSON". If no output format is
+                given then the results will not be written to disk.
+            outfile (str, optional): Path to the file to write results
+                to.
+            record_all_hits (bool, optional): If set to True then 
+                all hits against all all databases (including those 
+                excluded from the final results) will be written to
+                a file.
+            all_hits_outfile (str, optional): Path to the file to
+                write all hit data to.
 
-        >>> print(json.dumps(results, indent=4))
+        Returns:   
+            Results (dict): Candidate systems, grouped by contig id
+                and genomic location.
+
         """
         
         self.data_path = data
@@ -437,6 +486,7 @@ class Pipeline:
                     self._all_hits[contig_id][step.search_tool.step_id] = step.hits
                 
                 self._results[contig_id] = self._working_results
+                self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
         results = self._results
