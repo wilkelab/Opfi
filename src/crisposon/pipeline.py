@@ -25,24 +25,15 @@ class Pipeline:
     """
     Main class for running the CRISPR-transposon identification pipeline.
     
-    Takes a single genome of interest as input, and performs a series of
-    user-specified alignment steps to identify putative CRISPR-transposon 
-    elements.
-
-    Args:
-        genome (str): Path to genome/contig fasta file.
-        id (str): Unique identifier for this genome/contig.
-        min_prot_len (int, optional): Min residue size of ORFs
-            in query genome. Default is 30.
-        span (int, optional): Size of nt regions to keep around hits after the
-            seed phase (see add_blast_seed_step method for details).
+    Performs a series of user-specified local alignment steps to identify 
+    putative CRISPR-transposon elements.
 
     Example:
 
         Create a pipeline to search for CRISPR-transposon systems
         in the Vibrio crassostreae genome.
 
-        >>> p = Pipeline(genome="v_crass.fasta", id="v_crass", span=15000)
+        >>> p = Pipeline()
 
         Add alignment steps to the pipeline. First, we will do a blast
         for TnsA/B genes - "seeds" - in the query genome. Regions that fall
@@ -71,16 +62,16 @@ class Pipeline:
         Now, run the pipeline. Results are returned as a dictionary 
         object containing the hits associated with each neighborhood.
 
-        >>> results = p.run()
+        >>> results = p.run(data="v_crassostreae.fasta")
     """
 
     def __init__(self):
         """
         Initialize a Pipeline object.
 
-        Most parameters will be added later when steps are
-        added or pipeline.run() is called, so the only thing
-        setup now is the steps tracker.
+        Run-specific parameters will be added later
+        when pipeline.run() is called, so the only thing
+        initialized here is the steps tracker.
         """
         self._steps = []
 
@@ -90,13 +81,13 @@ class Pipeline:
         Delete the working directory and its contents when 
         this object is garbage collected.
         """
-        self._working_dir.cleanup()
+        #self._working_dir.cleanup()
     
     
     def _results_init(self, neighborhood_ranges):
         """
         Create an entry for every gene neighborhood identified
-        during the seed phase. All hits will be recorded here.
+        during the seed phase in the working results tracker.
         """
         for r in neighborhood_ranges:
             key = "Loc_{}-{}".format(r[0], r[1])
@@ -106,12 +97,12 @@ class Pipeline:
     
     def _filter(self, min_prot_count):
         """
-        Remove neighborhood from results if the number of new hits added 
-        during the filter step is less than the user specified cutoff.
+        Remove neighborhood from the working results if the number of
+        new hits added during the filter step is less than the user 
+        specified cutoff.
 
         Note that if no cutoff is given, the default used is 1.
         """
-
         remove = [neighborhood for neighborhood in self._working_results 
                     if self._working_results[neighborhood]["new_hit_count"] < min_prot_count]
         
@@ -311,8 +302,7 @@ class Pipeline:
     
     
     def add_crispr_step(self):
-        """
-        Add a step to search for CRISPR arrays.
+        """Add a step to search for CRISPR arrays.
         
         Uses pilercr with default parameters. Hits that 
         overlap with a genomic neighborhood are appended to
@@ -323,8 +313,7 @@ class Pipeline:
 
     
     def _format_results(self, outfrmt, outfile):
-        """
-        Process results into their final format.
+        """Process results into their final format.
 
         If an output format was specified, also 
         writes results to either a JSON file or
@@ -372,8 +361,7 @@ class Pipeline:
     def run(self, data, min_prot_len=60, span=10000,
             outfrmt=None, outfile=None, record_all_hits=False,
             all_hits_outfile=None) -> dict:
-        """
-        Sequentially execute each step in the pipeline.
+        """Sequentially execute each step in the pipeline.
 
         Args:
             data (str): Path to input data file. Can be a single-
@@ -390,8 +378,7 @@ class Pipeline:
             outfile (str, optional): Path to the file to write results
                 to.
             record_all_hits (bool, optional): If set to True then 
-                all hits against all all databases (including those 
-                excluded from the final results) will be written to
+                all hits against all references will be written to
                 a file.
             all_hits_outfile (str, optional): Path to the file to
                 write all hit data to.
@@ -415,8 +402,8 @@ class Pipeline:
             self._working_dir = tempfile.TemporaryDirectory()
             contig_path = os.path.join(self._working_dir.name, "contig.fasta")
             SeqIO.write(record, contig_path, "fasta")
-
             self._get_all_orfs(contig_path, contig_id)
+            
             self._working_results = {}
             self._all_hits[contig_id] = {}
 
@@ -486,7 +473,8 @@ class Pipeline:
                     self._all_hits[contig_id][step.search_tool.step_id] = step.hits
                 
                 self._results[contig_id] = self._working_results
-                self._working_dir.cleanup()
+            
+            self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
         results = self._results
