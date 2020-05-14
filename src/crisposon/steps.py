@@ -173,9 +173,8 @@ class Pilercr():
 
 class SearchStep:
 
-    def __init__ (self, working_dir, search_tool):
+    def __init__ (self, search_tool):
 
-        self.working_dir = working_dir
         self.search_tool = search_tool
 
     def execute(self, orfs):
@@ -185,9 +184,9 @@ class SearchStep:
 
 class SeedStep(SearchStep):
 
-    def __init__ (self, working_dir, search_tool):
+    def __init__ (self, search_tool):
 
-        SearchStep.__init__(self, working_dir, search_tool)
+        SearchStep.__init__(self, search_tool)
     
     def execute(self, orfs, span):
 
@@ -200,13 +199,13 @@ class SeedStep(SearchStep):
 
 class FilterStep(SearchStep):
     
-    def __init__ (self, working_dir, search_tool, min_prot_count):
+    def __init__ (self, search_tool, min_prot_count):
 
-        SearchStep.__init__(self, working_dir, search_tool)
+        SearchStep.__init__(self, search_tool)
         self.min_prot_count = min_prot_count
 
 class CrisprStep(SearchStep):
 
-    def __init__(self, working_dir, search_tool):
+    def __init__(self, search_tool):
 
-        SearchStep.__init__(self, working_dir, search_tool)
+        SearchStep.__init__(self, search_tool)
