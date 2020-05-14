@@ -341,7 +341,7 @@ class Pipeline:
                         " hits, using working directory")
 
     
-    def run(self, data, min_prot_len=30, span=20000,
+    def run(self, data, min_prot_len=30, span=10000,
             outfrmt=None, outfile=None, record_all_hits=False,
             all_hits_outfile=None):
         """Sequentially execute each step in the pipeline.
