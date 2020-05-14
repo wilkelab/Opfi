@@ -2,10 +2,10 @@ import csv
 
 class CSVWriter:
 
-    def __init__(self, results, contig_id, outfile):
+    def __init__(self, results, outfile):
 
         self.results = results
-        self.id = contig_id
+        self.id = None
         self.outfile = outfile
     
     def _ret_fieldnames(self):
@@ -78,7 +78,9 @@ class CSVWriter:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             
-            for neighborhood in self.results:
-                rows = self._get_rows(self.results[neighborhood])
-                for row in rows:
-                    writer.writerow(row)
+            for contig in self.results:
+                self.id = contig
+                for neighborhood in self.results[contig]:
+                    rows = self._get_rows(self.results[contig][neighborhood])
+                    for row in rows:
+                        writer.writerow(row)

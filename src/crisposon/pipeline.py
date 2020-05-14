@@ -14,6 +14,7 @@ from crisposon.steps import (SearchStep,
 from crisposon.output_writers import CSVWriter
 
 import tempfile, os, json
+from Bio import SeqIO
 
 BLASTP_KEYWORDS = ["blastp", "PROT"]
 PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
@@ -73,7 +74,7 @@ class Pipeline:
         >>> results = p.run()
     """
 
-    def __init__(self, genome, id, min_prot_len=30, span=20000):
+    def __init__(self):
         """Initialize a Pipeline object with a genome/contig (path),
         unique id, and (optionally) a minimum ORF length and the 
         size of neighborhood regions.
@@ -88,18 +89,7 @@ class Pipeline:
 
         Set up a temporary working directory for intermediate files.
         """
-        self.genome = genome
-        self.id = id
-        self.min_prot_len = min_prot_len
-        self.span = span
-        
         self._steps = []
-        self._working_dir = tempfile.TemporaryDirectory()
-        self._neighborhood_orfs = {}
-        self._results = {}
-        self._all_hits = {}
-        
-        self._get_all_orfs()
 
     
     def __del__(self):
@@ -115,7 +105,7 @@ class Pipeline:
         """
         for r in neighborhood_ranges:
             key = "Loc_{}-{}".format(r[0], r[1])
-            self._results[key] = {"Loc_start-pos": int(r[0]), "Loc_end-pos": int(r[1]), 
+            self._working_results[key] = {"Loc_start-pos": int(r[0]), "Loc_end-pos": int(r[1]), 
                                     "new_hit_count": 0, "Hits": {}}
 
     
@@ -127,11 +117,11 @@ class Pipeline:
         Note that if no cutoff is given, the default used is 1.
         """
 
-        remove = [neighborhood for neighborhood in self._results 
-                    if self._results[neighborhood]["new_hit_count"] < min_prot_count]
+        remove = [neighborhood for neighborhood in self._working_results 
+                    if self._working_results[neighborhood]["new_hit_count"] < min_prot_count]
         
         for neighborhood in remove:
-            del self._results[neighborhood]
+            del self._working_results[neighborhood]
             del self._neighborhood_orfs[neighborhood]
     
     
@@ -139,7 +129,7 @@ class Pipeline:
         """Add hits to the results tracker (grouped by neighborhood)."""
 
         for hit in hits:
-            for neighborhood in self._results:
+            for neighborhood in self._working_results:
 
                 # note that the begining and end of the hit is denoted by 
                 # the begining and end of the orf used as the query
@@ -149,47 +139,48 @@ class Pipeline:
                                 int(hits[hit]["Query_end-pos"]))
                 
                 # check whether this hit is contained within the neighborhood
-                if (h_start >= self._results[neighborhood]["Loc_start-pos"] 
-                    and h_stop <= self._results[neighborhood]["Loc_end-pos"]):
-                    self._results[neighborhood]["Hits"][hit] = hits[hit]
-                    self._results[neighborhood]["new_hit_count"] += 1
+                if (h_start >= self._working_results[neighborhood]["Loc_start-pos"] 
+                    and h_stop <= self._working_results[neighborhood]["Loc_end-pos"]):
+                    self._working_results[neighborhood]["Hits"][hit] = hits[hit]
+                    self._working_results[neighborhood]["new_hit_count"] += 1
         
         if min_prot_count >= 1:
             self._filter(min_prot_count)
         
-        for neighborhood in self._results:
-            self._results[neighborhood]["new_hit_count"] = 0
+        for neighborhood in self._working_results:
+            self._working_results[neighborhood]["new_hit_count"] = 0
 
     
     def _results_update_crispr(self, hits):
         """Add hits for CRISPR arrays to the results tracker."""
 
         for hit in hits:
-            for neighborhood in self._results:
+            for neighborhood in self._working_results:
 
                 h_start = int(hits[hit]["Position"])
-                if (h_start >= self._results[neighborhood]["Loc_start-pos"] 
-                    and h_start <= self._results[neighborhood]["Loc_end-pos"]):
-                    self._results[neighborhood]["Hits"][hit] = hits[hit]
+                if (h_start >= self._working_results[neighborhood]["Loc_start-pos"] 
+                    and h_start <= self._working_results[neighborhood]["Loc_end-pos"]):
+                    self._working_results[neighborhood]["Hits"][hit] = hits[hit]
 
     
-    def _get_all_orfs(self):
+    def _get_all_orfs(self, data, id):
         """Get all of the (translated) open reading frames in this genome."""
 
         self._all_orfs = os.path.join(self._working_dir.name, "all_orfs.fasta")
-        orffinder(sequence=self.genome, output=self._all_orfs, 
-                    min_prot_len=self.min_prot_len, description=self.id)
+        orffinder(sequence=data, output=self._all_orfs, 
+                    min_prot_len=self.min_prot_len, description=id)
 
     
-    def _get_orfs_in_neighborhood(self, ranges):
+    def _get_orfs_in_neighborhood(self, ranges, data, id):
         """
         Grab all of the open reading frames within a subsequence
         (neighborhood) from the original parent.   
         """
-        neighborhood_orffinder(sequence=self.genome, ranges=ranges, 
+        self._neighborhood_orfs = {}
+        neighborhood_orffinder(sequence=data, ranges=ranges, 
                                 outdir=self._working_dir.name, 
                                 min_prot_len=self.min_prot_len, 
-                                description=self.id)
+                                description=id)
 
         for r in ranges:
             key = "Loc_{}-{}".format(r[0], r[1])
@@ -228,17 +219,15 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SeedStep(self._working_dir.name, 
-                                        Blastp(db, e_val, name)))
+            self._steps.append(SeedStep(Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SeedStep(self._working_dir.name, 
-                                        Blastpsi(db, e_val, name)))
+            self._steps.append(SeedStep(Blastpsi(db, e_val, name)))
         elif blast_type in MMSEQS_KEYWORDS:
-            self._steps.append(SeedStep(self._working_dir.name, 
-                                        MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SeedStep(MMseqs(db, str(e_val), name, 
+                                                str(sensitivity), extra_args)))
         elif blast_type in DIAMOND_KEYWORDS:
-            self._steps.append(SeedStep(self._working_dir.name, 
-                                        Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SeedStep(Diamond(db, str(e_val), name, 
+                                                str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
@@ -262,17 +251,15 @@ class Pipeline:
                 hits required to keep neighborhoods. 
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(FilterStep(self._working_dir.name, 
-                                            Blastp(db, e_val, name), min_prot_count))
+            self._steps.append(FilterStep(Blastp(db, e_val, name), min_prot_count))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(FilterStep(self._working_dir.name, 
-                                            Blastpsi(db, e_val, name), min_prot_count))
+            self._steps.append(FilterStep(Blastpsi(db, e_val, name), min_prot_count))
         elif blast_type in MMSEQS_KEYWORDS:
-            self._steps.append(FilterStep(self._working_dir.name, 
-                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
+            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), 
+                                                    extra_args), min_prot_count))
         elif blast_type in DIAMOND_KEYWORDS:
-            self._steps.append(FilterStep(self._working_dir.name, 
-                                Diamond(db, str(e_val), name, str(sensitivity), extra_args), min_prot_count))
+            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), 
+                                                    extra_args), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
@@ -292,17 +279,13 @@ class Pipeline:
             Currently only blastp and psiblast are supported.     
         """
         if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SearchStep(self._working_dir.name, 
-                                            Blastp(db, e_val, name)))
+            self._steps.append(SearchStep(Blastp(db, e_val, name)))
         elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SearchStep(self._working_dir.name, 
-                                            Blastpsi(db, e_val, name)))
+            self._steps.append(SearchStep(Blastpsi(db, e_val, name)))
         elif blast_type in MMSEQS_KEYWORDS:
-            self._steps.append(SearchStep(self._working_dir.name, 
-                                MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
         elif blast_type in DIAMOND_KEYWORDS:
-            self._steps.append(SearchStep(self._working_dir.name, 
-                                Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
@@ -315,14 +298,15 @@ class Pipeline:
         the resutls.
         """
 
-        self._steps.append(CrisprStep(self._working_dir.name, Pilercr("CRISPR")))
+        self._steps.append(CrisprStep(Pilercr("CRISPR")))
 
     
     def _format_results(self, outfrmt, outfile):
         
         # Remove temporary hit counter tag
-        for neighborhood in self._results:
-            del self._results[neighborhood]["new_hit_count"]
+        for contig in self._results:
+            for neighborhood in self._results[contig]:
+                del self._results[contig][neighborhood]["new_hit_count"]
         
         if outfrmt is not None:
             if outfrmt == "JSON":
@@ -334,7 +318,7 @@ class Pipeline:
                         json.dump(self._results, jsonfile)
 
             elif outfrmt == "CSV":
-                csv_writer = CSVWriter(self._results, self.id, outfile)
+                csv_writer = CSVWriter(self._results, outfile)
                 csv_writer.to_csv()
     
     
@@ -345,16 +329,20 @@ class Pipeline:
             with open(outfile, "w") as jsonfile:
                 json.dump(self._all_hits, jsonfile)
         
-        except FileNotFoundError as e:
+        except (FileNotFoundError, TypeError) as e:
             with open("all_hits.json", "w") as jsonfile:
                 json.dump(self._all_hits, jsonfile)
             
-            print("Cannot open {}".format(outfile),
-                    " writing all hits to working directory")
-            print(e)
+            if isinstance(e, FileNotFoundError):
+                print("Cannot open {}".format(outfile),
+                        " writing all hits to working directory")
+            else:
+                print("No output file given for writing all" +
+                        " hits, using working directory")
 
     
-    def run(self, outfrmt=None, outfile=None, record_all_hits=False,
+    def run(self, data, min_prot_len=30, span=20000,
+            outfrmt=None, outfile=None, record_all_hits=False,
             all_hits_outfile=None):
         """Sequentially execute each step in the pipeline.
 
@@ -364,79 +352,96 @@ class Pipeline:
 
         >>> print(json.dumps(results, indent=4))
         """
+        
+        self.data_path = data
+        self.min_prot_len = min_prot_len
+        self.span = span
 
-        neighborhood_orfs = None
-        for step in self._steps:
+        self._results = {}
+        self._all_hits = {}
+
+        for record in SeqIO.parse(data, "fasta"):
             
-            if isinstance(step, SeedStep):
-                #print("Begin seed step: {}".format(step.name))
-                step.execute(self._all_orfs, self.span)
+            contig_id = record.id
+            self._working_dir = tempfile.TemporaryDirectory()
+            contig_path = os.path.join(self._working_dir.name, "contig.fasta")
+            SeqIO.write(record, contig_path, "fasta")
 
-                if len(step.hits) != 0:
-                    self._get_orfs_in_neighborhood(step.neighborhood_ranges)
-                    self._results_init(step.neighborhood_ranges)
-                    self._results_update(step.hits, min_prot_count=0)
-                    neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                    self._neighborhood_orfs.values())
-                    #print("Seed step complete")
-                
-                else:
-                    #print("No hits for seed gene - terminating run")
-                    if record_all_hits and all_hits_outfile is not None:
-                        self._record_all_hits(all_hits_outfile)
-                    return {}
+            self._get_all_orfs(contig_path, contig_id)
+            self._working_results = {}
+            self._all_hits[contig_id] = {}
 
-            elif isinstance(step, FilterStep):
-                #print("Begin filter step: {}".format(step.name))
+            neighborhood_orfs = None
+            for step in self._steps:
                 
-                if len(self._neighborhood_orfs) != 0:
-                    step.execute(neighborhood_orfs)
-                    self._results_update(step.hits, min_prot_count=step.min_prot_count)
-                    neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                    self._neighborhood_orfs.values())
-                    #print("Filtering for {} genes complete".format(step.name))
-                
-                else:
-                    #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits and all_hits_outfile is not None:
-                        self._record_all_hits(all_hits_outfile)
-                    return {}
-            
-            elif isinstance(step, CrisprStep):
-                #print("Begin CRISPR array search")
-                
-                if len(self._neighborhood_orfs) != 0:
-                    step.execute(self.genome)
-                    self._results_update_crispr(step.hits)
-                    #print("CRISPR array search complete")
-                
-                else:
-                    #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits and all_hits_outfile is not None:
-                        self._record_all_hits(all_hits_outfile)
-                    return {}
+                if isinstance(step, SeedStep):
+                    #print("Begin seed step: {}".format(step.name))
+                    step.execute(self._all_orfs, self.span)
+
+                    if len(step.hits) != 0:
+                        self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
+                                                        contig_path,
+                                                        contig_id)
+                        self._results_init(step.neighborhood_ranges)
+                        self._results_update(step.hits, min_prot_count=0)
+                        neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                        self._neighborhood_orfs.values())
+                        #print("Seed step complete")
                     
-            else:
-                #print("Begin blast step: {}".format(step.name))
-                if len(self._neighborhood_orfs) != 0:
-                    step.execute(neighborhood_orfs)
-                    self._results_update(step.hits, min_prot_count=0)
-                    #print("Blast step complete")
-                
-                else:
-                    #print("No putative neighborhoods remain - terminating run")
-                    if record_all_hits and all_hits_outfile is not None:
-                        self._record_all_hits(all_hits_outfile)
-                    return {}
-            
-            if record_all_hits:
-                self._all_hits[step.search_tool.step_id] = step.hits
-    
+                    else:
+                        #print("No hits for seed gene - terminating run")
+                        self._results[contig_id] = {}
+                        break
 
+                elif isinstance(step, FilterStep):
+                    #print("Begin filter step: {}".format(step.name))
+                    
+                    if len(self._neighborhood_orfs) != 0:
+                        step.execute(neighborhood_orfs)
+                        self._results_update(step.hits, min_prot_count=step.min_prot_count)
+                        neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                        self._neighborhood_orfs.values())
+                        #print("Filtering for {} genes complete".format(step.name))
+                    
+                    else:
+                        #print("No putative neighborhoods remain - terminating run")
+                        self._results[contig_id] = {}
+                        break
+                
+                elif isinstance(step, CrisprStep):
+                    #print("Begin CRISPR array search")
+                    
+                    if len(self._neighborhood_orfs) != 0:
+                        step.execute(contig_path)
+                        self._results_update_crispr(step.hits)
+                        #print("CRISPR array search complete")
+                    
+                    else:
+                        #print("No putative neighborhoods remain - terminating run")
+                        self._results[contig_id] = {}
+                        break
+                        
+                else:
+                    #print("Begin blast step: {}".format(step.name))
+                    if len(self._neighborhood_orfs) != 0:
+                        step.execute(neighborhood_orfs)
+                        self._results_update(step.hits, min_prot_count=0)
+                        #print("Blast step complete")
+                    
+                    else:
+                        #print("No putative neighborhoods remain - terminating run")
+                        self._results[contig_id] = {}
+                        break
+                
+                if record_all_hits:
+                    self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+                
+                self._results[contig_id] = self._working_results
+        
         self._format_results(outfrmt, outfile)
         results = self._results
 
-        if record_all_hits and all_hits_outfile is not None:
+        if record_all_hits:
             self._record_all_hits(all_hits_outfile)
         
         return results
