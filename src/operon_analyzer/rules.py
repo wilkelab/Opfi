@@ -28,8 +28,8 @@ class Result(object):
 
     def __init__(self, operon: Operon):
         self.operon = operon
-        self._passing = []
-        self._failing = []
+        self._passing = []  # type: List[Rule]
+        self._failing = []  # type: List[Rule]
 
     def add_passing(self, rule: Rule):
         self._passing.append(rule)
@@ -79,12 +79,11 @@ class RuleSet(object):
 
     def min_distance_to_anything(self, feature_name: str, distance_bp: int):
         """
-        Requires that a feature be `distance_bp` base pairs from any other feature. 
+        Requires that a feature be `distance_bp` base pairs from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
         self._rules.append(Rule('min-distance-to-anything', _min_distance_to_anything, feature_name, distance_bp))
         return self
-
 
     def max_distance_to_anything(self, feature_name: str, distance_bp: int):
         """
@@ -133,21 +132,18 @@ def _require(operon: Operon, feature_name: str) -> bool:
 
 
 def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
-    f1 = operon.get(feature1_name)
-    f2 = operon.get(feature2_name)
-    if len(f1) != 1 or len(f2) != 1:
+    f1 = operon.get_unique(feature1_name)
+    f2 = operon.get_unique(feature2_name)
+    if f1 is None or f2 is None:
         return False
-    f1 = f1[0]
-    f2 = f2[0]
     distance = _feature_distance(f1, f2)
     return 0 <= distance <= distance_bp
 
 
 def _min_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
-    feature = operon.get(feature_name)
-    if len(feature) != 1:
+    feature = operon.get_unique(feature_name)
+    if feature is None:
         return False
-    feature = feature[0]
     for other_feature in operon:
         if feature is other_feature:
             continue
@@ -158,10 +154,9 @@ def _min_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
 
 
 def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
-    feature = operon.get(feature_name)
-    if len(feature) != 1:
+    feature = operon.get_unique(feature_name)
+    if feature is None:
         return False
-    feature = feature[0]
     for other_feature in operon:
         if feature is other_feature:
             continue
@@ -169,7 +164,6 @@ def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
         if distance <= distance_bp:
             return True
     return False
-
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:

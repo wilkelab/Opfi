@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 class Feature(object):
@@ -8,11 +8,14 @@ class Feature(object):
                  name: str,
                  coordinates: Tuple[int, int],
                  orfid: str,
-                 strand: int,
+                 strand: Optional[int],
                  accession: str,
-                 e_val: float,
+                 e_val: Optional[float],
                  description: str,
                  sequence: str):
+        # Note: for CRISPR repeats, the pipeline does not identify the strand, and
+        # since BLAST was not used, there is no e-value, so these values are set to
+        # None. 
         self.name = name
         self.coordinates = coordinates
         self.orfid = orfid
@@ -74,3 +77,10 @@ class Operon(object):
             if feature.name == feature_name:
                 features.append(feature)
         return features
+
+    def get_unique(self, feature_name: str) -> Optional[Feature]:
+        """ Returns a Feature or None if there is more than one Feature with the same name """
+        features = self.get(feature_name)
+        if len(features) != 1:
+            return None
+        return features[0]

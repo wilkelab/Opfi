@@ -1,28 +1,14 @@
 import csv
-import itertools
 import os
 import sys
 import matplotlib.pyplot as plt
 from dna_features_viewer import GraphicFeature, GraphicRecord
 from operon_analyzer.analyze import load_analyzed_operons
 from operon_analyzer.genes import Operon
-from operon_analyzer.parse import parse_pipeline_results
+from operon_analyzer.parse import assemble_operons, read_pipeline_output
 
 
-blue = (.365, .647, .855)
-yellow = (.871, .812, .247)
-green = (.376, .741, .408)
-red = (.945, .345, .329)
-gray = (.302, .302, .302)
-orange = (.980, .643, .227)
-pink = (.945, .486, .690)
-brown = (.698, .569, .184)
-purple = (.698, .463, .698)
-
-colors = itertools.cycle([blue, yellow, green, red, gray, orange, pink, brown, purple])
-
-
-def generate_image_filename(operon: Operon, directory: str = None) -> str:
+def build_image_filename(operon: Operon, directory: str = None) -> str:
     filename = "{contig}-{start}-{end}.png".format(
                 contig=operon.contig,
                 start=operon.start,
@@ -40,11 +26,10 @@ def create_operon_image(out_filename: str, operon: Operon):
         low = min(low, feature.start)
         high = max(high, feature.end)
 
-    for feature, color in zip(operon, colors):
+    for feature in operon:
         graphic_feature = GraphicFeature(start=feature.start - low,
                                          strand=feature.strand,
                                          end=feature.end - low,
-                                         color=color,
                                          label=feature.name)
         graphic_features.append(graphic_feature)
 
@@ -68,15 +53,15 @@ if __name__ == '__main__':
     analysis_csv, pipeline_csv, image_directory = sys.argv[1:]
     operons = {}
     with open(pipeline_csv) as f:
-        lines = csv.reader(f)
-        for operon in parse_pipeline_results(lines):
+        lines = read_pipeline_output(f)
+        for operon in assemble_operons(lines):
             operons[(operon.contig, operon.start, operon.end)] = operon
     with open(analysis_csv) as f:
         for contig, start, end, result in load_analyzed_operons(f):
             if result != 'pass':
                 continue
-            operon = operons.get((contig, start, end))
-            if operon is None:
+            op = operons.get((contig, start, end))
+            if op is None:
                 continue
-            out_filename = generate_image_filename(operon, image_directory)
-            create_operon_image(out_filename, operon)
+            out_filename = build_image_filename(op, image_directory)
+            create_operon_image(out_filename, op)
