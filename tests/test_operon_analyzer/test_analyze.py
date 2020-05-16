@@ -1,5 +1,5 @@
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance
+from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance
 from operon_analyzer.analyze import _serialize_results
 import pytest
 
@@ -109,6 +109,23 @@ def test_feature_distance_overlapping():
     distance_reverse = _feature_distance(f2, f1)
     assert distance == 0
     assert distance == distance_reverse
+
+
+@pytest.mark.parametrize('f1name,f2name,expected', [
+    ('cas1', 'cas2', True),
+    ('cas2', 'cas1', True),
+    ('cas1', 'cas77', False),
+    ('cas77', 'cas2', False),
+    ('cas77', 'cas88', False),
+    ('cas77', 'cas1', False),
+    ('cas77', 'cas2', False)])
+def test_max_distance_missing(f1name, f2name, expected):
+    genes = [
+            Feature('cas1', (0, 300), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (310, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            ]
+    operon = Operon('contig', 0, 1000, genes)
+    assert _max_distance(operon, f1name, f2name, 100) is expected
 
 
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end,distance_bp,expected', [

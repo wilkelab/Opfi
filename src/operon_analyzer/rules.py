@@ -79,7 +79,7 @@ class RuleSet(object):
 
     def min_distance_to_anything(self, feature_name: str, distance_bp: int):
         """
-        Requires that a feature be `distance_bp` base pairs from any other feature.
+        Requires that a feature be at least `distance_bp` base pairs from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
         self._rules.append(Rule('min-distance-to-anything', _min_distance_to_anything, feature_name, distance_bp))
@@ -148,7 +148,7 @@ def _min_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
         if feature is other_feature:
             continue
         distance = _feature_distance(feature, other_feature)
-        if distance < distance_bp:
+        if distance <= distance_bp:
             return False
     return True
 
