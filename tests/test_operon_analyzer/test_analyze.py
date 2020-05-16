@@ -29,6 +29,27 @@ def test_same_orientation():
 
 
 @pytest.mark.parametrize('distance,expected', [
+    (0, True),
+    (50, True),
+    (99, True),
+    (100, False),
+    (1000, False),
+    (10000, False)
+    ])
+def test_min_distance_to_anything(distance: int, expected: bool):
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (700, 800), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().min_distance_to_anything('transposase', distance)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
+
+
+@pytest.mark.parametrize('distance,expected', [
     (0, False),
     (50, False),
     (99, False),
@@ -64,6 +85,7 @@ def test_serialize_results_fail():
     expected = "# exclude:cas3,require:cas12a\nQCDRTU,0..3400,fail require:cas12a"
     assert actual == expected
 
+
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end', [
     (12, 400, 410, 600),
     (410, 600, 12, 400),
@@ -71,11 +93,23 @@ def test_serialize_results_fail():
     (12, 400, 600, 410),
     (410, 600, 400, 12),
     ])
-def test_feature_distance(gene1_start,gene1_end,gene2_start,gene2_end):
+def test_feature_distance(gene1_start, gene1_end, gene2_start, gene2_end):
     f1 = Feature('cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')
     f2 = Feature('cas2', (gene2_start, gene2_end), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')
     distance = _feature_distance(f1, f2)
+    distance_reverse = _feature_distance(f2, f1)
     assert distance == 10
+    assert distance == distance_reverse
+
+
+def test_feature_distance_overlapping():
+    f1 = Feature('cas1', (100, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')
+    f2 = Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')
+    distance = _feature_distance(f1, f2)
+    distance_reverse = _feature_distance(f2, f1)
+    assert distance == 0
+    assert distance == distance_reverse
+
 
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end,distance_bp,expected', [
     (12, 400, 410, 600, 20, True),
