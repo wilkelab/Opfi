@@ -2,6 +2,39 @@ from operon_analyzer.genes import Feature, Operon
 from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance
 from operon_analyzer.analyze import _serialize_results
 import pytest
+from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
+from hypothesis import given, settings
+import string
+
+name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
+
+sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
+
+
+@composite
+def random_feature(draw):
+    name = draw(text(name_characters, min_size=3, max_size=8))
+    start = draw(integers(min_value=0, max_value=100000))
+    end = draw(integers(min_value=0, max_value=100000))
+    sequence = draw(text(sequence_characters, min_size=50))
+    accession = draw(text(name_characters, min_size=8, max_size=16))
+    e_val = draw(floats(allow_nan=False, allow_infinity=False))
+    strand = draw(sampled_from([-1, 1, None]))
+    return Feature(name, (start, end), f'lcl|{start}|{end}|1|{strand}', strand, accession, e_val, '', sequence)
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_valid_operon(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    rs = RuleSet().same_orientation()
+    rs.evaluate(operon)
+    assert True
 
 
 def test_not_same_orientation():

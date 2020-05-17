@@ -25,6 +25,14 @@ class Feature(object):
         self.description = description
         self.sequence = sequence
 
+    def __hash__(self):
+        return hash((self.name, self.coordinates, self.sequence))
+
+    def __eq__(self, other: 'Feature') -> bool:
+        return self.name == other.name and \
+               self.coordinates == other.coordinates and \
+               self.sequence == other.sequence
+
     @property
     def start(self) -> int:
         """
