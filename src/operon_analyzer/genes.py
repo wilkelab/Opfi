@@ -65,6 +65,10 @@ class Operon(object):
     def __iter__(self):
         yield from self._features
 
+    def __len__(self):
+        return len(self._features)
+
+
     @property
     def feature_names(self):
         """ Iterates over the name of each feature in the operon """

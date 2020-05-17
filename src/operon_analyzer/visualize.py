@@ -1,7 +1,8 @@
-import csv
 import os
 import sys
+from typing import Tuple, Dict, IO, List
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
 from operon_analyzer.analyze import load_analyzed_operons
 from operon_analyzer.genes import Operon
@@ -18,44 +19,66 @@ def build_image_filename(operon: Operon, directory: str = None) -> str:
     return filename
 
 
-def create_operon_image(out_filename: str, operon: Operon):
-    graphic_features = []
+def calculate_adjusted_operon_bounds(operon: Operon) -> Tuple[int, int]:
+    """
+    Calculates the offset that should be removed from each Feature's position
+    as well as the total length of the operon.
+    """
     low, high = sys.maxsize, 0
     # do one pass to find the bounds of the features we're interested in
     for feature in operon:
         low = min(low, feature.start)
         high = max(high, feature.end)
+    assert low < high
+    return low, high - low
 
+
+def create_operon_figure(operon: Operon):
+    assert len(operon) > 0
+    offset, operon_length = calculate_adjusted_operon_bounds(operon)
+
+    graphic_features = []
     for feature in operon:
-        graphic_feature = GraphicFeature(start=feature.start - low,
+        graphic_feature = GraphicFeature(start=feature.start - offset,
                                          strand=feature.strand,
-                                         end=feature.end - low,
+                                         end=feature.end - offset,
                                          label=feature.name)
         graphic_features.append(graphic_feature)
 
-    if not graphic_features:
-        return False
-
-    record = GraphicRecord(sequence_length=high-low,
+    record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
 
     ax, _ = record.plot(figure_width=5)
     record.plot(ax)
+    return ax
+
+
+def save_operon_figure(ax: Axes, out_filename: str):
     ax.figure.savefig(out_filename, bbox_inches='tight')
     plt.close()
-    return True
+
+
+def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
+    operons = {}
+    lines = read_pipeline_output(f)
+    for operon in assemble_operons(lines):
+        operons[(operon.contig, operon.start, operon.end)] = operon
+    return operons
+
+
+def plot_operons(operons: List[Operon], output_directory: str):
+    for operon in operons:
+        out_filename = build_image_filename(operon, output_directory)
+        ax = create_operon_figure(operon)
+        save_operon_figure(ax, out_filename)
 
 
 if __name__ == '__main__':
-    # TODO: This makes too many assumptions about what the user wants
-    # TODO: what if the user wants to plot failed contigs?
-    # TODO: split this functionality out and make it easier to choose what to plot
     analysis_csv, pipeline_csv, image_directory = sys.argv[1:]
-    operons = {}
+    good_operons = []
+
     with open(pipeline_csv) as f:
-        lines = read_pipeline_output(f)
-        for operon in assemble_operons(lines):
-            operons[(operon.contig, operon.start, operon.end)] = operon
+        operons = build_operon_dictionary(f)
     with open(analysis_csv) as f:
         for contig, start, end, result in load_analyzed_operons(f):
             if result != 'pass':
@@ -63,5 +86,5 @@ if __name__ == '__main__':
             op = operons.get((contig, start, end))
             if op is None:
                 continue
-            out_filename = build_image_filename(op, image_directory)
-            create_operon_image(out_filename, op)
+            good_operons.append(op)
+    plot_operons(good_operons, image_directory)
