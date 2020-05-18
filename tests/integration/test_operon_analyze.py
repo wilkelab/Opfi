@@ -4,8 +4,10 @@ import shutil
 from operon_analyzer.analyze import analyze
 from operon_analyzer.rules import RuleSet
 from operon_analyzer.visualize import build_operon_dictionary, load_analyzed_operons, plot_operons
+import pytest
 
 
+@pytest.mark.slow
 def test_analyze(capsys):
     """ Just serves to check that `analyze()` produces output """
     rs = RuleSet().require('transposase') \
@@ -21,21 +23,25 @@ def test_analyze(capsys):
         assert stdout.count("pass") == 1
 
 
+@pytest.mark.slow
 def test_visualize_passes():
     pass_count = visualize('pass')
     assert pass_count == 2
 
 
+@pytest.mark.slow
 def test_visualize_failures():
     fail_count = visualize('fail')
     assert fail_count == 4
 
 
+@pytest.mark.slow
 def test_visualize_all():
     count = visualize('')
     assert count == 6
 
 
+@pytest.mark.slow
 def test_visualize_none():
     count = visualize('nonexistent-condition')
     assert count == 0
