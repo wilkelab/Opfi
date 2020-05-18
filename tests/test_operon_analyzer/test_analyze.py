@@ -97,6 +97,22 @@ def test_contains_any_set_of_features(sets, expected):
     assert result.is_passing is expected
 
 
+@pytest.mark.parametrize("f1,f2,expected", [
+    ('cas1', 'cas700', True),
+    ('cas2', 'cas700', True),
+    ('cas700', 'cas1', True),
+    ('cas700', 'cas2', True),
+    ('cas1', 'cas2', False),
+    ('cas2', 'cas1', False),
+    ('cas700', 'cas800', False),
+    ])
+def test_contains_exactly_one_of(f1, f2, expected):
+    operon = _get_standard_operon()
+    rs = RuleSet().contains_exactly_one_of(f1, f2)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
+
+
 @pytest.mark.parametrize('distance,expected', [
     (0, True),
     (50, True),
