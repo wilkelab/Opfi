@@ -1,6 +1,7 @@
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features
 from operon_analyzer.analyze import _serialize_results
+from operon_analyzer.visualize import calculate_adjusted_operon_bounds
 from operon_analyzer.overview import _count_results
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
@@ -20,6 +21,13 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     return operon
+
+
+def test_calculate_adjusted_operon_bounds():
+    operon = _get_standard_operon()
+    offset, length = calculate_adjusted_operon_bounds(operon)
+    assert offset == 12
+    assert length == 1188
 
 
 def test_count_results():
