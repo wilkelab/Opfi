@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
 Interesting operons can be visualized with a simple gene diagram. It is up to the user to decide how to define this, though this sample script below creates diagrams for all operons that passed all given rules:
 
-```
+```python
 import sys
 from operon_analyzer.analyze import load_analyzed_operons
 from operon_analyzer.visualize import build_operon_dictionary, plot_operons
