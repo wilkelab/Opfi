@@ -191,12 +191,7 @@ def test_max_distance_to_anything(distance: int, expected: bool):
 
 
 def test_serialize_results_fail():
-    genes = [
-            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = _get_standard_operon()
     rs = RuleSet() \
         .exclude('cas3') \
         .require('cas12a')
@@ -269,11 +264,3 @@ def test_max_distance(gene1_start, gene1_end, gene2_start, gene2_end, distance_b
     rs = RuleSet().max_distance('cas1', 'cas2', distance_bp)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
-
-
-# def test_parse_input_crispr_repeat():
-#     data = ['STDS9ITBSE', '1009983..1031284', 'CRISPR array', '1017560..1017914', '', '', '', '', 'Copies: 6, Repeat: 30, Spacer: 34', '-------------------GATAAACATTAACATAGGATGTATTGAAAC-']
-
-
-# def test_parse_input_cas_gene():
-# data = ['CRISPR-transposases', '1396535..1417167', 'cas11', '1412833..1412048', 'lcl|1412833|1412048|2|-1', '-1', 'UniRef50_UPI0009FEB4C2', '0', 'type I-E CRISPR-associated protein Cse2/CasB n=1 Tax=Actinobaculum sp. oral taxon 183 TaxID=712888 RepID=UPI0009FEB4C2', 'MVRHRPKQSPSYIYHFPTSERERSIVTTVNEIIKDEKPLRKRKRRNLSPIGQKIDCKISCLQKGYLSEDSRKQARARADLANLRRGLTAGPGERVEIWHLTQVDVSDNAPDEPTREEFAVHVSMTLYAAHQQSRTKPMHRPAEGLGHAAHSVVGYGDDENPSARARFDALVMSSTPRELRRHLRSFVSLLRAKEIPLDYGMLVDDIVCFQRPGGAKAVRRHWSRQYYDFSSTDGESSETDSTAEDICSENSLHNSLRNTKE']
