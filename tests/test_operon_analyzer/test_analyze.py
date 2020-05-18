@@ -1,6 +1,7 @@
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features
 from operon_analyzer.analyze import _serialize_results
+from operon_analyzer.overview import _count_results
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
@@ -19,6 +20,32 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     return operon
+
+
+def test_count_results():
+    csv_text = [
+            'fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
+            'fail require:transposase max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
+            'pass',
+            'fail exclude:cas3',
+            'fail require:transposase',
+            'fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
+            'fail max-distance-to-anything:transposase-500',
+            'fail exclude:cas3'
+            ]
+    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = _count_results(csv_text)
+    expected_urv = {'exclude:cas3': 2,
+                    'require:transposase': 1,
+                    'max-distance-to-anything:transposase-500': 1,
+                    'min-distance-to-anything:transposase-1': 0}
+    expected_fro = {'exclude:cas3': 4,
+                    'max-distance-to-anything:transposase-500': 4,
+                    'min-distance-to-anything:transposase-1': 3,
+                    'require:transposase': 2}
+    expected_rfc = {0: 1, 1: 4, 3: 3}
+    assert unique_rule_violated == expected_urv
+    assert failed_rule_occurrences == expected_fro
+    assert rule_failure_counts == expected_rfc
 
 
 @composite
