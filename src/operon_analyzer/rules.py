@@ -5,15 +5,18 @@ from operon_analyzer.genes import Feature, Operon
 class Rule(object):
     """ Defines a requirement that elements of an operon must adhere to. """
 
-    def __init__(self, name: str, function: Callable, *args):
+    def __init__(self, name: str, function: Callable, *args, custom_repr: Optional[str] = None):
         self._name = name
         self._function = function
         self._args = args
+        self._custom_repr = custom_repr
 
     def evaluate(self, operon: Operon) -> bool:
         return self._function(operon, *self._args)
 
     def __repr__(self) -> str:
+        if self._custom_repr is not None:
+            return self._custom_repr
         return "{name}:{args}".format(
                 name=str(self._name),
                 args="-".join(map(str, self._args)))
@@ -101,6 +104,30 @@ class RuleSet(object):
         self._rules.append(Rule('same-orientation', _same_orientation, None))
         return self
 
+    def contains_any_set_of_features(self, sets: List[List[str]]):
+        """
+        Returns True if the operon contains features with all of the names
+        in at least one of the lists. Useful for determining if an operon contains
+        all of the essential genes for a particular system, for example.
+        """
+        serialized_sets = "|".join(["-".join(names) for names in sets])
+        custom_repr = f'contains-any-set-of-features:{serialized_sets}'
+        self._rules.append(Rule('contains-any-set-of-features',
+                                _contains_any_set_of_features,
+                                sets, custom_repr=custom_repr))
+        return self
+
+    def contains_exactly_one_of(self, feature1_name: str, feature2_name: str):
+        """
+        An exclusive-or of the presence of two features.
+        That is, one of the features must be present and the other must not.
+        """
+        self._rules.append(Rule('contains-exactly-one-of',
+                                _contains_exactly_one_of,
+                                feature1_name,
+                                feature2_name))
+        return self
+
     def custom(self, rule: 'Rule'):
         """ Add a rule with a user-defined function. """
         self._rules.append(rule)
@@ -169,6 +196,18 @@ def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: in
 def _same_orientation(operon: Operon, args=None) -> bool:
     strands = set([feature.strand for feature in operon])
     return len(strands) == 1
+
+
+def _contains_features(operon: Operon, feature_names: List[str]) -> bool:
+    return len(set(operon.feature_names) & set(feature_names)) == len(feature_names)
+
+
+def _contains_any_set_of_features(operon: Operon, sets: List[List[str]]) -> bool:
+    return any([_contains_features(operon, feature_names) for feature_names in sets])
+
+
+def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
+    return (f1 in operon.feature_names) ^ (f2 in operon.feature_names)
 
 
 def _feature_distance(f1: Feature, f2: Feature) -> int:

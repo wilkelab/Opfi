@@ -1,5 +1,5 @@
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance
+from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features
 from operon_analyzer.analyze import _serialize_results
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
@@ -9,6 +9,16 @@ import string
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
+
+
+def _get_standard_operon():
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    return operon
 
 
 @composite
@@ -50,15 +60,41 @@ def test_not_same_orientation():
 
 
 def test_same_orientation():
-    genes = [
-            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = _get_standard_operon()
     rs = RuleSet().same_orientation()
     result = rs.evaluate(operon)
     assert result.is_passing
+
+
+@pytest.mark.parametrize("feature_names,expected", [
+    (['cas1', 'cas2', 'cas4'], True),
+    (['cas2', 'cas4'], True),
+    (['cas1', 'cas2', 'cas4', 'cas5'], False),
+    ])
+def test_contains_features(feature_names, expected):
+    operon = _get_standard_operon()
+    assert _contains_features(operon, feature_names) is expected
+
+
+def test_contains_any_set_of_serialization():
+    rs = RuleSet().contains_any_set_of_features([['cas1', 'cas2'],
+                                                 ['cas2', 'cas3', 'cas4']])
+    rule = rs._rules[0]
+    expected = "contains-any-set-of-features:cas1-cas2|cas2-cas3-cas4"
+    assert str(rule) == expected
+
+
+@pytest.mark.parametrize("sets,expected", [
+    ([['cas1', 'cas2', 'cas4'], ['cas3', 'cas5']], True),
+    ([['cas1', 'cas2', 'cas4'], ['cas1', 'cas2']], True),
+    ([['cas1', 'cas2', 'cas3', 'cas4'], ['cas3', 'cas5']], False),
+    ([['cas1', 'cas2', 'cas3', 'cas4']], False),
+    ])
+def test_contains_any_set_of_features(sets, expected):
+    operon = _get_standard_operon()
+    rs = RuleSet().contains_any_set_of_features(sets)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
 
 
 @pytest.mark.parametrize('distance,expected', [
