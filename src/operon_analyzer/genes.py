@@ -15,7 +15,7 @@ class Feature(object):
                  sequence: str):
         # Note: for CRISPR repeats, the pipeline does not identify the strand, and
         # since BLAST was not used, there is no e-value, so these values are set to
-        # None. 
+        # None.
         self.name = name
         self.coordinates = coordinates
         self.orfid = orfid
@@ -24,6 +24,7 @@ class Feature(object):
         self.e_val = e_val
         self.description = description
         self.sequence = sequence
+        self.ignored_reasons = []
 
     def __hash__(self):
         return hash((self.name, self.coordinates, self.sequence))
@@ -32,6 +33,9 @@ class Feature(object):
         return self.name == other.name and \
                self.coordinates == other.coordinates and \
                self.sequence == other.sequence
+
+    def ignore(self, reason: str):
+        self.ignored_reasons.append(reason)
 
     @property
     def start(self) -> int:
@@ -70,12 +74,15 @@ class Operon(object):
         self.end = end
         self._features = features
 
-    def __iter__(self):
+    @property
+    def all_features(self):
         yield from self._features
+
+    def __iter__(self):
+        yield from (feature for feature in self._features if not feature.ignored_reasons)
 
     def __len__(self):
         return len(self._features)
-
 
     @property
     def feature_names(self):

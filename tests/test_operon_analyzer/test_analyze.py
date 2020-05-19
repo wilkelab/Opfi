@@ -156,7 +156,7 @@ def test_contains_exactly_one_of(f1, f2, expected):
     (1000, False),
     (10000, False)
     ])
-def test_min_distance_to_anything(distance: int, expected: bool):
+def test_at_least_n_bp_from_anything(distance: int, expected: bool):
     genes = [
             Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
@@ -164,7 +164,7 @@ def test_min_distance_to_anything(distance: int, expected: bool):
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
-    rs = RuleSet().min_distance_to_anything('transposase', distance)
+    rs = RuleSet().at_least_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -177,7 +177,7 @@ def test_min_distance_to_anything(distance: int, expected: bool):
     (1000, True),
     (10000, True)
     ])
-def test_max_distance_to_anything(distance: int, expected: bool):
+def test_at_most_n_bp_from_anything(distance: int, expected: bool):
     genes = [
             Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
@@ -185,7 +185,7 @@ def test_max_distance_to_anything(distance: int, expected: bool):
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
-    rs = RuleSet().max_distance_to_anything('transposase', distance)
+    rs = RuleSet().at_most_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
