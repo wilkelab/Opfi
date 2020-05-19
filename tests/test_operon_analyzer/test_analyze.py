@@ -152,7 +152,7 @@ def test_contains_exactly_one_of(f1, f2, expected):
     (0, True),
     (50, True),
     (99, True),
-    (100, False),
+    (100, True),
     (1000, False),
     (10000, False)
     ])
