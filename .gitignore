@@ -17,3 +17,6 @@ junk/
 data/
 out
 job_scripts/
+
+# Don't check metadata for property-based tests into version control
+.hypothesis
