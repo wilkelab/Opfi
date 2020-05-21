@@ -1,5 +1,5 @@
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features
+from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet, _must_be_within_n_bp_of_anything, _must_be_within_n_bp_of_feature
 from operon_analyzer.analyze import _serialize_results
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds
 from operon_analyzer.overview import _count_results
@@ -21,6 +21,26 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     return operon
+
+
+def test_filterset_within_n_bp_of_feature():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert 'cas4' not in names
+    assert 'cas1' in names
+    assert 'cas2' in names
+
+
+def test_filterset_within_n_bp_anything():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_anything(10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert 'cas4' not in names
+    assert 'cas1' in names
+    assert 'cas2' in names
 
 
 def test_calculate_adjusted_operon_bounds():

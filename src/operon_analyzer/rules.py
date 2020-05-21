@@ -2,17 +2,12 @@ from typing import Callable, Optional, List
 from operon_analyzer.genes import Feature, Operon
 
 
-class Rule(object):
-    """ Defines a requirement that elements of an operon must adhere to. """
-
+class SerializableFunction(object):
     def __init__(self, name: str, function: Callable, *args, custom_repr: Optional[str] = None):
         self._name = name
         self._function = function
         self._args = args
         self._custom_repr = custom_repr
-
-    def evaluate(self, operon: Operon) -> bool:
-        return self._function(operon, *self._args)
 
     def __repr__(self) -> str:
         if self._custom_repr is not None:
@@ -20,6 +15,13 @@ class Rule(object):
         return "{name}:{args}".format(
                 name=str(self._name),
                 args="-".join(map(str, self._args)))
+
+
+class Rule(SerializableFunction):
+    """ Defines a requirement that elements of an operon must adhere to. """
+
+    def evaluate(self, operon: Operon) -> bool:
+        return self._function(operon, *self._args)
 
 
 class Result(object):
@@ -56,6 +58,54 @@ class Result(object):
                 outcome=outcome)
 
 
+class Filter(SerializableFunction):
+    """
+    A function that will be run on an Operon that marks Features as being ignorable
+    for the purposes of evaluating RuleSets.
+    """
+
+    def run(self, operon: Operon):
+        return self._function(operon, str(self), *self._args)
+
+
+class FilterSet(object):
+    """
+    Stores functions that take an Operon and mark individual Features as ignored
+    in case we think they are not actually worth taking into account when evaluating rules.
+    Features can be ignored for multiple reasons.
+    """
+
+    def __init__(self):
+        self._filters = []
+
+    def must_be_within_n_bp_of_anything(self, distance_bp: int):
+        self._filters.append(Filter('must-be-within-n-bp-of-anything', _must_be_within_n_bp_of_anything, distance_bp))
+        return self
+
+    def must_be_within_n_bp_of_feature(self, feature_name: str, distance_bp: int):
+        self._filters.append(Filter('must-be-within-n-bp-of-feature', _must_be_within_n_bp_of_feature, feature_name, distance_bp))
+        return self
+
+    def evaluate(self, operon: Operon):
+        for filt in self._filters:
+            filt.run(operon)
+
+
+def _must_be_within_n_bp_of_anything(operon: Operon, ignored_reason_message: str, distance_bp: int):
+    for feature in operon.all_features:
+        distances = _calculate_all_distances(operon, feature.name)
+        if min(distances) > distance_bp:
+            feature.ignore(ignored_reason_message)
+
+
+def _must_be_within_n_bp_of_feature(operon: Operon, ignored_reason_message: str, feature_name: str, distance_bp: int):
+    for feature in operon.all_features:
+        if feature.name == feature_name:
+            continue
+        if not _max_distance(operon, feature_name, feature.name, distance_bp):
+            feature.ignore(ignored_reason_message)
+
+
 class RuleSet(object):
     """ Creates, stores and evaluates `Rule`s that an operon must adhere to."""
 
@@ -80,21 +130,21 @@ class RuleSet(object):
         self._rules.append(Rule('max-distance', _max_distance, feature1_name, feature2_name, distance_bp))
         return self
 
-    def min_distance_to_anything(self, feature_name: str, distance_bp: int):
+    def at_least_n_bp_from_anything(self, feature_name: str, distance_bp: int):
         """
         Requires that a feature be at least `distance_bp` base pairs from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
-        self._rules.append(Rule('min-distance-to-anything', _min_distance_to_anything, feature_name, distance_bp))
+        self._rules.append(Rule('at-least-n-bp-from-anything', _at_least_n_bp_from_anything, feature_name, distance_bp))
         return self
 
-    def max_distance_to_anything(self, feature_name: str, distance_bp: int):
+    def at_most_n_bp_from_anything(self, feature_name: str, distance_bp: int):
         """
         A given feature must be within distance_bp base pairs of any other feature.
         Requires exactly one matching feature to be present.
         Returns False if the given feature is the only feature.
         """
-        self._rules.append(Rule('max-distance-to-anything', _max_distance_to_anything, feature_name, distance_bp))
+        self._rules.append(Rule('at-most-n-bp-from-anything', _at_most_n_bp_from_anything, feature_name, distance_bp))
         return self
 
     def same_orientation(self, exceptions: Optional[List[str]] = None):
@@ -167,30 +217,34 @@ def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distan
     return 0 <= distance <= distance_bp
 
 
-def _min_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+def _calculate_all_distances(operon: Operon, feature_name: str) -> Optional[int]:
+    """ Calculates the distance of a unique feature to all other features. """
+    distances = []
     feature = operon.get_unique(feature_name)
     if feature is None:
-        return False
+        return None
     for other_feature in operon:
         if feature is other_feature:
             continue
         distance = _feature_distance(feature, other_feature)
-        if distance <= distance_bp:
-            return False
-    return True
+        distances.append(distance)
+    return distances
 
 
-def _max_distance_to_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
-    feature = operon.get_unique(feature_name)
-    if feature is None:
+def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    distances = _calculate_all_distances(operon, feature_name)
+    if distances is None:
         return False
-    for other_feature in operon:
-        if feature is other_feature:
-            continue
-        distance = _feature_distance(feature, other_feature)
-        if distance <= distance_bp:
-            return True
-    return False
+    if not distances:
+        return True
+    return min(distances) >= distance_bp
+
+
+def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    distances = _calculate_all_distances(operon, feature_name)
+    if distances is None:
+        return False
+    return min(distances) <= distance_bp
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:

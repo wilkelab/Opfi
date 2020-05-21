@@ -87,12 +87,12 @@ class Operon(object):
     @property
     def feature_names(self):
         """ Iterates over the name of each feature in the operon """
-        yield from (feature.name for feature in self._features)
+        yield from (feature.name for feature in self)
 
     def get(self, feature_name: str) -> List[Feature]:
         """ Returns a list of every Feature with a given name. """
         features = []
-        for feature in self._features:
+        for feature in self:
             if feature.name == feature_name:
                 features.append(feature)
         return features
