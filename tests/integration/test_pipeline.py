@@ -90,3 +90,20 @@ def test_multi_seq_fasta():
     print(json.dumps(results, indent=4))
 
     tmp.cleanup()
+
+
+@pytest.mark.slow
+def test_gzip_fasta():
+    """
+    Test that the pipeline can open and correctly process
+    a gzipped fasta file.
+    """
+    
+    data = "tests/integration/integration_data/contigs/record_all_hits_test_1.gz"
+    p = setup_pipeline()
+    results = p.run(data=data, gzip=True)
+
+    hits = results["KB405063.1"]["Loc_0-19654"]["Hits"]
+    assert "Cas_all_hit-0" in hits
+    assert "Array_0" in hits
+    
