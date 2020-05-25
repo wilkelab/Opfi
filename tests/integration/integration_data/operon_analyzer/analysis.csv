@@ -1,0 +1,7 @@
+# require:transposase,exclude:cas3,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1
+CRISPR-transposases,7470..79575,fail require:transposase max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1
+CRISPR-transposases,15630..37621,pass
+CRISPR-transposases,102222..122929,fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1
+CRISPR-transposases,251014..293071,fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1
+CRISPR-transposases,320249..367608,fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1
+CRISPR-transposases,687691..709163,pass
