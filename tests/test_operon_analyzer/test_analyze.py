@@ -1,12 +1,14 @@
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet, _must_be_within_n_bp_of_anything, _must_be_within_n_bp_of_feature
+from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet 
 from operon_analyzer.analyze import _serialize_results
-from operon_analyzer.visualize import calculate_adjusted_operon_bounds
+from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
 from operon_analyzer.overview import _count_results
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
 import string
+from matplotlib.text import Text
+
 
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
@@ -21,6 +23,34 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     return operon
+
+
+def _find_plotted_features(ax):
+    # determines the names of all the features plotted in a dna_features_viewer plot
+    features = set()
+    for child in ax.properties()['children']:
+        # we check if child._text is empty since there are blank text boxes for some reason
+        if type(child) == Text and child._text:
+            features.add(child._text)
+    return features
+
+
+def test_create_operon_figure_with_ignored():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    ax = create_operon_figure(operon, True)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2', 'cas4 IGNORED\nmust-be-within-n-bp-of-feature:cas2-10'])
+
+
+def test_create_operon_figure():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    ax = create_operon_figure(operon, False)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2'])
 
 
 def test_filterset_within_n_bp_of_feature():

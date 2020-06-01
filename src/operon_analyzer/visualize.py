@@ -38,12 +38,11 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
 def create_operon_figure(operon: Operon, plot_ignored: bool):
     assert len(operon) > 0
     offset, operon_length = calculate_adjusted_operon_bounds(operon)
-
     graphic_features = []
-    for feature in operon:
-        if feature.ignored_reasons and not plot_ignored:
+    for feature in operon.all_features:
+        if bool(feature.ignored_reasons) and not plot_ignored:
             continue
-        label = feature.name if not feature.ignored_reasons else "{feature_name} IGNORED\n{reasons}".format(feature_name=feature_name, reasons="\n".join(feature.ignored_reasons))
+        label = feature.name if not feature.ignored_reasons else "{feature_name} IGNORED\n{reasons}".format(feature_name=feature.name, reasons="\n".join(feature.ignored_reasons))
         graphic_feature = GraphicFeature(start=feature.start - offset,
                                          strand=feature.strand,
                                          end=feature.end - offset,
