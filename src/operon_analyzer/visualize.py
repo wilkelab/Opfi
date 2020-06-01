@@ -42,7 +42,7 @@ def create_operon_figure(operon: Operon, plot_ignored: bool):
     for feature in operon.all_features:
         if bool(feature.ignored_reasons) and not plot_ignored:
             continue
-        label = feature.name if not feature.ignored_reasons else "{feature_name} IGNORED\n{reasons}".format(feature_name=feature.name, reasons="\n".join(feature.ignored_reasons))
+        label = feature.name if not feature.ignored_reasons else "{feature_name} (ignored)".format(feature_name=feature.name)
         graphic_feature = GraphicFeature(start=feature.start - offset,
                                          strand=feature.strand,
                                          end=feature.end - offset,

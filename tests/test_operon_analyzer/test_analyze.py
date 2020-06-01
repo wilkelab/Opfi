@@ -41,7 +41,7 @@ def test_create_operon_figure_with_ignored():
     fs.evaluate(operon)
     ax = create_operon_figure(operon, True)
     features = _find_plotted_features(ax)
-    assert features == set(['cas1', 'cas2', 'cas4 IGNORED\nmust-be-within-n-bp-of-feature:cas2-10'])
+    assert features == set(['cas1', 'cas2', 'cas4 (ignored)'])
 
 
 def test_create_operon_figure():
