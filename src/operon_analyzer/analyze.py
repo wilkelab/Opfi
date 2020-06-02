@@ -20,6 +20,8 @@ def analyze(input_lines: IO[str], ruleset: RuleSet):
 
 
 def load_analyzed_operons(f: IO[str]) -> Iterator[Tuple[str, int, int, str]]:
+    """ Loads and parses the data from the output of analyze(). This is
+    typically used for analyzing or visualizing candidate operons. """
     for line in csv.reader(filter(lambda line: not line.startswith("#"), f)):
         contig, coordinates, result = line
         start, end = parse_coordinates(coordinates)
