@@ -1,11 +1,11 @@
 import csv
-from typing import Iterator, IO, Tuple
+from typing import Iterator, IO, Tuple, Optional
 from operon_analyzer.genes import Operon
-from operon_analyzer.rules import RuleSet, Result
+from operon_analyzer.rules import RuleSet, Result, FilterSet
 from operon_analyzer.parse import assemble_operons, read_pipeline_output, parse_coordinates
 
 
-def analyze(input_lines: IO[str], ruleset: RuleSet):
+def analyze(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None):
     """
     Takes a handle to the CSV from the CRISPR-transposon pipeline
     and user-provided rules, and produces text that describes which
@@ -14,7 +14,7 @@ def analyze(input_lines: IO[str], ruleset: RuleSet):
     """
     lines = read_pipeline_output(input_lines)
     operons = assemble_operons(lines)
-    results = _evaluate_operons(operons, ruleset)
+    results = _evaluate_operons(operons, ruleset, filterset)
     for output_line in _serialize_results(ruleset, results):
         print(output_line)
 
@@ -35,7 +35,9 @@ def _serialize_results(ruleset: RuleSet, results: Iterator[Result]) -> Iterator[
         yield str(result)
 
 
-def _evaluate_operons(operons: Iterator[Operon], ruleset: RuleSet) -> Iterator[Result]:
+def _evaluate_operons(operons: Iterator[Operon], ruleset: RuleSet, filterset: Optional[FilterSet] = None) -> Iterator[Result]:
     """ Determines which operons adhere to the filtering rules. """
     for operon in operons:
+        if filterset is not None:
+            filterset.evaluate(operon)
         yield ruleset.evaluate(operon)
