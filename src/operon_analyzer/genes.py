@@ -76,12 +76,15 @@ class Operon(object):
 
     @property
     def all_features(self):
+        """ Iterates over all features in the operon regardless of whether it's been ignored. """
         yield from self._features
 
     def __iter__(self):
+        """ Iterates over all features that haven't been judged to be unrelated to the operon. """
         yield from (feature for feature in self._features if not feature.ignored_reasons)
 
     def __len__(self):
+        """ The number of relevant genes or CRISPR arrays in the operon. """
         return len(self._features)
 
     @property

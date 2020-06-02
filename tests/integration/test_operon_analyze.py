@@ -7,13 +7,24 @@ from operon_analyzer.visualize import build_operon_dictionary, load_analyzed_ope
 import pytest
 
 
-@pytest.mark.slow
+def test_analyze_multipipline(capsys):
+    """ Ensures we can concatenate all our result CSVs and parse them together. """
+    rs = RuleSet().require('transposase')
+
+    with open('tests/integration/integration_data/operon_analyzer/multipipeline.csv') as f:
+        analyze(f, rs)
+        captured = capsys.readouterr()
+        stdout = captured.out
+        assert stdout.startswith("#")
+        assert stdout.count("pass") == 6
+
+
 def test_analyze(capsys):
     """ Just serves to check that `analyze()` produces output """
     rs = RuleSet().require('transposase') \
                   .exclude('cas3') \
-                  .max_distance_to_anything('transposase', 500) \
-                  .min_distance_to_anything('transposase', 1)
+                  .at_most_n_bp_from_anything('transposase', 500) \
+                  .at_least_n_bp_from_anything('transposase', 1)
 
     with open('tests/integration/integration_data/operon_analyzer/transposases.csv') as f:
         analyze(f, rs)
