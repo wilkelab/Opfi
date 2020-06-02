@@ -1,4 +1,5 @@
 import csv
+from crisposon.output_writers import FIELDNAMES
 from collections import defaultdict
 from typing import Tuple, Iterator, IO
 from operon_analyzer.genes import Feature, Operon
@@ -31,9 +32,10 @@ def parse_coordinates(coordinates: str) -> Coordinates:
 def read_pipeline_output(handle: IO[str]) -> Iterator[PipelineRecord]:
     """ Reads the CSV file produced by the CRISPR-transposon pipeline """
     reader = csv.reader(handle)
-    next(reader)  # skip header
-    for contig, coordinates, feature, feature_coordinates, query_orfid, strand, hit_accession, hit_eval, description, sequence in reader:
-        yield (contig, coordinates, feature, feature_coordinates, query_orfid, strand, hit_accession, hit_eval, description, sequence)
+    for record in reader:
+        if record == FIELDNAMES:
+            continue
+        yield record
 
 
 def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
