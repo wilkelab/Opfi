@@ -16,11 +16,6 @@ from crisposon.output_writers import CSVWriter
 import tempfile, os, json, gzip
 from Bio import SeqIO
 
-BLASTP_KEYWORDS = ["blastp", "PROT"]
-PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
-MMSEQS_KEYWORDS = ["mmseqs"]
-DIAMOND_KEYWORDS = ["diamond"]
-
 class Pipeline:
     """
     Main class for running the CRISPR-transposon identification pipeline.
@@ -222,14 +217,14 @@ class Pipeline:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
         """
-        if blast_type in BLASTP_KEYWORDS:
+        if blast_type == "PROT" or "blastp":
             self._steps.append(SeedStep(Blastp(db, e_val, name)))
-        elif blast_type in PSIBLAST_KEYWORDS:
+        elif blast_type == "PSI" or "psiblast":
             self._steps.append(SeedStep(Blastpsi(db, e_val, name)))
-        elif blast_type in MMSEQS_KEYWORDS:
+        elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, 
                                                 str(sensitivity), extra_args)))
-        elif blast_type in DIAMOND_KEYWORDS:
+        elif blast_type == "diamond":
             self._steps.append(SeedStep(Diamond(db, str(e_val), name, 
                                                 str(sensitivity), extra_args)))
         else:
@@ -262,14 +257,14 @@ class Pipeline:
                 for mmseqs or diamond runs (currently not supported
                 if blastp/psiblast is the search type). 
         """
-        if blast_type in BLASTP_KEYWORDS:
+        if blast_type == "PROT" or "blastp":
             self._steps.append(FilterStep(Blastp(db, e_val, name), min_prot_count))
-        elif blast_type in PSIBLAST_KEYWORDS:
+        elif blast_type == "PSI" or "psiblast":
             self._steps.append(FilterStep(Blastpsi(db, e_val, name), min_prot_count))
-        elif blast_type in MMSEQS_KEYWORDS:
+        elif blast_type == "mmseqs":
             self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), 
                                                     extra_args), min_prot_count))
-        elif blast_type in DIAMOND_KEYWORDS:
+        elif blast_type == "diamond":
             self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), 
                                                     extra_args), min_prot_count))
         else:
@@ -300,13 +295,13 @@ class Pipeline:
                 for mmseqs or diamond runs (currently not supported
                 if blastp/psiblast is the search type).     
         """
-        if blast_type in BLASTP_KEYWORDS:
+        if blast_type == "PROT" or "blastp":
             self._steps.append(SearchStep(Blastp(db, e_val, name)))
-        elif blast_type in PSIBLAST_KEYWORDS:
+        elif blast_type == "PSI" or "psiblast":
             self._steps.append(SearchStep(Blastpsi(db, e_val, name)))
-        elif blast_type in MMSEQS_KEYWORDS:
+        elif blast_type == "mmseqs":
             self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
-        elif blast_type in DIAMOND_KEYWORDS:
+        elif blast_type == "diamond":
             self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
@@ -483,13 +478,11 @@ class Pipeline:
                 
                 if record_all_hits:
                     self._all_hits[contig_id][step.search_tool.step_id] = step.hits
-                
                 self._results[contig_id] = self._working_results
             
             self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
-
         if record_all_hits:
             self._record_all_hits(all_hits_outfile)
         
