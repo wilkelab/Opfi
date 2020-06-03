@@ -33,16 +33,23 @@ def calculate_adjusted_operon_bounds(operon: Operon) -> Tuple[int, int]:
     return low, high - low
 
 
-def create_operon_figure(operon: Operon):
+def create_operon_figure(operon: Operon, feature_colors: dict):
     assert len(operon) > 0
     offset, operon_length = calculate_adjusted_operon_bounds(operon)
 
     graphic_features = []
     for feature in operon:
-        graphic_feature = GraphicFeature(start=feature.start - offset,
-                                         strand=feature.strand,
-                                         end=feature.end - offset,
-                                         label=feature.name)
+        if feature_colors is not None:
+            graphic_feature = GraphicFeature(start=feature.start - offset,
+                                            strand=feature.strand,
+                                            end=feature.end - offset,
+                                            label=feature.name,
+                                            color=feature_colors[feature.name])
+        else:
+            graphic_feature = GraphicFeature(start=feature.start - offset,
+                                            strand=feature.strand,
+                                            end=feature.end - offset,
+                                            label=feature.name)
         graphic_features.append(graphic_feature)
 
     record = GraphicRecord(sequence_length=operon_length,
@@ -66,10 +73,10 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     return operons
 
 
-def plot_operons(operons: List[Operon], output_directory: str):
+def plot_operons(operons: List[Operon], output_directory: str, feature_colors: dict = None):
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        ax = create_operon_figure(operon)
+        ax = create_operon_figure(operon, feature_colors)
         save_operon_figure(ax, out_filename)
 
 
