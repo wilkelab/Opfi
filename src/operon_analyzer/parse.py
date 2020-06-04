@@ -14,7 +14,6 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     Takes the output from the CRISPR-transposon pipeline, loads all features,
     and assembles them into putative Operons.
     """
-    next(lines)  # skip header
     operon_features = defaultdict(list)
     for line in lines:
         contig, coordinates, feature = _parse_feature(line)
