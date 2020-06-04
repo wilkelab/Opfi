@@ -39,16 +39,26 @@ def test_create_operon_figure_with_ignored():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, True)
+    ax = create_operon_figure(operon, True, None)
     features = _find_plotted_features(ax)
     assert features == set(['cas1', 'cas2', 'cas4 (ignored)'])
+
+
+def test_create_operon_figure_with_colors():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    gene_colors = {'cas1': 'purple', 'cas2': 'green'}
+    ax = create_operon_figure(operon, False, gene_colors)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2'])
 
 
 def test_create_operon_figure():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, False)
+    ax = create_operon_figure(operon, False, None)
     features = _find_plotted_features(ax)
     assert features == set(['cas1', 'cas2'])
 
