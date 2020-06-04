@@ -96,10 +96,24 @@ class FilterSet(object):
         self._filters.append(Filter('must-be-within-n-bp-of-feature', _must_be_within_n_bp_of_feature, feature_name, distance_bp))
         return self
 
+    def pick_overlapping_features_by_bit_score(self, minimum_overlap_threshold: float):
+        """ If two features overlap by more than `minimum_overlap_threshold`, the one with the lower bit score is ignored. """
+        self._filters.append(Filter('overlaps-other-feature', _pick_overlapping_features_by_bit_score, minimum_overlap_threshold))
+        return self
+
     def evaluate(self, operon: Operon):
         """ Run the filters on the operon and set Features that fail to meet the requirements to be ignored. """
         for filt in self._filters:
             filt.run(operon)
+
+
+def _pick_overlapping_features_by_bit_score(operon: Operon, minimum_overlap_threshold: float):
+    # build lists of overlapping feature groups
+    # for a case where A overlaps with B, and B overlaps with C, but A and C don't overlap, what should happen?
+    # for each feature, make a list of other features that overlap by at least N%
+    # iterate over that list ignore whichever feature is worse, unless the other feature has already been ignored.
+    # This last bit is necessary since we don't want a situation where all our features just disappear
+    pass
 
 
 def _must_be_within_n_bp_of_anything(operon: Operon, ignored_reason_message: str, distance_bp: int):
