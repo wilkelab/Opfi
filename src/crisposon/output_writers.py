@@ -1,5 +1,11 @@
 import csv
 
+FIELDNAMES = ["Contig", "Locus coordinates", "Feature", 
+              "Feature coordinates", "Query ORFID",
+              "Strand", "Hit accession", "Hit e-val", 
+              "Description", "Query/Consensus sequence"]
+
+
 class CSVWriter:
 
     def __init__(self, results, outfile):
@@ -10,12 +16,7 @@ class CSVWriter:
     
     def _ret_fieldnames(self):
 
-        fieldnames = ["Contig", "Locus coordinates", "Feature", 
-                        "Feature coordinates", "Query ORFID",
-                        "Strand", "Hit accession", "Hit e-val", 
-                        "Description", "Query/Consensus sequence"]
-        
-        return fieldnames
+        return FIELDNAMES
     
     def _get_row(self, neighborhood, hit):
         

@@ -3,6 +3,8 @@ from operon_analyzer.genes import Feature, Operon
 
 
 class SerializableFunction(object):
+    """ A base class for functions that we need to be able to serialize. Do not instantiate this directly. """
+
     def __init__(self, name: str, function: Callable, *args, custom_repr: Optional[str] = None):
         self._name = name
         self._function = function
@@ -21,6 +23,7 @@ class Rule(SerializableFunction):
     """ Defines a requirement that elements of an operon must adhere to. """
 
     def evaluate(self, operon: Operon) -> bool:
+        """ Determine if an operon adheres to this rule. """
         return self._function(operon, *self._args)
 
 
@@ -37,9 +40,11 @@ class Result(object):
         self._failing = []  # type: List[Rule]
 
     def add_passing(self, rule: Rule):
+        """ Mark this rule as being one that the operon passed. """
         self._passing.append(rule)
 
     def add_failing(self, rule: Rule):
+        """ Mark this rule as being one that the operon failed. """
         self._failing.append(rule)
 
     @property
@@ -65,6 +70,9 @@ class Filter(SerializableFunction):
     """
 
     def run(self, operon: Operon):
+        """ Mark Features in the Operon as ignored if they don't pass the filter. This
+        will prevent them from being taken into account during Rule evaluation and (by
+        default) during visualization. """
         return self._function(operon, str(self), *self._args)
 
 
@@ -79,14 +87,17 @@ class FilterSet(object):
         self._filters = []
 
     def must_be_within_n_bp_of_anything(self, distance_bp: int):
+        """ If a feature is very far away from anything it's probably not part of an operon. """
         self._filters.append(Filter('must-be-within-n-bp-of-anything', _must_be_within_n_bp_of_anything, distance_bp))
         return self
 
     def must_be_within_n_bp_of_feature(self, feature_name: str, distance_bp: int):
+        """ There may be situations where two features always appear near each other in functional operons. """
         self._filters.append(Filter('must-be-within-n-bp-of-feature', _must_be_within_n_bp_of_feature, feature_name, distance_bp))
         return self
 
     def evaluate(self, operon: Operon):
+        """ Run the filters on the operon and set Features that fail to meet the requirements to be ignored. """
         for filt in self._filters:
             filt.run(operon)
 
@@ -132,7 +143,7 @@ class RuleSet(object):
 
     def at_least_n_bp_from_anything(self, feature_name: str, distance_bp: int):
         """
-        Requires that a feature be at least `distance_bp` base pairs from any other feature.
+        Requires that a feature be at least `distance_bp` base pairs away from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
         self._rules.append(Rule('at-least-n-bp-from-anything', _at_least_n_bp_from_anything, feature_name, distance_bp))
@@ -140,7 +151,7 @@ class RuleSet(object):
 
     def at_most_n_bp_from_anything(self, feature_name: str, distance_bp: int):
         """
-        A given feature must be within distance_bp base pairs of any other feature.
+        A given feature must be within distance_bp base pairs of another feature.
         Requires exactly one matching feature to be present.
         Returns False if the given feature is the only feature.
         """
@@ -209,6 +220,7 @@ def _require(operon: Operon, feature_name: str) -> bool:
 
 
 def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
+    """ Returns whether two given Features are within distance_bp base pairs from each other. """
     f1 = operon.get_unique(feature1_name)
     f2 = operon.get_unique(feature2_name)
     if f1 is None or f2 is None:
@@ -232,6 +244,7 @@ def _calculate_all_distances(operon: Operon, feature_name: str) -> Optional[int]
 
 
 def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    """ Whether a given feature is more than distance_bp base pairs from another Feature. """
     distances = _calculate_all_distances(operon, feature_name)
     if distances is None:
         return False
@@ -241,6 +254,7 @@ def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp:
 
 
 def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+    """ Whether a given feature is less than distance_bp base pairs from any other feature. """
     distances = _calculate_all_distances(operon, feature_name)
     if distances is None:
         return False
@@ -248,23 +262,28 @@ def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: 
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:
+    """ Whether every gene is transcribed in the same direction. """
     strands = set([feature.strand for feature in operon])
     return len(strands) == 1
 
 
 def _contains_features(operon: Operon, feature_names: List[str]) -> bool:
+    """ Whether an Operon contains features with the given names. """
     return len(set(operon.feature_names) & set(feature_names)) == len(feature_names)
 
 
 def _contains_any_set_of_features(operon: Operon, sets: List[List[str]]) -> bool:
+    """ Whether any the Operon has features with any of the given sets of names. """
     return any([_contains_features(operon, feature_names) for feature_names in sets])
 
 
 def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
+    """ Whether the operon has one feature or another, but not both. """
     return (f1 in operon.feature_names) ^ (f2 in operon.feature_names)
 
 
 def _feature_distance(f1: Feature, f2: Feature) -> int:
+    """ Returns the distance between two Features in base pairs. """
     distance1 = f2.start - f1.end
     distance2 = f1.start - f2.end
     # In the case of overlapping features, the distance is defined as 0

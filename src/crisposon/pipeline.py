@@ -13,7 +13,7 @@ from crisposon.steps import (SearchStep,
 
 from crisposon.output_writers import CSVWriter
 
-import tempfile, os, json
+import tempfile, os, json, gzip
 from Bio import SeqIO
 
 BLASTP_KEYWORDS = ["blastp", "PROT"]
@@ -83,7 +83,18 @@ class Pipeline:
         """
         #self._working_dir.cleanup()
     
-    
+    def _open_data(self, data, is_binary):
+        """
+        Return the appropriate handle/file object for reading
+        input data that is either flat text or a gzipped file. 
+        """
+        if is_binary:
+            handle = gzip.open(data, "rt")
+        else:
+            handle = open(data, "r")
+        
+        return handle
+
     def _results_init(self, neighborhood_ranges):
         """
         Create an entry for every gene neighborhood identified
@@ -360,7 +371,7 @@ class Pipeline:
     
     def run(self, data, min_prot_len=60, span=10000,
             outfrmt=None, outfile=None, record_all_hits=False,
-            all_hits_outfile=None) -> dict:
+            all_hits_outfile=None, gzip=False) -> dict:
         """Sequentially execute each step in the pipeline.
 
         Args:
@@ -396,7 +407,8 @@ class Pipeline:
         self._results = {}
         self._all_hits = {}
 
-        for record in SeqIO.parse(data, "fasta"):
+        data_handle = self._open_data(self.data_path, gzip)
+        for record in SeqIO.parse(data_handle, "fasta"):
             
             contig_id = record.id
             self._working_dir = tempfile.TemporaryDirectory()
@@ -477,9 +489,9 @@ class Pipeline:
             self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
-        results = self._results
 
         if record_all_hits:
             self._record_all_hits(all_hits_outfile)
         
-        return results
+        data_handle.close() # make sure to close the input data file object
+        return self._results
