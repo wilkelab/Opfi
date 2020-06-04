@@ -45,17 +45,14 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dic
         if bool(feature.ignored_reasons) and not plot_ignored:
             continue
         label = feature.name if not feature.ignored_reasons else "{feature_name} (ignored)".format(feature_name=feature.name)
-        if feature_colors is not None:
-            graphic_feature = GraphicFeature(start=feature.start - offset,
-                                            strand=feature.strand,
-                                            end=feature.end - offset,
-                                            label=label,
-                                            color=feature_colors[feature.name])
-        else:
-            graphic_feature = GraphicFeature(start=feature.start - offset,
-                                            strand=feature.strand,
-                                            end=feature.end - offset,
-                                            label=label)
+        color = "blue"
+        if feature_colors is not None and label in feature_colors:
+            color = feature_colors[label]
+        graphic_feature = GraphicFeature(start=feature.start - offset,
+                                        strand=feature.strand,
+                                        end=feature.end - offset,
+                                        label=label,
+                                        color=color)
         graphic_features.append(graphic_feature)
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
