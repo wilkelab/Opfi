@@ -230,7 +230,7 @@ def _exclude(operon: Operon, feature_name: str) -> bool:
 
 def _require(operon: Operon, feature_name: str) -> bool:
     """ Returns true if a feature's name in the operon matches the given string. Case insensitive. """
-    return feature_name in map(str.lower, operon.feature_names)
+    return feature_name.lower() in map(str.lower, operon.feature_names)
 
 
 def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
