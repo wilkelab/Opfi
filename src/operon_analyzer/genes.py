@@ -105,7 +105,7 @@ class Operon(object):
     def get(self, feature_name: str) -> List[Feature]:
         """ Returns a list of every Feature with a given name. """
         features = []
-        for feature in self:
+        for feature in self.all_features:
             if feature.name == feature_name:
                 features.append(feature)
         return features

@@ -98,7 +98,9 @@ class FilterSet(object):
 
     def pick_overlapping_features_by_bit_score(self, minimum_overlap_threshold: float):
         """ If two features overlap by more than `minimum_overlap_threshold`, the one with the lower bit score is ignored. """
-        self._filters.append(Filter('overlaps-other-feature', _pick_overlapping_features_by_bit_score, minimum_overlap_threshold))
+        self._filters.append(Filter('overlaps-%s',
+                                    _pick_overlapping_features_by_bit_score,
+                                    minimum_overlap_threshold))
         return self
 
     def evaluate(self, operon: Operon):
@@ -107,7 +109,7 @@ class FilterSet(object):
             filt.run(operon)
 
 
-def _pick_overlapping_features_by_bit_score(operon: Operon, minimum_overlap_threshold: float):
+def _pick_overlapping_features_by_bit_score(operon: Operon, ignored_reason_message: str, minimum_overlap_threshold: float):
     """ If BLAST identified two genes at the same location, we want to determine which one we should
     actually consider the ORF to actually be. In these cases, we pick whichever one has the highest
     bit score. Since there are many small overlaps, the user must specify some arbitrary limit to
@@ -123,7 +125,7 @@ def _pick_overlapping_features_by_bit_score(operon: Operon, minimum_overlap_thre
                 # these features do not overlap
                 continue
             if overlap >= minimum_overlap_threshold and feature.bit_score < other_feature.bit_score:
-                feature.ignore(f"inferior-bit-score-to-{other_feature.name}")
+                feature.ignore(ignored_reason_message % other_feature.name)
 
 
 def _calculate_overlap(feature: Feature, other_feature: Feature) -> Optional[float]:

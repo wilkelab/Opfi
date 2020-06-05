@@ -29,6 +29,18 @@ def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, array
     return operon
 
 
+def test_filter_overlap_reason_text():
+    bit_scores = [100.0, 100.0, 100.0, 200.0]
+    positions = [0, 100, 101, 200, 201, 300, 210, 300, 400, 500]
+    operon = _get_repositionable_operon(*positions)
+    for gene, bit_score in zip(operon.all_genes, bit_scores):
+        gene.bit_score = bit_score
+    fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
+    fs.evaluate(operon)
+    feature = operon.get_unique('transposase')
+    assert feature.ignored_reasons == ['overlaps-tnsA:0.8']
+
+
 @pytest.mark.parametrize('positions,bit_scores,expected,threshold', [
     ([0, 100, 101, 200, 201, 300, 210, 300, 400, 500], [100.0, 100.0, 100.0, 200.0], [False, False, True, False], 0.8),
     ([0, 100, 101, 200, 201, 300, 210, 300, 400, 500], [100.0, 100.0, 200.0, 100.0], [False, False, False, True], 0.8),
@@ -46,9 +58,7 @@ def test_pick_overlapping_features_by_bit_score(positions: List[int],
     operon = _get_repositionable_operon(*positions)
     for gene, bit_score in zip(operon.all_genes, bit_scores):
         gene.bit_score = bit_score
-    _pick_overlapping_features_by_bit_score(operon, threshold)
-    for feat in operon.all_genes:
-        print(feat.name, feat.ignored_reasons)
+    _pick_overlapping_features_by_bit_score(operon, 'overlaps-%s', threshold)
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
 
