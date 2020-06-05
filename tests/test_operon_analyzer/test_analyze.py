@@ -7,6 +7,7 @@ from operon_analyzer.parse import _parse_feature
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
+from typing import List
 import string
 from matplotlib.text import Text
 
@@ -14,6 +15,42 @@ from matplotlib.text import Text
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
+
+
+def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, arrayend):
+    genes = [
+            Feature('cas1', (s1, e1), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (s2, e2), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (s3, e3), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('tnsA', (s4, e4), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
+            Feature('CRISPR array', (arraystart, arrayend), '', None, '', None, 'CRISPR array with some repeats', 'ACGTTGATATTTATAGCGCA'),
+            ]
+    operon = Operon('QCDRTU', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
+    return operon
+
+
+@pytest.mark.parametrize('positions,bit_scores,expected,threshold', [
+    ([0, 100, 101, 200, 201, 300, 210, 300, 400, 500], [100.0, 100.0, 100.0, 200.0], [False, False, True, False], 0.8),
+    ([0, 100, 101, 200, 201, 300, 210, 300, 400, 500], [100.0, 100.0, 200.0, 100.0], [False, False, False, True], 0.8),
+    ([0, 100, 101, 200, 201, 300, 310, 400, 500, 600], [100.0, 100.0, 200.0, 100.0], [False, False, False, False], 0.8),
+    ([0, 100, 101, 200, 201, 300, 211, 300, 400, 500], [100.0, 100.0, 100.0, 200.0], [False, False, False, False], 0.99),
+    ([0, 100, 101, 200, 201, 300, 211, 300, 400, 500], [100.0, 100.0, 100.0, 100.0], [False, False, False, False], 0.8),
+    ([0, 100, 101, 200, 201, 300, 201, 300, 400, 500], [100.0, 100.0, 105.0, 100.0], [False, False, False, True], 0.8),
+    ([1, 200, 141, 180, 141, 300, 500, 600, 700, 800], [444.0, 100.0, 444.0, 100.0], [False, True, False, False], 0.8),
+    ])
+def test_pick_overlapping_features_by_bit_score(positions: List[int],
+                                                bit_scores: List[float],
+                                                expected: List[bool],
+                                                threshold: float,
+                                                ):
+    operon = _get_repositionable_operon(*positions)
+    for gene, bit_score in zip(operon.all_genes, bit_scores):
+        gene.bit_score = bit_score
+    _pick_overlapping_features_by_bit_score(operon, threshold)
+    for feat in operon.all_genes:
+        print(feat.name, feat.ignored_reasons)
+    actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
+    assert expected == actual
 
 
 @pytest.mark.parametrize('fstart,fend,ostart,oend,expected', [
@@ -65,6 +102,7 @@ def test_calculate_overlap(fstart, fend, ostart, oend, expected):
 def test_parse_feature_name(line, expected):
     _, _, feature = _parse_feature(line)
     assert feature.name == expected
+
 
 
 def _get_standard_operon():

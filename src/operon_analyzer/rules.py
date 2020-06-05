@@ -122,9 +122,8 @@ def _pick_overlapping_features_by_bit_score(operon: Operon, minimum_overlap_thre
             if overlap is None:
                 # these features do not overlap
                 continue
-            if overlap >= minimum_overlap_threshold:
-                ignored = other_feature if feature.bit_score > other_feature.bit_score else feature
-                ignored.ignore(f"inferior-bit-score-to-{feature.name}")
+            if overlap >= minimum_overlap_threshold and feature.bit_score < other_feature.bit_score:
+                feature.ignore(f"inferior-bit-score-to-{other_feature.name}")
 
 
 def _calculate_overlap(feature: Feature, other_feature: Feature) -> Optional[float]:

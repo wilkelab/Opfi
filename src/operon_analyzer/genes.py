@@ -82,7 +82,7 @@ class Operon(object):
     @property
     def all_genes(self):
         """ Iterates over all genes (i.e. not CRISPR arrays) in the operon regardless of whether it's been ignored. """
-        yield from (feature for feature in self._features if feature.bit_score is not None)
+        yield from (feature for feature in self._features if feature.e_val is not None)
 
     @property
     def all_features(self):
