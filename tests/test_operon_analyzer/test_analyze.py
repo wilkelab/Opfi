@@ -1,5 +1,5 @@
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet 
+from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet, _calculate_overlap, _pick_overlapping_features_by_bit_score
 from operon_analyzer.analyze import _serialize_results
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
 from operon_analyzer.overview import _count_results
@@ -14,6 +14,30 @@ from matplotlib.text import Text
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
+
+
+@pytest.mark.parametrize('fstart,fend,ostart,oend,expected', [
+    (1, 100, 51, 150, 0.5),
+    (51, 150, 1, 100, 0.5),
+    (0, 100, 200, 300, None),
+    (200, 300, 0, 100, None),
+    (1, 2, 2, 3, 0.5),
+    (2, 3, 1, 2, 0.5),
+    (0, 5, 3, 8, 0.5),
+    (3, 8, 0, 5, 0.5),
+    (1, 100, 91, 200, 0.1),
+    (1, 100, 11, 200, 0.9),
+    (1, 100, 101, 200, None),
+    (101, 200, 1, 100, None),
+    ])
+def test_calculate_overlap(fstart, fend, ostart, oend, expected):
+    feature = Feature("tnsA", (fstart, fend), "", 1, "", 0.001, "", "MRTK")
+    other_feature = Feature("transposase", (ostart, oend), "", 1, "", 0.001, "", "MGWRN")
+    overlap = _calculate_overlap(feature, other_feature)
+    if expected is None:
+        assert overlap is None
+    else:
+        assert pytest.approx(overlap) == expected
 
 
 @pytest.mark.parametrize('line,expected', [

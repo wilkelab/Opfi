@@ -108,12 +108,37 @@ class FilterSet(object):
 
 
 def _pick_overlapping_features_by_bit_score(operon: Operon, minimum_overlap_threshold: float):
-    # build lists of overlapping feature groups
-    # for a case where A overlaps with B, and B overlaps with C, but A and C don't overlap, what should happen?
-    # for each feature, make a list of other features that overlap by at least N%
-    # iterate over that list ignore whichever feature is worse, unless the other feature has already been ignored.
-    # This last bit is necessary since we don't want a situation where all our features just disappear
-    pass
+    """ If BLAST identified two genes at the same location, we want to determine which one we should
+    actually consider the ORF to actually be. In these cases, we pick whichever one has the highest
+    bit score. Since there are many small overlaps, the user must specify some arbitrary limit to
+    define what an overlap is. """
+
+    for feature in operon.all_genes:
+        for other_feature in operon.all_genes:
+            if feature is other_feature:
+                # don't compare feature to itself
+                continue
+            overlap = _calculate_overlap(feature, other_feature)
+            if overlap is None:
+                # these features do not overlap
+                continue
+            if overlap >= minimum_overlap_threshold:
+                ignored = other_feature if feature.bit_score > other_feature.bit_score else feature
+                ignored.ignore(f"inferior-bit-score-to-{feature.name}")
+
+
+def _calculate_overlap(feature: Feature, other_feature: Feature) -> Optional[float]:
+    """ Calculates the fraction of a feature that overlaps with another feature. """
+    if feature.start > other_feature.end or other_feature.start > feature.end:
+        # these features don't overlap at all
+        return None
+    # Find the lower of the two ends
+    end = min(feature.end, other_feature.end)
+    # Find the higher of the two starts
+    start = max(feature.start, other_feature.start)
+    # Determine how much overlap there is
+    feature_length = feature.end - feature.start + 1
+    return (end - start + 1) / feature_length
 
 
 def _must_be_within_n_bp_of_anything(operon: Operon, ignored_reason_message: str, distance_bp: int):
