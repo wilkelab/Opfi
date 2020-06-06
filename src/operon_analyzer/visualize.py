@@ -36,7 +36,7 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
     return low, high - low
 
 
-def create_operon_figure(operon: Operon, plot_ignored: bool):
+def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dict):
     """ Plots all the Features in an Operon. """
     assert len(operon) > 0
     offset, operon_length = calculate_adjusted_operon_bounds(operon)
@@ -45,10 +45,14 @@ def create_operon_figure(operon: Operon, plot_ignored: bool):
         if bool(feature.ignored_reasons) and not plot_ignored:
             continue
         label = feature.name if not feature.ignored_reasons else "{feature_name} (ignored)".format(feature_name=feature.name)
+        color = "blue"
+        if feature_colors is not None and label in feature_colors:
+            color = feature_colors[label]
         graphic_feature = GraphicFeature(start=feature.start - offset,
-                                         strand=feature.strand,
-                                         end=feature.end - offset,
-                                         label=label)
+                                        strand=feature.strand,
+                                        end=feature.end - offset,
+                                        label=label,
+                                        color=color)
         graphic_features.append(graphic_feature)
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
@@ -73,9 +77,9 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     return operons
 
 
-def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True):
+def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: dict = None):
     """ Takes Operons and saves plots of them to disk. """
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        ax = create_operon_figure(operon, plot_ignored)
+        ax = create_operon_figure(operon, plot_ignored, feature_colors)
         save_operon_figure(ax, out_filename)

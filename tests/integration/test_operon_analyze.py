@@ -7,6 +7,19 @@ from operon_analyzer.visualize import build_operon_dictionary, load_analyzed_ope
 import pytest
 
 
+def test_reads_file_correctly():
+    # there were missing proteins even though they were being used as the seed for a search, meaning
+    # we knew they were definitely in an operon. however, they were sometimes not being plotted.
+    # this test ensures that every protein in pipeline output is accounted for, even TnsB which was
+    # not showing up in the plots
+    pipeline_csv = 'tests/integration/integration_data/operon_analyzer/missing-tnsB.csv'
+    with open(pipeline_csv) as f:
+        operons = build_operon_dictionary(f)
+        operon = operons[('NODE_1005_length_10858_cov_9.0000_ID_1723', 0, 30655)]
+        assert 'tnsB' in operon.feature_names
+        assert len(operon) == 9
+
+
 def test_analyze_multipipline(capsys):
     """ Ensures we can concatenate all our result CSVs and parse them together. """
     rs = RuleSet().require('transposase')

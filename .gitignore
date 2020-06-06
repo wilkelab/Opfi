@@ -4,6 +4,7 @@ env_test/
 
 # distribution stuff
 dist/
+.eggs/
 
 # build stuff
 __pycache__/

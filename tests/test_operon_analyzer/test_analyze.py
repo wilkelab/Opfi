@@ -3,6 +3,7 @@ from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _co
 from operon_analyzer.analyze import _serialize_results
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
 from operon_analyzer.overview import _count_results
+from operon_analyzer.parse import _parse_feature
 import pytest
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
@@ -13,6 +14,33 @@ from matplotlib.text import Text
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
+
+
+@pytest.mark.parametrize('line,expected', [
+    (('GDBD23958235',
+      '327464..369995',
+      'CRISPR array',
+      '369885..369948',
+      '',
+      '',
+      '',
+      '',
+      "Copies: 2, Repeat: 18, Spacer: 27",
+      'AAGAAGGCTGCTAAGGTA'), "CRISPR array (2)"),
+    (('GBDB23958235',
+     '534183..567749',
+     'transposase',
+     '545109..544183',
+     'lcl|545109|544183|1|-1',
+     '-1',
+     'UniRef50_A0A1E3AYK0',
+     '2.03206e-20',
+     'nuclease family transposase n=26 Tax=Bacteria TaxID=2 RepID=A0A1E3AYK0_9FIRM',
+     'EDKVFGMVMENKDFCKYLLEIIIPDLKIKKIDWLDKQVEINNSERK----NEAKEVRLDVLVTDHEGRVFNIEMQTTDQDDIGRRMRYYLSRLDLRYTLNKGKTYRNLKDAFIIFLCNFKPKKDDKFYESYHTYSDQDRSKQSQDGVTKIIINSQVSAEGQSEELKALAKLMNNEPVKLNKHFDYA-----QRRIKEINEDPEMREKIMLYETRMLEREQAAGKAGYEQ'), 'transposase'),
+    ])
+def test_parse_feature_name(line, expected):
+    _, _, feature = _parse_feature(line)
+    assert feature.name == expected
 
 
 def _get_standard_operon():
@@ -39,16 +67,26 @@ def test_create_operon_figure_with_ignored():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, True)
+    ax = create_operon_figure(operon, True, None)
     features = _find_plotted_features(ax)
     assert features == set(['cas1', 'cas2', 'cas4 (ignored)'])
+
+
+def test_create_operon_figure_with_colors():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    gene_colors = {'cas1': 'purple', 'cas2': 'green'}
+    ax = create_operon_figure(operon, False, gene_colors)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2'])
 
 
 def test_create_operon_figure():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, False)
+    ax = create_operon_figure(operon, False, None)
     features = _find_plotted_features(ax)
     assert features == set(['cas1', 'cas2'])
 

@@ -14,7 +14,6 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     Takes the output from the CRISPR-transposon pipeline, loads all features,
     and assembles them into putative Operons.
     """
-    next(lines)  # skip header
     operon_features = defaultdict(list)
     for line in lines:
         contig, coordinates, feature = _parse_feature(line)
@@ -49,6 +48,11 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     hit_accession = line[6]
     hit_eval = float(line[7]) if line[7] else None
     description, sequence = line[8], line[9]
+
+    if feature == "CRISPR array":
+        copies, repeat, spacer = description.split(",")
+        _, count = copies.split()
+        feature = f"CRISPR array ({count})"
     return contig, coordinates, Feature(
         feature,
         feature_coordinates,
