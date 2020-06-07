@@ -63,6 +63,24 @@ def _find_plotted_features(ax):
     return features
 
 
+@pytest.mark.parametrize('feature_name,expected', [
+    ('cas2', True),
+    ('cas1', False)
+    ])
+def test_multicopy_feature(feature_name, expected):
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas2', (1220, 1300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas1', (2000, 2200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().at_most_n_bp_from_anything(feature_name, 25)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
+
+
 def test_create_operon_figure_with_ignored():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
