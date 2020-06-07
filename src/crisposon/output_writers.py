@@ -12,6 +12,7 @@ class CSVWriter:
 
         self.results = results
         self.id = None
+        self.project_id = None
         self.outfile = outfile
     
     def _ret_fieldnames(self):
@@ -20,19 +21,30 @@ class CSVWriter:
     
     def _get_row(self, neighborhood, hit):
         
-        row = {}
-        row["Contig"] = self.id
-        row["Locus coordinates"] = "{}..{}".format(neighborhood["Loc_start-pos"],
-                                                    neighborhood["Loc_end-pos"])
-        row["Feature"] = hit["Hit_name"]
-        row["Query ORFID"] = hit["Query_ORFID"]
-        row["Feature coordinates"] = "{}..{}".format(hit["Query_start-pos"],
-                                                        hit["Query_end-pos"])
-        row["Strand"] = hit["Query_ORFID"].split("|")[-1]
-        row["Hit accession"] = hit["Hit_accession"]
-        row["Hit e-val"] = hit["Hit_e-val"]
-        row["Description"] = hit["Hit_description"]
-        row["Query/Consensus sequence"] = hit["Query_sequence"]
+        row = [""] * 21
+        row[0] = self.project_id
+        row[1] = self.id
+        row[2] = "{}..{}".format(neighborhood["Loc_start-pos"],
+                                neighborhood["Loc_end-pos"])
+        row[3] = hit["Hit_name"]
+        row[4] = hit["Query_ORFID"]
+        row[5] = "{}..{}".format(hit["Query_start-pos"],
+                                hit["Query_end-pos"])
+        row[6] = hit["Query_ORFID"].split("|")[-1]
+        row[7] = hit["Hit_accession"]
+        row[8] = hit["Hit_description"]
+        row[9] = hit["Hit_e-val"]
+        row[10] = hit["Bitscore"]
+        row[11] = hit["Raw_score"]
+        row[12] = hit["Alignment_length"]
+        row[13] = hit["Alignment_percent-identical"]
+        row[14] = hit["Alignment_num-identical"]
+        row[15] = hit["Alignment_mismatches"]
+        row[16] = hit["Alignment_num-positive"]
+        row[17] = hit["Alignment_num-gapopenings"]
+        row[18] = hit["Alignment_num-gaps"]
+        row[19] = hit["Alignment_percent-pos"]
+        row[20] = hit["Alignement_query-cov"]
 
         return row
     
@@ -48,15 +60,15 @@ class CSVWriter:
 
     def _get_crispr_array_row(self, neighborhood, array):
         
-        row = {}
-        row["Contig"] = self.id
-        row["Locus coordinates"] = "{}..{}".format(neighborhood["Loc_start-pos"],
+        row = [""] * 21
+        row[0] = self.project_id
+        row[1] = self.id
+        row[2] = "{}..{}".format(neighborhood["Loc_start-pos"],
                                                     neighborhood["Loc_end-pos"])
-        row["Feature"] = "CRISPR array"
-        row["Feature coordinates"] = "{}..{}".format(array["Position"],
-                                                        str(int(array["Position"]) + int(array["Length"])))
-        row["Description"] = self._format_array_des(array)
-        row["Query/Consensus sequence"] = array["Consensus"]
+        row[3] = "CRISPR array"
+        row[5] = "{}..{}".format(array["Position"],
+                                str(int(array["Position"]) + int(array["Length"])))
+        row[8] = self._format_array_des(array)
 
         return row
     
@@ -72,13 +84,13 @@ class CSVWriter:
         
         return rows
 
-    def to_csv(self):
+    def to_csv(self, project_id):
 
         with open(self.outfile, 'w', newline='') as csvfile:
             fieldnames = self._ret_fieldnames()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
+            writer = csv.writer(csvfile, fieldnames=fieldnames)
             
+            self.project_id = project_id
             for contig in self.results:
                 self.id = contig
                 for neighborhood in self.results[contig]:

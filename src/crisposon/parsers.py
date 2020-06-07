@@ -1,66 +1,71 @@
 import os, json, csv
-import xml.etree.ElementTree as ET
 
-def parse_blast_xml(blast_xml, blast_id):
-    """Parse blast xml output generated from 
-    running a blast step in the pipeline. 
+def parse_search_output(tsv, step_id, search_type):
+    """Parse output from a search step (in blast tabular format).
 
-    Queries (ORFs) for which no alignments were returned
-    are excluded from the output.
+    Expects a tsv file with the following format
+    fields: qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive (blast/diamond only) \
+        gapopen gaps (blast/diamond only) \
+        ppos (blast/diamond only) qcovs
 
-    Returns a dictionary of dictionaries if hits
-    were found; otherwise, returns None.
-
-    Args:
-        blast_xml(str): Path to blast output.
-        blast_id(str, optional): A unique ID for the
-            blast step.
+    Returns a dictionary of best hits for each query that had a 
+    hit, where "best" means the lowest e-value score.
     """
+
     try:
-        tree = ET.parse(blast_xml)
-        blast_output = tree.getroot()
-        
         hits = {}
-        hit_num = 0
-        for iteration in blast_output.iter('Iteration'):
-            hit = iteration.find('Iteration_hits').find('Hit')
-            
-            if hit is not None:
-                hit_dic = {}
-                
-                # get the ORF id
-                query = iteration.find("Iteration_query-def").text
-                query = query.split().pop(0)
-                hit_dic["Query_ORFID"] = query
+        with open(tsv, newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter="\t")
 
-                # get query start/stop pos (nt) from ORF id
-                query = query.split("|")
-                hit_dic["Query_start-pos"] = query[1]
-                hit_dic["Query_end-pos"] = query[2]
+            for row in reader:
+                if _keep_row(row, hits):
+                    hit_dic = {}
+                    local_query_id = row[0].split()[0]
+                    hit_dic["Query_ORFID"] = local_query_id
 
-                # information about the reference protein
-                hit_def = hit.find("Hit_def").text.split()
-                hit_dic["Hit_name"] = hit_def.pop(1)
-                hit_dic["Hit_accession"] = hit_def.pop(0)
-                hit_dic["Hit_description"] = " ".join(hit_def)
+                    # get query start/stop pos (nt) from ORF id
+                    local_query_id = local_query_id.split("|")
+                    hit_dic["Query_start-pos"] = local_query_id[1]
+                    hit_dic["Query_end-pos"] = local_query_id[2]
 
-                # e val for this hsp
-                e_val = hit.find("Hit_hsps").find("Hsp").find("Hsp_evalue").text
-                hit_dic["Hit_e-val"] = e_val
+                    # information about the reference protein
+                    hit_def = row[2].split()
+                    hit_dic["Hit_name"] = hit_def.pop(1)
+                    hit_dic["Hit_accession"] = hit_def.pop(0)
+                    hit_dic["Hit_description"] = " ".join(hit_def)
+                    
+                    # alignment statistics
+                    hit_dic["Hit_e-val"] = row[3]
+                    hit_dic["Bitscore"] = row[4]
+                    hit_dic["Raw_score"] = row[5]
+                    hit_dic["Alignment_length"] = row[6]
+                    hit_dic["Alignment_percent-identical"] = row[7]
+                    hit_dic["Alignment_num-identical"] = row[8]
+                    hit_dic["Alignment_mismatches"] = row[9]
 
-                # Sequence of the translated ORF used as the query
-                query_sequence = hit.find("Hit_hsps").find("Hsp").find("Hsp_qseq").text
-                hit_dic["Query_sequence"] = query_sequence
+                    if search_type in ("blast", "diamond"):
+                        hit_dic["Alignment_num-positive"] = row[10]
+                        hit_dic["Alignment_num-gapopenings"] = row[11]
+                        hit_dic["Alignment_num-gaps"] = row[12]
+                        hit_dic["Alignment_percent-pos"] = row[13]
+                        hit_dic["Alignement_query-cov"] = row[14]
+                    
+                    else: # mmseqs doesn't output some of these
+                        hit_dic["Alignment_num-positive"] = None
+                        hit_dic["Alignment_num-gapopenings"] = row[10]
+                        hit_dic["Alignment_num-gaps"] = None
+                        hit_dic["Alignment_percent-pos"] = None
+                        hit_dic["Alignement_query-cov"] = row[11]
 
-                # Capitalize first letter only of blast_id (set by pipeline.add_step() name param)
-                hit_name = "{}{}_hit-{}".format(blast_id[:1].upper(), blast_id[1:], str(hit_num))
-                hits[hit_name] = hit_dic
-                hit_num += 1
+                    hit_name = row[0]
+                    hits[hit_name] = hit_dic
 
+        hits = _reformat_hit_ids(hits, step_id)
         return hits
     
-    except ET.ParseError:
-
+    except csv.Error:
         return {}
 
 def _is_int(string):
@@ -160,15 +165,15 @@ def parse_pilercr_summary(pilercr_out):
 
     return arrays
 
-def _keep_row(row, hits, queryid):
+def _keep_row(row, hits):
     """Parser helper function.
 
     Determine if given row represents the best hit for this
-    query so far. 
+    query so far by comparing e-values. 
     """
 
-    if row[queryid] in hits:
-        if float(row["evalue"]) < float(hits[row[queryid]]["Hit_e-val"]):
+    if row[0] in hits:
+        if float(row[3]) < float(hits[row[0]]["Hit_e-val"]):
             return True
         else:
             return False
@@ -191,95 +196,3 @@ def _reformat_hit_ids(hits, step_id):
         hit_num += 1
     
     return re_hits
-
-def parse_mmseqs(mmseqs_tsv, step_id, fields):
-    """Parse mmseqs output (in blast tabular format).
-
-    Expects an mmseqs output tsv file with the following 
-    fields: "query,target,evalue,qseq,qheader,theader,qcov,tset"
-
-    Returns a dictionary of best hits for each query that had a 
-    hit, where "best" means the lowest e-value score.
-    """
-
-    try:
-        hits = {}
-        with open(mmseqs_tsv, newline='') as tsvfile:
-            reader = csv.DictReader(tsvfile, fieldnames=fields, delimiter="\t")
-
-            for row in reader:
-                if _keep_row(row, hits, "query"):
-                    hit_dic = {}
-                    local_query_id = row["qheader"].split()[0]
-                    hit_dic["Query_ORFID"] = local_query_id
-
-                    # get query start/stop pos (nt) from ORF id
-                    local_query_id = local_query_id.split("|")
-                    hit_dic["Query_start-pos"] = local_query_id[1]
-                    hit_dic["Query_end-pos"] = local_query_id[2]
-
-                    # information about the reference protein
-                    hit_dic["Hit_description"] = row["theader"]
-                    hit_dic["Hit_name"] = step_id
-                    hit_dic["Hit_accession"] = row["target"]
-                    
-                    # e val for this hsp
-                    hit_dic["Hit_e-val"] = row["evalue"]
-
-                    # Sequence of the translated ORF used as the query
-                    hit_dic["Query_sequence"] = row["qseq"]
-
-                    hit_name = row["query"]
-                    hits[hit_name] = hit_dic
-
-        hits = _reformat_hit_ids(hits, step_id)
-        return hits
-    
-    except csv.Error:
-        return {}
-
-def parse_diamond(diamond_tsv, step_id, fields):
-    """Parse diamond output (in blast tabular format).
-
-    Expects a diamond output tsv file with the following 
-    fields: qseqid sseqid full_qseq evalue stitle
-
-    Returns a dictionary of best hits for each query that had a 
-    hit, where "best" means the lowest e-value score.
-    """
-
-    try:
-        hits = {}
-        with open(diamond_tsv, newline='') as tsvfile:
-            reader = csv.DictReader(tsvfile, fieldnames=fields, delimiter="\t")
-
-            for row in reader:
-                if _keep_row(row, hits, "qseqid"):
-                    hit_dic = {}
-                    local_query_id = row["qseqid"]
-                    hit_dic["Query_ORFID"] = local_query_id
-
-                    # get query start/stop pos (nt) from ORF id
-                    local_query_id = local_query_id.split("|")
-                    hit_dic["Query_start-pos"] = local_query_id[1]
-                    hit_dic["Query_end-pos"] = local_query_id[2]
-
-                    # information about the reference protein
-                    hit_dic["Hit_description"] = row["stitle"]
-                    hit_dic["Hit_name"] = step_id
-                    hit_dic["Hit_accession"] = row["sseqid"]
-                    
-                    # e val for this hsp
-                    hit_dic["Hit_e-val"] = row["evalue"]
-
-                    # Sequence of the translated ORF used as the query
-                    hit_dic["Query_sequence"] = row["full_qseq"]
-
-                    hit_name = row["qseqid"]
-                    hits[hit_name] = hit_dic
-
-        hits = _reformat_hit_ids(hits, step_id)
-        return hits
-    
-    except csv.Error:
-        return {}

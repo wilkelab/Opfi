@@ -181,7 +181,7 @@ class Pipeline:
             self._neighborhood_orfs[key] = path
 
     
-    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, extra_args=None):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, **kwargs):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -218,21 +218,21 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(SeedStep(Blastp(db, e_val, name)))
+            self._steps.append(SeedStep(Blastp(db, e_val, name, kwargs)))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(SeedStep(Blastpsi(db, e_val, name)))
+            self._steps.append(SeedStep(Blastpsi(db, e_val, name, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, 
-                                                str(sensitivity), extra_args)))
+                                                str(sensitivity))))
         elif blast_type == "diamond":
             self._steps.append(SeedStep(Diamond(db, str(e_val), name, 
-                                                str(sensitivity), extra_args)))
+                                                str(sensitivity))))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
     
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
-                        sensitivity=None, extra_args=None):
+                        sensitivity=None, **kwargs):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -258,21 +258,19 @@ class Pipeline:
                 if blastp/psiblast is the search type). 
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(FilterStep(Blastp(db, e_val, name), min_prot_count))
+            self._steps.append(FilterStep(Blastp(db, e_val, name, kwargs), min_prot_count))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(FilterStep(Blastpsi(db, e_val, name), min_prot_count))
+            self._steps.append(FilterStep(Blastpsi(db, e_val, name, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
-            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), 
-                                                    extra_args), min_prot_count))
+            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity)), min_prot_count))
         elif blast_type == "diamond":
-            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), 
-                                                    extra_args), min_prot_count))
+            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity)), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
     
     def add_blast_step(self, db, name, e_val, blast_type, 
-                        sensitivity=None, extra_args=None):
+                        sensitivity=None, **kwargs):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -296,13 +294,13 @@ class Pipeline:
                 if blastp/psiblast is the search type).     
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(SearchStep(Blastp(db, e_val, name)))
+            self._steps.append(SearchStep(Blastp(db, e_val, name, kwargs)))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(SearchStep(Blastpsi(db, e_val, name)))
+            self._steps.append(SearchStep(Blastpsi(db, e_val, name, kwargs)))
         elif blast_type == "mmseqs":
-            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity))))
         elif blast_type == "diamond":
-            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
+            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity))))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
