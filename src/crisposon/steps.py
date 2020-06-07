@@ -15,13 +15,22 @@ class Blastp():
     Really is just a wrapper around biopython's
     better wrapper.
     """
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovs"
 
-    def __init__(self, db, e_val, step_id):
+    def __init__(self, db, e_val, step_id, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.kwargs = kwargs
+    
+    def construct_cmd(self):
+        # do something with kwargs
+        pass
 
     def run(self, orfs):
 
@@ -41,13 +50,22 @@ class Blastpsi():
     Really is just a wrapper around biopython's
     better wrapper.
     """
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovs"
 
-    def __init__(self, db, e_val, step_id):
+    def __init__(self, db, e_val, step_id, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.kwargs = kwargs
+    
+    def construct_cmd(self):
+        # do something with kwargs
+        pass
 
     def run(self, orfs):
 
