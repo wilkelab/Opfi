@@ -51,9 +51,10 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     sequence = line[9]
     bit_score = None
 
-    # newer versions of the pipeline output addition information;
-    # however, we would like to remain compatible with older
-    # versions
+    # A newer version of the pipeline writes output with
+    # an additonal 12 columns.
+    # We'll grab these values too if they're present, but only
+    # the bitscore (column 10) is actually used for now
     if len(line) == 22:
         # additional blast alignment stats
         bit_score = float(line[10]) if line[10] else None

@@ -44,3 +44,4 @@ def build_psiblast_command(query, db, evalue, kwargs, output_fields, out):
     cmd.append("-outfmt")
     cmd.append("6 {}".format(output_fields))
     return cmd
+    
