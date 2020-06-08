@@ -230,6 +230,18 @@ class RuleSet(object):
                                 feature1_name,
                                 feature2_name))
         return self
+    
+    def contains_at_least_n_features(self, feature_names: List[str], feature_count: int, must_be_unique: bool = True):
+        """
+        The operon must contain at least feature_count features in the list. 
+        Setting `must_be_unique` to `False` allows duplicate matching features to count towards the total.
+        """
+        self._rules.append(Rule('contains_at_least_n_features',
+                                _contains_at_least_n_features,
+                                feature_names,
+                                feature_count,
+                                must_be_unique))
+        return self
 
     def custom(self, rule: 'Rule'):
         """ Add a rule with a user-defined function. """
@@ -334,6 +346,18 @@ def _contains_any_set_of_features(operon: Operon, sets: List[List[str]]) -> bool
 def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
     """ Whether the operon has one feature or another, but not both. """
     return (f1 in operon.feature_names) ^ (f2 in operon.feature_names)
+
+
+def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feature_count: int, must_be_unique: bool) -> bool:
+    """ Whether the operon has at least feature_count given features. """
+    found = [feature_name for feature_name in operon.feature_names if feature_name in feature_names]
+    if len(found) >= feature_count and not must_be_unique:
+        return True
+    elif len(found) >= feature_count and must_be_unique:
+        if len(set(found)) >= feature_count:
+            return True
+    else:
+        return False
 
 
 def _feature_distance(f1: Feature, f2: Feature) -> int:
