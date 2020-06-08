@@ -17,7 +17,7 @@ class Blastp():
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovhsp"
+        gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, kwargs):
 
@@ -47,7 +47,7 @@ class Blastpsi():
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovhsp"
+        gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, kwargs):
 
@@ -73,7 +73,7 @@ class MMseqs():
 
     MMSEQSOUT_FIELDS = "qheader target theader evalue \
         bits raw alnlen pident \
-        nident mismatch gapopen qcov"
+        nident mismatch gapopen qcov qseq"
 
     def __init__(self, db, e_val, step_id, sensitivity):
         """Initialize a mmseqs command line run"""
@@ -133,7 +133,7 @@ class Diamond():
     DIAMONDOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovhsp"
+        gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, sensitivity):
         """Initialize a diamond command line run"""

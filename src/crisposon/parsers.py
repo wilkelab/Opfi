@@ -51,6 +51,7 @@ def parse_search_output(tsv, step_id, search_type):
                         hit_dic["Alignment_num-gaps"] = row[12]
                         hit_dic["Alignment_percent-pos"] = row[13]
                         hit_dic["Alignment_query-cov"] = row[14]
+                        hit_dic["Query_seq"] = row[15]
                     
                     else: # mmseqs doesn't output some of these
                         hit_dic["Alignment_num-positive"] = None
@@ -58,6 +59,7 @@ def parse_search_output(tsv, step_id, search_type):
                         hit_dic["Alignment_num-gaps"] = None
                         hit_dic["Alignment_percent-pos"] = None
                         hit_dic["Alignment_query-cov"] = row[11]
+                        hit_dic["Query_seq"] = row[12]
 
                     hit_name = row[0]
                     hits[hit_name] = hit_dic

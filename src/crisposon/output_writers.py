@@ -45,6 +45,7 @@ class CSVWriter:
         row[18] = hit["Alignment_num-gaps"]
         row[19] = hit["Alignment_percent-pos"]
         row[20] = hit["Alignement_query-cov"]
+        row[21] = hit["Query_seq"]
 
         return row
     
@@ -69,6 +70,7 @@ class CSVWriter:
         row[5] = "{}..{}".format(array["Position"],
                                 str(int(array["Position"]) + int(array["Length"])))
         row[8] = self._format_array_des(array)
+        row[21] = array["Consensus"]
 
         return row
     
