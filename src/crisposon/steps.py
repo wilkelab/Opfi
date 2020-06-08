@@ -47,7 +47,7 @@ class Blastpsi():
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovs"
+        gaps ppos qcovhsp"
 
     def __init__(self, db, e_val, step_id, kwargs):
 
@@ -133,7 +133,7 @@ class Diamond():
     DIAMONDOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovs"
+        gaps ppos qcovhsp"
 
     def __init__(self, db, e_val, step_id, sensitivity):
         """Initialize a diamond command line run"""

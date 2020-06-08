@@ -87,8 +87,7 @@ class CSVWriter:
     def to_csv(self, project_id):
 
         with open(self.outfile, 'w', newline='') as csvfile:
-            fieldnames = self._ret_fieldnames()
-            writer = csv.writer(csvfile, fieldnames=fieldnames)
+            writer = csv.writer(csvfile)
             
             self.project_id = project_id
             for contig in self.results:

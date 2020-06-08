@@ -339,8 +339,9 @@ class Pipeline:
                         json.dump(self._results, jsonfile)
 
             elif outfrmt == "CSV":
+                input_file_name = os.path.basename(self.data_path)
                 csv_writer = CSVWriter(self._results, outfile)
-                csv_writer.to_csv()
+                csv_writer.to_csv(input_file_name)
     
     
     def _record_all_hits(self, outfile):
