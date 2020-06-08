@@ -1,5 +1,9 @@
 import csv
 
+# Header values in old pipeline output
+# CSVWriter no longer writes headers, but this list
+# is still needed for operon_analyzer to handle
+# old output formats
 FIELDNAMES = ["Contig", "Locus coordinates", "Feature", 
               "Feature coordinates", "Query ORFID",
               "Strand", "Hit accession", "Hit e-val", 

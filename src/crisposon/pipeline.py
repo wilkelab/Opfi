@@ -209,9 +209,11 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type). 
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
 
         Notes:
             Only one seed step should be added to the pipeline, and it should
@@ -253,9 +255,11 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type). 
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
         """
         if blast_type == "PROT" or "blastp":
             self._steps.append(FilterStep(Blastp(db, e_val, name, kwargs), min_prot_count))
@@ -289,9 +293,11 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type).     
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
         if blast_type == "PROT" or "blastp":
             self._steps.append(SearchStep(Blastp(db, e_val, name, kwargs)))
