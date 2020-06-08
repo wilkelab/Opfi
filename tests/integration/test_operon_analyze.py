@@ -2,7 +2,7 @@ import tempfile
 import os
 import shutil
 from operon_analyzer.analyze import analyze
-from operon_analyzer.rules import RuleSet
+from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import build_operon_dictionary, load_analyzed_operons, plot_operons
 import pytest
 
@@ -41,6 +41,24 @@ def test_analyze(capsys):
 
     with open('tests/integration/integration_data/operon_analyzer/transposases.csv') as f:
         analyze(f, rs)
+        captured = capsys.readouterr()
+        stdout = captured.out
+        assert stdout.startswith("#")
+        assert stdout.count("pass") == 1
+
+
+def test_analyze_with_overlapping_filter(capsys):
+    """ 
+    Test that an overlapping lower-quality cas3 is filtered appropriately.
+    Implicitly tests that operon_analyzer can accept and correctly process
+    pipeline output that contains bitscores.
+    """
+    fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
+    rs = RuleSet().require('cas11') \
+                  .exclude('cas3')
+
+    with open('tests/integration/integration_data/operon_analyzer/overlapping_cas3.csv') as f:
+        analyze(f, rs, fs)
         captured = capsys.readouterr()
         stdout = captured.out
         assert stdout.startswith("#")

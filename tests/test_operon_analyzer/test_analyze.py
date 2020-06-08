@@ -62,6 +62,22 @@ def test_pick_overlapping_features_by_bit_score(positions: List[int],
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
 
+def _get_standard_operon_with_overlapping_feature():
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER', 152),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR', 143),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE', 546),
+            Feature('cas5', (630, 1211), 'lcl|630|1211|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'an overlapping gene', 'MLAWPVTLE', 93.7),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    return operon
+
+def test_pick_overlapping_features_by_bit_score_2():
+    expected = [False, False, False, True]
+    operon = _get_standard_operon_with_overlapping_feature()
+    _pick_overlapping_features_by_bit_score(operon, 'overlaps-%s', 0.8)
+    actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
+    assert expected == actual
 
 @pytest.mark.parametrize('fstart,fend,ostart,oend,expected', [
     (1, 100, 51, 150, 0.5),
