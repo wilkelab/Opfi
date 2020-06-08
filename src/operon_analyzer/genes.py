@@ -22,6 +22,7 @@ class Feature(object):
         self.strand = strand
         self.accession = accession
         self.e_val = e_val
+        self.bit_score = None  # temporary dummy value until the pipeline tells us what this is
         self.description = description
         self.sequence = sequence
         self.ignored_reasons = []
@@ -53,6 +54,10 @@ class Feature(object):
         """
         return max(self.coordinates)
 
+    def __len__(self):
+        """ Length of feature in nucleotides """
+        return self.end - self.start + 1
+
 
 class Operon(object):
     """
@@ -75,6 +80,11 @@ class Operon(object):
         self._features = features
 
     @property
+    def all_genes(self):
+        """ Iterates over all genes (i.e. not CRISPR arrays) in the operon regardless of whether it's been ignored. """
+        yield from (feature for feature in self._features if feature.e_val is not None)
+
+    @property
     def all_features(self):
         """ Iterates over all features in the operon regardless of whether it's been ignored. """
         yield from self._features
@@ -95,7 +105,7 @@ class Operon(object):
     def get(self, feature_name: str) -> List[Feature]:
         """ Returns a list of every Feature with a given name. """
         features = []
-        for feature in self:
+        for feature in self.all_features:
             if feature.name == feature_name:
                 features.append(feature)
         return features

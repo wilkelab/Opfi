@@ -96,15 +96,57 @@ class FilterSet(object):
         self._filters.append(Filter('must-be-within-n-bp-of-feature', _must_be_within_n_bp_of_feature, feature_name, distance_bp))
         return self
 
+    def pick_overlapping_features_by_bit_score(self, minimum_overlap_threshold: float):
+        """ If two features overlap by more than `minimum_overlap_threshold`, the one with the lower bit score is ignored. """
+        self._filters.append(Filter('overlaps-%s',
+                                    _pick_overlapping_features_by_bit_score,
+                                    minimum_overlap_threshold))
+        return self
+
     def evaluate(self, operon: Operon):
         """ Run the filters on the operon and set Features that fail to meet the requirements to be ignored. """
         for filt in self._filters:
             filt.run(operon)
 
 
+def _pick_overlapping_features_by_bit_score(operon: Operon, ignored_reason_message: str, minimum_overlap_threshold: float):
+    """ If BLAST identified two genes at the same location, we want to determine which one we should
+    actually consider the ORF to actually be. In these cases, we pick whichever one has the highest
+    bit score. Since there are many small overlaps, the user must specify some arbitrary limit to
+    define what an overlap is. """
+
+    for feature in operon.all_genes:
+        for other_feature in operon.all_genes:
+            if feature is other_feature:
+                # don't compare feature to itself
+                continue
+            overlap = _calculate_overlap(feature, other_feature)
+            if overlap is None:
+                # these features do not overlap
+                continue
+            if overlap >= minimum_overlap_threshold and feature.bit_score < other_feature.bit_score:
+                feature.ignore(ignored_reason_message % other_feature.name)
+
+
+def _calculate_overlap(feature: Feature, other_feature: Feature) -> Optional[float]:
+    """ Calculates the fraction of a feature that overlaps with another feature. """
+    if feature.start > other_feature.end or other_feature.start > feature.end:
+        # these features don't overlap at all
+        return None
+    # Find the lower of the two ends
+    end = min(feature.end, other_feature.end)
+    # Find the higher of the two starts
+    start = max(feature.start, other_feature.start)
+    # Determine how much overlap there is
+    feature_length = feature.end - feature.start + 1
+    return (end - start + 1) / feature_length
+
+
 def _must_be_within_n_bp_of_anything(operon: Operon, ignored_reason_message: str, distance_bp: int):
     for feature in operon.all_features:
-        distances = _calculate_all_distances(operon, feature.name)
+        distances = _calculate_all_distances(operon, feature)
+        if not distances:
+            continue
         if min(distances) > distance_bp:
             feature.ignore(ignored_reason_message)
 
@@ -220,21 +262,23 @@ def _require(operon: Operon, feature_name: str) -> bool:
 
 
 def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
-    """ Returns whether two given Features are within distance_bp base pairs from each other. """
-    f1 = operon.get_unique(feature1_name)
-    f2 = operon.get_unique(feature2_name)
-    if f1 is None or f2 is None:
+    """ Returns whether two given Features are within distance_bp base pairs from each other.
+    This must hold for all copies of the features with the same name. """
+    distances = []
+    for f1 in operon.get(feature1_name):
+        for f2 in operon.get(feature2_name):
+            if f1 is f2:
+                continue
+            distance = _feature_distance(f1, f2)
+            distances.append(distance)
+    if not distances:
         return False
-    distance = _feature_distance(f1, f2)
-    return 0 <= distance <= distance_bp
+    return all([0 <= distance <= distance_bp for distance in distances])
 
 
-def _calculate_all_distances(operon: Operon, feature_name: str) -> Optional[int]:
+def _calculate_all_distances(operon: Operon, feature: Feature) -> Optional[int]:
     """ Calculates the distance of a unique feature to all other features. """
     distances = []
-    feature = operon.get_unique(feature_name)
-    if feature is None:
-        return None
     for other_feature in operon:
         if feature is other_feature:
             continue
@@ -245,20 +289,30 @@ def _calculate_all_distances(operon: Operon, feature_name: str) -> Optional[int]
 
 def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
     """ Whether a given feature is more than distance_bp base pairs from another Feature. """
-    distances = _calculate_all_distances(operon, feature_name)
-    if distances is None:
-        return False
-    if not distances:
-        return True
-    return min(distances) >= distance_bp
+    at_least_one_good = False
+    for feature in operon.get(feature_name):
+        distances = _calculate_all_distances(operon, feature)
+        if distances is None:
+            return False
+        if not distances:
+            return True
+        if min(distances) < distance_bp:
+            return False
+        at_least_one_good = True
+    return at_least_one_good
 
 
 def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
     """ Whether a given feature is less than distance_bp base pairs from any other feature. """
-    distances = _calculate_all_distances(operon, feature_name)
-    if distances is None:
-        return False
-    return min(distances) <= distance_bp
+    at_least_one_good = False
+    for feature in operon.get(feature_name):
+        distances = _calculate_all_distances(operon, feature)
+        if distances is None:
+            return False
+        if min(distances) > distance_bp:
+            return False
+        at_least_one_good = True
+    return at_least_one_good
 
 
 def _same_orientation(operon: Operon, args=None) -> bool:
