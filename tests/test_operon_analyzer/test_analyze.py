@@ -10,6 +10,7 @@ from hypothesis import given, settings
 from typing import List
 import string
 from matplotlib.text import Text
+import random
 
 
 name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
@@ -265,13 +266,149 @@ def random_feature(draw):
 @pytest.mark.slow
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
-def test_valid_operon(ls):
+def test_all_fixed_rules(ls):
     """
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
     operon = Operon('testoperon', 0, 100000, ls)
-    rs = RuleSet().same_orientation()
+    rs = RuleSet().same_orientation() \
+                  .at_least_n_bp_from_anything('cas1', 50) \
+                  .at_most_n_bp_from_anything('cas2', 100) \
+                  .contains_any_set_of_features([['cas5', 'cas6', 'cas7'],
+                                                 ['cas12a'],
+                                                 ['cas4', 'cas10']]) \
+                  .contains_exactly_one_of('cas1', 'cas13') \
+                  .exclude('lulz') \
+                  .max_distance('f1', 'f2', 100) \
+                  .require('woo') \
+                  .same_orientation()
+
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_at_least_n_bp_from_anything(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice(list(operon.feature_names))
+    rs = RuleSet().at_least_n_bp_from_anything(random_feature, 50)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_at_most_n_bp_from_anything(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice(list(operon.feature_names))
+    rs = RuleSet().at_most_n_bp_from_anything(random_feature, 50)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_contains_any_set(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_features1 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
+    random_features2 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
+    rs = RuleSet().contains_any_set_of_features([random_features1, random_features2])
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_contains_exactly_one_of(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice(list(operon.feature_names))
+    random_feature2 = random.choice([random.choice(list(operon.feature_names)), "lulz"])
+    rs = RuleSet().contains_exactly_one_of(random_feature, random_feature2)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_exclude(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice([random.choice(list(operon.feature_names)), "lulz"])
+    rs = RuleSet().exclude(random_feature)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_max_distance(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice(list(operon.feature_names))
+    random_feature2 = random.choice(list(operon.feature_names))
+    distance_bp = random.randint(0, 99999)
+    rs = RuleSet().max_distance(random_feature, random_feature2, distance_bp)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_require(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    random_feature = random.choice(list(operon.feature_names))
+    rs = RuleSet().require(random_feature)
+    rs.evaluate(operon)
+    assert True
+
+
+@pytest.mark.slow
+@given(lists(random_feature(), min_size=1, max_size=20, unique=True))
+@settings(max_examples=1000)
+def test_random_operon_same_orientation(ls):
+    """
+    Just fuzzes evaluation with randomly-generated operons.
+    All we're trying to do here is see if we can cause an uncaught exception.
+    """
+    operon = Operon('testoperon', 0, 100000, ls)
+    count = random.randint(1, len(operon))
+    exceptions = random.choice([random.sample(list(operon.feature_names), count), None])
+    rs = RuleSet().same_orientation(exceptions=exceptions)
     rs.evaluate(operon)
     assert True
 
