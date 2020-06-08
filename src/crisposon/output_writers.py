@@ -21,31 +21,31 @@ class CSVWriter:
     
     def _get_row(self, neighborhood, hit):
         
-        row = [""] * 21
-        row[0] = self.project_id
-        row[1] = self.id
-        row[2] = "{}..{}".format(neighborhood["Loc_start-pos"],
+        row = [""] * 22
+        row[0] = self.id
+        row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
                                 neighborhood["Loc_end-pos"])
-        row[3] = hit["Hit_name"]
-        row[4] = hit["Query_ORFID"]
-        row[5] = "{}..{}".format(hit["Query_start-pos"],
+        row[2] = hit["Hit_name"]
+        row[3] = "{}..{}".format(hit["Query_start-pos"],
                                 hit["Query_end-pos"])
-        row[6] = hit["Query_ORFID"].split("|")[-1]
-        row[7] = hit["Hit_accession"]
+        row[4] = hit["Query_ORFID"]
+        row[5] = hit["Query_ORFID"].split("|")[-1]
+        row[6] = hit["Hit_accession"]
+        row[7] = hit["Hit_e-val"]
         row[8] = hit["Hit_description"]
-        row[9] = hit["Hit_e-val"]
+        row[9] = hit["Query_seq"]
         row[10] = hit["Bitscore"]
         row[11] = hit["Raw_score"]
         row[12] = hit["Alignment_length"]
         row[13] = hit["Alignment_percent-identical"]
         row[14] = hit["Alignment_num-identical"]
         row[15] = hit["Alignment_mismatches"]
-        row[16] = hit["Alignment_num-positive"]
-        row[17] = hit["Alignment_num-gapopenings"]
-        row[18] = hit["Alignment_num-gaps"]
-        row[19] = hit["Alignment_percent-pos"]
-        row[20] = hit["Alignement_query-cov"]
-        row[21] = hit["Query_seq"]
+        row[16] = hit["Alignment_num-positive"] if hit["Alignment_num-positive"] is not None else ""
+        row[17] = hit["Alignment_num-gapopenings"] 
+        row[18] = hit["Alignment_num-gaps"] if hit["Alignment_num-gaps"] is not None else ""
+        row[19] = hit["Alignment_percent-pos"] if hit["Alignment_percent-pos"] is not None else ""
+        row[20] = hit["Alignment_query-cov"]
+        row[21] = self.project_id
 
         return row
     
@@ -61,16 +61,16 @@ class CSVWriter:
 
     def _get_crispr_array_row(self, neighborhood, array):
         
-        row = [""] * 21
-        row[0] = self.project_id
-        row[1] = self.id
-        row[2] = "{}..{}".format(neighborhood["Loc_start-pos"],
+        row = [""] * 22
+        row[0] = self.id
+        row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
                                                     neighborhood["Loc_end-pos"])
-        row[3] = "CRISPR array"
-        row[5] = "{}..{}".format(array["Position"],
+        row[2] = "CRISPR array"
+        row[3] = "{}..{}".format(array["Position"],
                                 str(int(array["Position"]) + int(array["Length"])))
         row[8] = self._format_array_des(array)
-        row[21] = array["Consensus"]
+        row[9] = array["Consensus"]
+        row[21] = self.project_id
 
         return row
     

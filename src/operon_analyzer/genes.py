@@ -11,9 +11,9 @@ class Feature(object):
                  strand: Optional[int],
                  accession: str,
                  e_val: Optional[float],
-                 bit_score: Optional[float],
                  description: str,
-                 sequence: str):
+                 sequence: str,
+                 bit_score: Optional[float] = None):
         # Note: for CRISPR repeats, the pipeline does not identify the strand, and
         # since BLAST was not used, there is no e-value, so these values are set to
         # None.
