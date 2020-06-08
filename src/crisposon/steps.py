@@ -2,10 +2,9 @@ from Bio.Blast.Applications import (NcbiblastpCommandline,
                                     NcbipsiblastCommandline)
 
 from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import (parse_blast_xml, 
-                                parse_pilercr_summary, 
-                                parse_mmseqs, 
-                                parse_diamond)
+from crisposon.parsers import parse_search_output, parse_pilercr_summary
+from crisposon.option_handling import (build_blastp_command,
+                                        build_psiblast_command)
 
 import os, subprocess, tempfile, multiprocessing
 
@@ -15,24 +14,28 @@ class Blastp():
     Really is just a wrapper around biopython's
     better wrapper.
     """
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id):
+    def __init__(self, db, e_val, step_id, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.kwargs = kwargs
+    
+    def construct_cmd(self, query, out):
+        return build_blastp_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
 
     def run(self, orfs):
 
-        cores = multiprocessing.cpu_count()
-        blast_out = os.path.join(self.tmp_dir.name, "blast_out.xml")
-        blast_cline = NcbiblastpCommandline(query=orfs, db=self.db, evalue=self.e_val, 
-                                                    outfmt=5, max_target_seqs=1, out=blast_out,
-                                                    num_threads=cores)
-
-        blast_cline()
-        hits = parse_blast_xml(blast_out, self.step_id)
+        blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
+        cmd = self.construct_cmd(orfs, blast_out)
+        subprocess.run(cmd, check=True)
+        hits = parse_search_output(blast_out, self.step_id, "blast")
         return hits
         
 class Blastpsi():
@@ -41,30 +44,38 @@ class Blastpsi():
     Really is just a wrapper around biopython's
     better wrapper.
     """
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id):
+    def __init__(self, db, e_val, step_id, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.kwargs = kwargs
+    
+    def construct_cmd(self, query, out):
+        return build_psiblast_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
 
     def run(self, orfs):
 
-        cores = multiprocessing.cpu_count()
-        blast_out = os.path.join(self.tmp_dir.name, "blast_out.xml")
-        blast_cline = NcbipsiblastCommandline(query=orfs, db=self.db, evalue=self.e_val, 
-                                                    outfmt=5, max_target_seqs=1, out=blast_out,
-                                                    num_threads=cores)
-        
-        blast_cline()
-        hits = parse_blast_xml(blast_out, self.step_id)
+        blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
+        cmd = self.construct_cmd(orfs, blast_out)
+        subprocess.run(cmd, check=True)
+        hits = parse_search_output(blast_out, self.step_id, "blast")
         return hits
 
 class MMseqs():
     """Wrapper for mmseqs command line search util."""
 
-    def __init__(self, db, e_val, step_id, sensitivity, extra_args=None):
+    MMSEQSOUT_FIELDS = "qheader target theader evalue \
+        bits raw alnlen pident \
+        nident mismatch gapopen qcov qseq"
+
+    def __init__(self, db, e_val, step_id, sensitivity):
         """Initialize a mmseqs command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -72,7 +83,6 @@ class MMseqs():
         self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
-        self.extra_args = extra_args
     
     def _make_query_db(self, orfs):
         """Covert query orfs to mmseqs custom database format."""
@@ -90,14 +100,14 @@ class MMseqs():
         """
 
         results_tsv = "{}/results.tsv".format(self.tmp_dir.name)
-        tsv_fields = "query,target,evalue,qseq,qheader,theader,qcov,tset"
+        tsv_fields = self.MMSEQSOUT_FIELDS.split().join(",")
 
         # convert raw output from custom mmseqs format to tsv format
         convertalis_cmd = ["mmseqs", "convertalis", query_db, self.target_db, 
                             result_db, results_tsv, "--format-output", tsv_fields]
         subprocess.run(convertalis_cmd, check=True)
         
-        hits = parse_mmseqs(results_tsv, self.step_id, tsv_fields.split(","))
+        hits = parse_search_output(results_tsv, self.step_id, "mmseqs")
         return hits
     
     def run(self, orfs):
@@ -111,10 +121,6 @@ class MMseqs():
 
         cmd = ["mmseqs", "search", query_db, self.target_db, result_db, mmseqs_work, "-s",
                 self.sensitivity, "-e", self.e_val, "-v", "0"]
-        
-        # append extra mmseqs search args if they exist
-        if self.extra_args is not None:
-            cmd = cmd + self.extra_args
         subprocess.run(cmd, check=True)
         
         # parse output
@@ -124,7 +130,12 @@ class MMseqs():
 class Diamond():
     """Wrapper for diamond command line search util."""
 
-    def __init__(self, db, e_val, step_id, sensitivity, extra_args=None):
+    DIAMONDOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovhsp qseq"
+
+    def __init__(self, db, e_val, step_id, sensitivity):
         """Initialize a diamond command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -132,26 +143,21 @@ class Diamond():
         self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
-        self.extra_args = extra_args
 
     def run(self, orfs):
         """Execute the diamond blastp command and parse output."""
 
         result = os.path.join(self.tmp_dir.name, "result.tsv")
-        tsv_fields = 'qseqid sseqid full_qseq evalue stitle'
         
         cmd = ["diamond", "blastp", "-q", orfs, "-d", self.db, "-o", result,
-                self.sensitivity, "-e", self.e_val, "-k", "1", "--quiet", "-f", 
-                "6", str(tsv_fields)]
-        
-        # append extra diamond blastp args if they exist
-        if self.extra_args is not None:
-            cmd = cmd + self.extra_args
-        cmd = " ".join(cmd) 
+                    "-e", self.e_val, "-k", "1", "--quiet", "-f", 
+                    "6", self.DIAMONDOUT_FIELDS]
+        if self.sensitivity:
+            cmd.append(self.sensitivity)
         subprocess.run(cmd, check=True, shell=True)
         
         # parse output
-        hits = parse_diamond(result, self.step_id, tsv_fields.split())
+        hits = parse_search_output(result, self.step_id, "diamond")
         return hits       
 
 class Pilercr():

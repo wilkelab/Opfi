@@ -16,11 +16,6 @@ from crisposon.output_writers import CSVWriter
 import tempfile, os, json, gzip
 from Bio import SeqIO
 
-BLASTP_KEYWORDS = ["blastp", "PROT"]
-PSIBLAST_KEYWORDS = ["psiblast", "PSI"]
-MMSEQS_KEYWORDS = ["mmseqs"]
-DIAMOND_KEYWORDS = ["diamond"]
-
 class Pipeline:
     """
     Main class for running the CRISPR-transposon identification pipeline.
@@ -186,7 +181,7 @@ class Pipeline:
             self._neighborhood_orfs[key] = path
 
     
-    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, extra_args=None):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, **kwargs):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -214,30 +209,32 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type). 
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
 
         Notes:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
         """
-        if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SeedStep(Blastp(db, e_val, name)))
-        elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SeedStep(Blastpsi(db, e_val, name)))
-        elif blast_type in MMSEQS_KEYWORDS:
+        if blast_type == "PROT" or "blastp":
+            self._steps.append(SeedStep(Blastp(db, e_val, name, kwargs)))
+        elif blast_type == "PSI" or "psiblast":
+            self._steps.append(SeedStep(Blastpsi(db, e_val, name, kwargs)))
+        elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, 
-                                                str(sensitivity), extra_args)))
-        elif blast_type in DIAMOND_KEYWORDS:
+                                                str(sensitivity))))
+        elif blast_type == "diamond":
             self._steps.append(SeedStep(Diamond(db, str(e_val), name, 
-                                                str(sensitivity), extra_args)))
+                                                str(sensitivity))))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
     
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
-                        sensitivity=None, extra_args=None):
+                        sensitivity=None, **kwargs):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -258,26 +255,26 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type). 
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
         """
-        if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(FilterStep(Blastp(db, e_val, name), min_prot_count))
-        elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(FilterStep(Blastpsi(db, e_val, name), min_prot_count))
-        elif blast_type in MMSEQS_KEYWORDS:
-            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), 
-                                                    extra_args), min_prot_count))
-        elif blast_type in DIAMOND_KEYWORDS:
-            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), 
-                                                    extra_args), min_prot_count))
+        if blast_type == "PROT" or "blastp":
+            self._steps.append(FilterStep(Blastp(db, e_val, name, kwargs), min_prot_count))
+        elif blast_type == "PSI" or "psiblast":
+            self._steps.append(FilterStep(Blastpsi(db, e_val, name, kwargs), min_prot_count))
+        elif blast_type == "mmseqs":
+            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity)), min_prot_count))
+        elif blast_type == "diamond":
+            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity)), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
     
     def add_blast_step(self, db, name, e_val, blast_type, 
-                        sensitivity=None, extra_args=None):
+                        sensitivity=None, **kwargs):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -296,18 +293,20 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
-            extra_args (list, optional): List of additional aguments 
-                for mmseqs or diamond runs (currently not supported
-                if blastp/psiblast is the search type).     
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
-        if blast_type in BLASTP_KEYWORDS:
-            self._steps.append(SearchStep(Blastp(db, e_val, name)))
-        elif blast_type in PSIBLAST_KEYWORDS:
-            self._steps.append(SearchStep(Blastpsi(db, e_val, name)))
-        elif blast_type in MMSEQS_KEYWORDS:
-            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), extra_args)))
-        elif blast_type in DIAMOND_KEYWORDS:
-            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), extra_args)))
+        if blast_type == "PROT" or "blastp":
+            self._steps.append(SearchStep(Blastp(db, e_val, name, kwargs)))
+        elif blast_type == "PSI" or "psiblast":
+            self._steps.append(SearchStep(Blastpsi(db, e_val, name, kwargs)))
+        elif blast_type == "mmseqs":
+            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity))))
+        elif blast_type == "diamond":
+            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity))))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
@@ -346,8 +345,9 @@ class Pipeline:
                         json.dump(self._results, jsonfile)
 
             elif outfrmt == "CSV":
+                input_file_name = os.path.basename(self.data_path)
                 csv_writer = CSVWriter(self._results, outfile)
-                csv_writer.to_csv()
+                csv_writer.to_csv(input_file_name)
     
     
     def _record_all_hits(self, outfile):
@@ -483,13 +483,11 @@ class Pipeline:
                 
                 if record_all_hits:
                     self._all_hits[contig_id][step.search_tool.step_id] = step.hits
-                
                 self._results[contig_id] = self._working_results
             
             self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
-
         if record_all_hits:
             self._record_all_hits(all_hits_outfile)
         

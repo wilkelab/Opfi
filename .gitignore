@@ -3,12 +3,13 @@ env/
 env_test/
 
 # distribution stuff
-crisposon.egg-info/
 dist/
 .eggs/
 
 # build stuff
 __pycache__/
+crisposon.egg-info/
+.eggs/
 
 # dev tools
 .vscode

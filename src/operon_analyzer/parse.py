@@ -47,7 +47,30 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     strand = int(line[5]) if line[5] else None
     hit_accession = line[6]
     hit_eval = float(line[7]) if line[7] else None
-    description, sequence = line[8], line[9]
+    description = line[8]
+    sequence = line[9]
+    bit_score = None
+
+    # A newer version of the pipeline writes output with
+    # an additonal 12 columns.
+    # We'll grab these values too if they're present, but only
+    # the bitscore (column 10) is actually used for now
+    if len(line) == 22:
+        # additional blast alignment stats
+        bit_score = float(line[10]) if line[10] else None
+        raw_score = float(line[11]) if line[11] else None
+        aln_len = int(line[12]) if line[12] else None
+        pident = float(line[13]) if line[13] else None
+        nident = int(line[14]) if line[14] else None
+        mismatch = int(line[15]) if line[15] else None
+        positive = int(line[16]) if line[16] else None
+        gapopen = int(line[17]) if line[17] else None
+        gaps = int(line[18]) if line[18] else None
+        ppos = float(line[19]) if line[19] else None
+        qcovhsp = int(line[20]) if line[20] else None
+
+        # fasta file name
+        contig_filename = line[21] if line[21] else None
 
     if feature == "CRISPR array":
         copies, repeat, spacer = description.split(",")
@@ -61,4 +84,5 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         hit_accession,
         hit_eval,
         description,
-        sequence)
+        sequence,
+        bit_score)

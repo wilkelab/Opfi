@@ -1,5 +1,9 @@
 import csv
 
+# Header values in old pipeline output
+# CSVWriter no longer writes headers, but this list
+# is still needed for operon_analyzer to handle
+# old output formats
 FIELDNAMES = ["Contig", "Locus coordinates", "Feature", 
               "Feature coordinates", "Query ORFID",
               "Strand", "Hit accession", "Hit e-val", 
@@ -12,6 +16,7 @@ class CSVWriter:
 
         self.results = results
         self.id = None
+        self.project_id = None
         self.outfile = outfile
     
     def _ret_fieldnames(self):
@@ -20,19 +25,31 @@ class CSVWriter:
     
     def _get_row(self, neighborhood, hit):
         
-        row = {}
-        row["Contig"] = self.id
-        row["Locus coordinates"] = "{}..{}".format(neighborhood["Loc_start-pos"],
-                                                    neighborhood["Loc_end-pos"])
-        row["Feature"] = hit["Hit_name"]
-        row["Query ORFID"] = hit["Query_ORFID"]
-        row["Feature coordinates"] = "{}..{}".format(hit["Query_start-pos"],
-                                                        hit["Query_end-pos"])
-        row["Strand"] = hit["Query_ORFID"].split("|")[-1]
-        row["Hit accession"] = hit["Hit_accession"]
-        row["Hit e-val"] = hit["Hit_e-val"]
-        row["Description"] = hit["Hit_description"]
-        row["Query/Consensus sequence"] = hit["Query_sequence"]
+        row = [""] * 22
+        row[0] = self.id
+        row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
+                                neighborhood["Loc_end-pos"])
+        row[2] = hit["Hit_name"]
+        row[3] = "{}..{}".format(hit["Query_start-pos"],
+                                hit["Query_end-pos"])
+        row[4] = hit["Query_ORFID"]
+        row[5] = hit["Query_ORFID"].split("|")[-1]
+        row[6] = hit["Hit_accession"]
+        row[7] = hit["Hit_e-val"]
+        row[8] = hit["Hit_description"]
+        row[9] = hit["Query_seq"]
+        row[10] = hit["Bitscore"]
+        row[11] = hit["Raw_score"]
+        row[12] = hit["Alignment_length"]
+        row[13] = hit["Alignment_percent-identical"]
+        row[14] = hit["Alignment_num-identical"]
+        row[15] = hit["Alignment_mismatches"]
+        row[16] = hit["Alignment_num-positive"] if hit["Alignment_num-positive"] is not None else ""
+        row[17] = hit["Alignment_num-gapopenings"] 
+        row[18] = hit["Alignment_num-gaps"] if hit["Alignment_num-gaps"] is not None else ""
+        row[19] = hit["Alignment_percent-pos"] if hit["Alignment_percent-pos"] is not None else ""
+        row[20] = hit["Alignment_query-cov"]
+        row[21] = self.project_id
 
         return row
     
@@ -48,15 +65,16 @@ class CSVWriter:
 
     def _get_crispr_array_row(self, neighborhood, array):
         
-        row = {}
-        row["Contig"] = self.id
-        row["Locus coordinates"] = "{}..{}".format(neighborhood["Loc_start-pos"],
+        row = [""] * 22
+        row[0] = self.id
+        row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
                                                     neighborhood["Loc_end-pos"])
-        row["Feature"] = "CRISPR array"
-        row["Feature coordinates"] = "{}..{}".format(array["Position"],
-                                                        str(int(array["Position"]) + int(array["Length"])))
-        row["Description"] = self._format_array_des(array)
-        row["Query/Consensus sequence"] = array["Consensus"]
+        row[2] = "CRISPR array"
+        row[3] = "{}..{}".format(array["Position"],
+                                str(int(array["Position"]) + int(array["Length"])))
+        row[8] = self._format_array_des(array)
+        row[9] = array["Consensus"]
+        row[21] = self.project_id
 
         return row
     
@@ -72,13 +90,12 @@ class CSVWriter:
         
         return rows
 
-    def to_csv(self):
+    def to_csv(self, project_id):
 
         with open(self.outfile, 'w', newline='') as csvfile:
-            fieldnames = self._ret_fieldnames()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
+            writer = csv.writer(csvfile)
             
+            self.project_id = project_id
             for contig in self.results:
                 self.id = contig
                 for neighborhood in self.results[contig]:
