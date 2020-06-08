@@ -59,6 +59,9 @@ class Feature(object):
         """ Length of feature in nucleotides """
         return self.end - self.start + 1
 
+    def __repr__(self) -> str:
+        return f"<Feature {self.name} {self.start}..{self.end}>"
+
 
 class Operon(object):
     """
