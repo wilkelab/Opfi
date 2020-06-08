@@ -18,6 +18,15 @@ name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digit
 sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
 
 
+def test_at_most_n_bp_single_feature():
+    """ Ensure we don't crash when a single Feature is present. """
+    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().at_most_n_bp_from_anything('cas1', 50)
+    rs.evaluate(operon)
+    assert True
+
+
 def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, arrayend):
     genes = [
             Feature('cas1', (s1, e1), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
@@ -238,8 +247,8 @@ def test_count_results():
 @composite
 def random_feature(draw):
     name = draw(text(name_characters, min_size=3, max_size=8))
-    start = draw(integers(min_value=0, max_value=100000))
-    end = draw(integers(min_value=0, max_value=100000))
+    start = draw(integers(min_value=0, max_value=99990))
+    end = draw(integers(min_value=start+3, max_value=100000))
     sequence = draw(text(sequence_characters, min_size=50))
     accession = draw(text(name_characters, min_size=8, max_size=16))
     e_val = draw(floats(allow_nan=False, allow_infinity=False))

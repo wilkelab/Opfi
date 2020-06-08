@@ -307,7 +307,7 @@ def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: 
     at_least_one_good = False
     for feature in operon.get(feature_name):
         distances = _calculate_all_distances(operon, feature)
-        if distances is None:
+        if not distances:
             return False
         if min(distances) > distance_bp:
             return False
