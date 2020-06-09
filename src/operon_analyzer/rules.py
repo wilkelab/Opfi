@@ -236,12 +236,35 @@ class RuleSet(object):
         The operon must contain at least feature_count features in the list. 
         Setting `must_be_unique` to `False` allows duplicate matching features to count towards the total.
         """
+        serialized_list = "|".join(feature_names)
+        custom_repr = f'contains-at-least-n-features:{serialized_list}-{feature_count}-{must_be_unique}'
         self._rules.append(Rule('contains_at_least_n_features',
                                 _contains_at_least_n_features,
                                 feature_names,
                                 feature_count,
-                                must_be_unique))
+                                must_be_unique,
+                                custom_repr=custom_repr))
         return self
+    
+
+    def contains_at_least_n_features_n_bp_apart(self, feature_names: List[str], feature_count: int, distance_bp: int, must_be_unique: bool = True):
+        """ 
+        Whether the operon has at least feature_count given features at most distance_bp apart. 
+        In other words, checks if there exists at least one sub-operon that contains some 
+        combination of the features in the list and requires that those features be
+        at most distance_bp apart.
+        """
+        serialized_list = "|".join(feature_names)
+        custom_repr = f'contains-at-least-n-features-n-bp-apart:{serialized_list}-{feature_count}-{distance_bp}-{must_be_unique}'
+        self._rules.append(Rule('contains_at_least_n_features_n_bp_apart',
+                                _contains_at_least_n_features_n_bp_apart,
+                                feature_names,
+                                feature_count,
+                                distance_bp,
+                                must_be_unique,
+                                custom_repr=custom_repr))
+        return self
+
 
     def custom(self, rule: 'Rule'):
         """ Add a rule with a user-defined function. """
@@ -359,6 +382,40 @@ def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feat
     else:
         return False
 
+def _contains_at_least_n_features_n_bp_apart(operon: Operon, feature_names: List[str], feature_count: int, distance_bp: int, must_be_unique: bool) -> bool:
+    """ 
+    Whether the operon has at least feature_count given features at most distance_bp apart. 
+    In other words, checks if there exists at least one sub-operon that contains some 
+    combination of the features in the list and requires that those features be
+    at most distance_bp apart.
+    """
+    # For this rule to be true, contains_at_least_n_features must be true also
+    if not _contains_at_least_n_features(operon, feature_names, feature_count, must_be_unique):
+        return False
+    operon_features = [feature for feature in operon]
+    operon_features.sort(key = lambda feature: feature.start)
+    
+    candidates = []
+    last_feature = None
+    for this_feature in operon_features:
+        if this_feature.name not in feature_names:
+            candidates = []
+            continue
+        if this_feature.name in feature_names and len(candidates) == 0:
+            candidates.append(this_feature.name)
+            last_feature = this_feature
+            continue
+        
+        distance_apart = this_feature.start - last_feature.end
+        if distance_apart <= distance_bp and _same_orientation_two_features(this_feature, last_feature):
+            candidates.append(this_feature.name)
+            last_feature = this_feature
+            if len(set(candidates)) >= feature_count or (len(candidates) >= feature_count and not must_be_unique):
+                return True
+        else:
+            candidates = []
+    return False 
+
 
 def _feature_distance(f1: Feature, f2: Feature) -> int:
     """ Returns the distance between two Features in base pairs. """
@@ -366,3 +423,12 @@ def _feature_distance(f1: Feature, f2: Feature) -> int:
     distance2 = f1.start - f2.end
     # In the case of overlapping features, the distance is defined as 0
     return max(distance1, distance2, 0)
+
+
+def _same_orientation_two_features(f1: Feature, f2: Feature) -> bool:
+    """ Checks if two features are in the same orientation. """
+    # Somewhat arbitrarily, we say that two features cannot have the same 
+    # orientation if one is a CRISPR array or some other directionless entity
+    if (f1.strand is None) or (f2.strand is None):
+        return False
+    return (f1.strand == f2.strand)
