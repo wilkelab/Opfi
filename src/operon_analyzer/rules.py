@@ -413,7 +413,8 @@ def _contains_at_least_n_features_n_bp_apart(operon: Operon, feature_names: List
             if len(set(candidates)) >= feature_count or (len(candidates) >= feature_count and not must_be_unique):
                 return True
         else:
-            candidates = []
+            candidates = [this_feature.name]
+            last_feature = this_feature
     return False 
 
 
