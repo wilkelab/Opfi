@@ -123,7 +123,7 @@ def test_calculate_overlap(fstart, fend, ostart, oend, expected):
       '',
       '',
       "Copies: 2, Repeat: 18, Spacer: 27",
-      'AAGAAGGCTGCTAAGGTA'), "CRISPR array (2)"),
+      'AAGAAGGCTGCTAAGGTA'), "CRISPR array"),
     (('GBDB23958235',
      '534183..567749',
      'transposase',
@@ -177,6 +177,24 @@ def test_multicopy_feature(feature_name, expected):
     rs = RuleSet().at_most_n_bp_from_anything(feature_name, 25)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
+
+
+def test_create_operon_figure_with_CRISPR_array():
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('CRISPR array', (1300, 1400), '', None, '', None, 'Copies: 2, Repeat: 61, Spacer: 59', 'CTCAAACTCTCACTCTGGCTCAATGAGTTAGACAAGCTCTCACTCTGACTCAAGGAATTAC'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10000)
+    rs = RuleSet().require('CRISPR array')
+    fs.evaluate(operon)
+    result = rs.evaluate(operon)
+    assert result.is_passing
+    ax = create_operon_figure(operon, True, None)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2', 'cas4', 'CRISPR array (2)'])
 
 
 def test_create_operon_figure_with_ignored():
