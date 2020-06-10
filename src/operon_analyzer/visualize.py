@@ -44,6 +44,13 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dic
     for feature in operon.all_features:
         if bool(feature.ignored_reasons) and not plot_ignored:
             continue
+        # we alter the name of CRISPR arrays to add the number of repeats
+        # this is done here and not earlier in the pipeline so that it doesn't
+        # affect any rules that need to match on the name
+        if feature.name == "CRISPR array":
+            copies, repeat, spacer = feature.description.split(",")
+            _, count = copies.split()
+            feature.name = f"CRISPR array ({count})"
         label = feature.name if not feature.ignored_reasons else "{feature_name} (ignored)".format(feature_name=feature.name)
         color = "blue"
         if feature_colors is not None and label in feature_colors:
