@@ -72,10 +72,6 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         # fasta file name
         contig_filename = line[21] if line[21] else None
 
-    if feature == "CRISPR array":
-        copies, repeat, spacer = description.split(",")
-        _, count = copies.split()
-        feature = f"CRISPR array ({count})"
     return contig, coordinates, Feature(
         feature,
         feature_coordinates,
