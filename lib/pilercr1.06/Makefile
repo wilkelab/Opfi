@@ -23,3 +23,7 @@ $(CPPOBJ): %.o: %.cpp
 pilercr: $(CPPOBJ)
 	$(LD) -o pilercr $(CPPOBJ) $(LDLIBS)
 	strip pilercr
+
+install: pilercr
+	mkdir -p "$HOME/.local/bin"
+	cp pilercr "$HOME/.local/bin/"
