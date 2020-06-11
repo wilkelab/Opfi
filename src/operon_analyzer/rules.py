@@ -1,4 +1,4 @@
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Iterator
 from operon_analyzer.genes import Feature, Operon
 
 
@@ -239,22 +239,40 @@ class RuleSet(object):
         return self
     
 
-    def contains_at_least_n_features_n_bp_apart(self, feature_names: List[str], feature_count: int, distance_bp: int, must_be_unique: bool = True):
+    def contains_at_least_n_features_n_bp_apart(self, feature_list: List[str], feature_count: int, distance_bp: int, must_be_unique: bool = True):
         """ 
-        Whether the operon has at least feature_count given features at most distance_bp apart. 
+        The operon must have at least feature_count given features at most distance_bp apart. 
         In other words, checks if there exists at least one sub-operon that contains some 
         combination of the features in the list and requires that those features be
         at most distance_bp apart.
         """
-        serialized_list = "|".join(feature_names)
+        serialized_list = "|".join(feature_list)
         custom_repr = f'contains-at-least-n-features-n-bp-apart:{serialized_list}-{feature_count}-{distance_bp}-{must_be_unique}'
         self._rules.append(Rule('contains_at_least_n_features_n_bp_apart',
                                 _contains_at_least_n_features_n_bp_apart,
-                                feature_names,
+                                feature_list,
                                 feature_count,
                                 distance_bp,
                                 must_be_unique,
                                 custom_repr=custom_repr))
+        return self
+    
+
+    def contains_these_features_n_bp_apart(self, feature_list: List[str], distance_bp: int, allow_gaps: bool = False):
+        """
+        All features in the list must appear grouped together in at least one location in the operon. 
+        `distance_bp` sets the maximum allowed distance apart. By default, the features must be contiguous; 
+        setting `allow_gaps=True` permits other annotated features to interupt the sequence if they also 
+        adhere to the `distance_bp` requirement.
+        """
+        serialized_list= "|".join(feature_list)
+        custom_repr = f'contains-these_features_n_bp_apart:{serialized_list}-{distance_bp}-{allow_gaps}'
+        self._rules.append(Rule('contains-these_features_n_bp_apart',
+                                _contains_these_features_n_bp_apart,
+                                feature_list,
+                                distance_bp,
+                                allow_gaps,
+                                custom_repr))
         return self
 
 
@@ -374,41 +392,33 @@ def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feat
     else:
         return False
 
-def _contains_at_least_n_features_n_bp_apart(operon: Operon, feature_names: List[str], feature_count: int, distance_bp: int, must_be_unique: bool) -> bool:
+
+def _contains_at_least_n_features_n_bp_apart(operon: Operon, feature_list: List[str], feature_count: int, distance_bp: int, must_be_unique: bool) -> bool:
     """ 
     Whether the operon has at least feature_count given features at most distance_bp apart. 
-    In other words, checks if there exists at least one sub-operon that contains some 
-    combination of the features in the list and requires that those features be
-    at most distance_bp apart.
     """
     # For this rule to be true, contains_at_least_n_features must be true also
-    if not _contains_at_least_n_features(operon, feature_names, feature_count, must_be_unique):
+    if not _contains_at_least_n_features(operon, feature_list, feature_count, must_be_unique):
         return False
-    operon_features = [feature for feature in operon]
-    operon_features.sort(key = lambda feature: feature.start)
-    
-    candidates = []
-    last_feature = None
-    for this_feature in operon_features:
-        if this_feature.name not in feature_names:
-            candidates = []
-            continue
-        if this_feature.name in feature_names and len(candidates) == 0:
-            candidates.append(this_feature.name)
-            last_feature = this_feature
-            continue
-        
-        distance_apart = this_feature.start - last_feature.end
-        if distance_apart <= distance_bp and _same_orientation_two_features(this_feature, last_feature):
-            candidates.append(this_feature.name)
-            last_feature = this_feature
-            if len(set(candidates)) >= feature_count or (len(candidates) >= feature_count and not must_be_unique):
-                return True
-        else:
-            candidates = [this_feature.name]
-            last_feature = this_feature
-    return False 
+    for sub_operon in _feature_clusters_with_same_orientation(operon, distance_bp):
+        features_in_list = [feature for feature in sub_operon if feature in feature_list]
+        if (len(features_in_list) >= feature_count and not must_be_unique) or len(set(features_in_list)) >= feature_count:
+            return True
+    return False
 
+
+def _contains_these_features_n_bp_apart(operon: Operon, feature_list: List[str], distance_bp: int, allow_gaps: bool) -> bool:
+    """
+    Whether all features in the list appear grouped together in at least one location in the operon. 
+    """
+    # For this rule to be true, contains_at_least_n_features must be true also
+    if not _contains_at_least_n_features(operon, feature_list, feature_count=len(feature_list), must_be_unique=True):
+        return False
+    for sub_operon in _feature_clusters_with_same_orientation(operon, distance_bp):
+        if set(sub_operon) == set(feature_list) or (set(feature_list).issubset(sub_operon) and allow_gaps):
+            return True
+    return False
+    
 
 def _feature_distance(f1: Feature, f2: Feature) -> int:
     """ Returns the distance between two Features in base pairs. """
@@ -425,3 +435,23 @@ def _same_orientation_two_features(f1: Feature, f2: Feature) -> bool:
     if (f1.strand is None) or (f2.strand is None):
         return False
     return (f1.strand == f2.strand)
+
+
+def _feature_clusters_with_same_orientation(operon: Operon, distance_bp: int) -> Iterator[List[str]]:
+    """
+    Generates lists of names of features that appear in clusters in the
+    operon. For a feature to be added to a cluster, it must be in the same 
+    orientation as the cluster and at most distance_bp from its nearest
+    upstream neighbor.
+    """
+    operon_features = [feature for feature in operon]
+    operon_features.sort(key = lambda feature: feature.start)
+    last_feature = operon_features.pop(0)
+    cluster = [last_feature.name]
+    for this_feature in operon_features:
+        if _feature_distance(this_feature, last_feature) and _same_orientation_two_features(this_feature, last_feature):
+            cluster.append(this_feature.name)
+        else:
+            yield cluster
+            cluster = [this_feature.name]
+        last_feature = this_feature
