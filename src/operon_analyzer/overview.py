@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Tuple, Dict, DefaultDict, Iterator, IO
+from typing import Tuple, Dict, DefaultDict, Iterator, IO, List
 from operon_analyzer.analyze import load_analyzed_operons
 
 
@@ -20,7 +20,7 @@ def _extract_results(lines: Iterator[Tuple[str, int, int, str]]) -> Iterator[str
         yield result
 
 
-def _count_results(results: Iterator[str]) -> Tuple[Dict[str, int],
+def _count_results(results: Iterator[List[str]]) -> Tuple[Dict[str, int],
                                                     Dict[str, int],
                                                     Dict[int, int]]:
     """
@@ -38,21 +38,20 @@ def _count_results(results: Iterator[str]) -> Tuple[Dict[str, int],
     for result in results:
         # result will either be the singular word "pass", or the word "fail" followed
         # by space-separated rules that the operon broke
-        data = result.split()
-        if data[0] == 'pass':
+        if result[0] == 'pass':
             # there were no failed rules
             rule_failure_counts[0] += 1
         else:
             # there was at least one failed rule
-            assert data[0] == 'fail'
-            for rule in data[1:]:
+            assert result[0] == 'fail'
+            for rule in result[1:]:
                 failed_rule_occurrences[rule] += 1
                 all_rules.add(rule)
-            if len(data) == 2:
+            if len(result) == 2:
                 # there was exactly one failed rule
                 unique_rule_violated[rule] += 1
             # keep track of how many failed rules there were
-            rule_failure_counts[len(data[1:])] += 1
+            rule_failure_counts[len(result[1:])] += 1
 
     # Ensure rules with zero counts are represented in the data
     for rule in all_rules:

@@ -20,9 +20,9 @@ This should install crisposon and its only python dependency, biopython.
 The last thing you need to do is compile the custom piler-cr source code, which is in lib/pilercr1.06.
 ```
 cd lib/pilercr1.06
-make
+make install
 ```
-Add the pilercr executable to your PATH you're good to go.
+Add `$HOME/.local/bin` to your `PATH` varible if it's not there already and you're good to go.
 
 ## Using crisposon
 

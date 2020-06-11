@@ -1,6 +1,5 @@
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet, _calculate_overlap, _pick_overlapping_features_by_bit_score
-from operon_analyzer.analyze import _serialize_results
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
 from operon_analyzer.overview import _count_results
 from operon_analyzer.parse import _parse_feature
@@ -123,7 +122,7 @@ def test_calculate_overlap(fstart, fend, ostart, oend, expected):
       '',
       '',
       "Copies: 2, Repeat: 18, Spacer: 27",
-      'AAGAAGGCTGCTAAGGTA'), "CRISPR array (2)"),
+      'AAGAAGGCTGCTAAGGTA'), "CRISPR array"),
     (('GBDB23958235',
      '534183..567749',
      'transposase',
@@ -177,6 +176,24 @@ def test_multicopy_feature(feature_name, expected):
     rs = RuleSet().at_most_n_bp_from_anything(feature_name, 25)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
+
+
+def test_create_operon_figure_with_CRISPR_array():
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('CRISPR array', (1300, 1400), '', None, '', None, 'Copies: 2, Repeat: 61, Spacer: 59', 'CTCAAACTCTCACTCTGGCTCAATGAGTTAGACAAGCTCTCACTCTGACTCAAGGAATTAC'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10000)
+    rs = RuleSet().require('CRISPR array')
+    fs.evaluate(operon)
+    result = rs.evaluate(operon)
+    assert result.is_passing
+    ax = create_operon_figure(operon, True, None)
+    features = _find_plotted_features(ax)
+    assert features == set(['cas1', 'cas2', 'cas4', 'CRISPR array (2)'])
 
 
 def test_create_operon_figure_with_ignored():
@@ -235,15 +252,15 @@ def test_calculate_adjusted_operon_bounds():
 
 
 def test_count_results():
-    csv_text = [
-            'fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
-            'fail require:transposase max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
+    csv_text = [line.split(',') for line in [
+            'fail,exclude:cas3,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
+            'fail,require:transposase,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
             'pass',
-            'fail exclude:cas3',
-            'fail require:transposase',
-            'fail exclude:cas3 max-distance-to-anything:transposase-500 min-distance-to-anything:transposase-1',
-            'fail max-distance-to-anything:transposase-500',
-            'fail exclude:cas3'
+            'fail,exclude:cas3',
+            'fail,require:transposase',
+            'fail,exclude:cas3,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
+            'fail,max-distance-to-anything:transposase-500',
+            'fail,exclude:cas3']
             ]
     unique_rule_violated, failed_rule_occurrences, rule_failure_counts = _count_results(csv_text)
     expected_urv = {'exclude:cas3': 2,
@@ -528,17 +545,6 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
     rs = RuleSet().at_most_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
-
-
-def test_serialize_results_fail():
-    operon = _get_standard_operon()
-    rs = RuleSet() \
-        .exclude('cas3') \
-        .require('cas12a')
-    result = rs.evaluate(operon)
-    actual = "\n".join(_serialize_results(rs, [result]))
-    expected = "# exclude:cas3,require:cas12a\nQCDRTU,0..3400,fail require:cas12a"
-    assert actual == expected
 
 
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end', [

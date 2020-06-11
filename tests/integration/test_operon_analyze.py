@@ -108,7 +108,7 @@ def visualize(condition: str):
             operons = build_operon_dictionary(f)
         with open(analysis_csv) as f:
             for contig, start, end, result in load_analyzed_operons(f):
-                if not result.startswith(condition):
+                if not result[0].startswith(condition):
                     continue
                 op = operons.get((contig, start, end))
                 if op is None:

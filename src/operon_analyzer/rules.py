@@ -53,14 +53,6 @@ class Result(object):
         assert (self._passing or self._failing), "Result has no Rules!"
         return bool(self._passing) and not bool(self._failing)
 
-    def __repr__(self) -> str:
-        outcome = "pass" if self.is_passing else "fail %s" % " ".join(str(rule) for rule in self._failing)
-        text = "{contig},{start}..{end},{outcome}"
-        return text.format(
-                contig=self.operon.contig,
-                start=self.operon.start,
-                end=self.operon.end,
-                outcome=outcome)
 
 
 class Filter(SerializableFunction):
