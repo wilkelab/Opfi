@@ -547,6 +547,29 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
     assert result.is_passing is expected
 
 
+@pytest.mark.parametrize('feature_list,feature_count,must_be_unique,expected', [
+    (['cas3', 'cas7', 'cas12'], 3, False, False),
+    (['cas2', 'cas7', 'cas12'], 3, False, False),
+    (['cas1', 'cas2', 'cas12'], 3, False, True),
+    (['cas1', 'cas2', 'cas12'], 3, True, False),
+    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 4, False, True),
+    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 5, False, False),
+    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 4, True, False)
+    ])
+def test_contains_at_least_n_features(feature_list, feature_count, must_be_unique, expected):
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas2', (650, 660), 'lcl|650|660|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAM'),
+            Feature('transposase', (700, 800), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().contains_at_least_n_features(feature_list, feature_count, must_be_unique)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
+
+
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end', [
     (12, 400, 410, 600),
     (410, 600, 12, 400),
