@@ -33,7 +33,7 @@ def build_psiblast_command(query, db, evalue, kwargs, output_fields, out):
     at this time, only certain options are allowed.
     """
 
-    cmd = ["psiblast", "-query", query, "-db", db, "-evalue", evalue, "-out", out]
+    cmd = ["psiblast", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
     for key, value in kwargs.items():
         if key in (BLAST_OPTIONS_COMMON + BLASTP_OPTIONS):
             cmd.append("-{}".format(key))
