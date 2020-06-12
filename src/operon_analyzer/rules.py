@@ -224,18 +224,19 @@ class RuleSet(object):
         return self
     
 
-    def contains_at_least_n_features(self, feature_names: List[str], feature_count: int, must_be_unique: bool = True):
+    def contains_at_least_n_features(self, feature_names: List[str], feature_count: int, count_multiple_copies: bool = False):
         """
-        The operon must contain at least feature_count features in the list. 
-        Setting `must_be_unique` to `False` allows duplicate matching features to count towards the total.
+        The operon must contain at least feature_count features in the list. By default, a
+        matching feature that appears multiple times in the operon will only be counted once;
+        to count multiple copies of the same feature, set `count_multiple_copies=True`.
         """
         serialized_list = "|".join(feature_names)
-        custom_repr = f'contains-at-least-n-features:{serialized_list}-{feature_count}-{must_be_unique}'
+        custom_repr = f'contains-at-least-n-features:{serialized_list}-{feature_count}-{count_multiple_copies}'
         self._rules.append(Rule('contains_at_least_n_features',
                                 _contains_at_least_n_features,
                                 feature_names,
                                 feature_count,
-                                must_be_unique,
+                                count_multiple_copies,
                                 custom_repr=custom_repr))
         return self
 
@@ -345,10 +346,10 @@ def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
     return (f1 in operon.feature_names) ^ (f2 in operon.feature_names)
 
 
-def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feature_count: int, must_be_unique: bool) -> bool:
+def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feature_count: int, count_multiple_copies: bool) -> bool:
     """ Whether the operon has at least feature_count given features. """
     matches = [feature_name for feature_name in operon.feature_names if feature_name in feature_names]
-    if len(matches) >= feature_count and not must_be_unique:
+    if len(matches) >= feature_count and count_multiple_copies:
         return True
     elif len(set(matches)) >= feature_count:
         return True
