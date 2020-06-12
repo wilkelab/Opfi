@@ -1,4 +1,4 @@
-from typing import Callable, Optional, List, Iterator
+from typing import Callable, Optional, List
 from operon_analyzer.genes import Feature, Operon
 
 
@@ -347,12 +347,11 @@ def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
 
 def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feature_count: int, must_be_unique: bool) -> bool:
     """ Whether the operon has at least feature_count given features. """
-    found = [feature_name for feature_name in operon.feature_names if feature_name in feature_names]
-    if len(found) >= feature_count and not must_be_unique:
+    matches = [feature_name for feature_name in operon.feature_names if feature_name in feature_names]
+    if len(matches) >= feature_count and not must_be_unique:
         return True
-    elif len(found) >= feature_count and must_be_unique:
-        if len(set(found)) >= feature_count:
-            return True
+    elif len(set(matches)) >= feature_count:
+        return True
     else:
         return False
     
