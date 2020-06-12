@@ -561,8 +561,8 @@ def test_contains_at_least_n_features(feature_list, feature_count, must_be_uniqu
             Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             Feature('cas2', (650, 660), 'lcl|650|660|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAM'),
-            Feature('transposase', (700, 800), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('transposase', (700, 800), 'lcl|700|800|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas4', (920, 1200), 'lcl|920|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     rs = RuleSet().contains_at_least_n_features(feature_list, feature_count, must_be_unique)
