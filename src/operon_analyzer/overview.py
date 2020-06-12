@@ -21,8 +21,8 @@ def _extract_results(lines: Iterator[Tuple[str, int, int, str]]) -> Iterator[str
 
 
 def _count_results(results: Iterator[List[str]]) -> Tuple[Dict[str, int],
-                                                    Dict[str, int],
-                                                    Dict[int, int]]:
+                                                          Dict[str, int],
+                                                          Dict[int, int]]:
     """
     Returns a tuple of:
       - the number of times each rule was the only one broken for a contig
