@@ -53,15 +53,15 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dic
             copies, repeat, spacer = feature.description.split(",")
             _, count = copies.split()
             feature.name = f"CRISPR array ({count})"
-        label = feature.name if not feature.ignored_reasons else "{feature_name} (ignored)".format(feature_name=feature.name)
+        label = feature.name if not feature.ignored_reasons else f"{feature.name} (ignored)"
         color = "blue"
         if feature_colors is not None and label in feature_colors:
             color = feature_colors[label]
         graphic_feature = GraphicFeature(start=feature.start - offset,
-                                        strand=feature.strand,
-                                        end=feature.end - offset,
-                                        label=label,
-                                        color=color)
+                                         strand=feature.strand,
+                                         end=feature.end - offset,
+                                         label=label,
+                                         color=color)
         graphic_features.append(graphic_feature)
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
