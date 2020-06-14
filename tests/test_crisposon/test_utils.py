@@ -23,7 +23,23 @@ def _build_hit_dictionary(coords):
     ])
 def test_get_neighborhood_ranges(hit_coords, expected_num_neighborhoods, expected_ranges):
     hits = _build_hit_dictionary(hit_coords)
-    neighborhoods = get_neighborhood_ranges(hits, span=1000)
+    neighborhoods = get_neighborhood_ranges(hits, 100000, span=1000)
     assert len(neighborhoods) == expected_num_neighborhoods
     for nbh, expected_range in zip(neighborhoods, expected_ranges):
         assert nbh == expected_range
+
+
+@pytest.mark.parametrize('bait_ORF_coords,expected_last_range', [
+    ([(6000, 6500)], (5000, 7500)),
+    ([(1,500)], (0, 1500)),
+    ([(98000, 99000)], (97000, 100000)),
+    ([(98000, 99800)], (97000, 100000))
+    ])
+def test_get_neighborhood_ranges_bounds(bait_ORF_coords, expected_last_range):
+    """
+    Test that `get_neighborhood_ranges` always reports candidate region coordinates
+    that are actually within the bounds of the parent contig.
+    """
+    hits = _build_hit_dictionary(bait_ORF_coords)
+    neighborhoods = get_neighborhood_ranges(hits, contig_len=100000, span=1000)
+    assert neighborhoods[0] == expected_last_range

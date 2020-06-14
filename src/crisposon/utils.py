@@ -22,7 +22,7 @@ def concatenate(in_dir, file_names):
     return out
 
     
-def get_neighborhood_ranges(hits, span=20000):
+def get_neighborhood_ranges(hits, contig_len, span=20000):
     """Determine the start and end positions of genomic
     neighborhoods surrounding one or more blast hit.
 
@@ -51,7 +51,7 @@ def get_neighborhood_ranges(hits, span=20000):
         start = int(hits[key]["Query_start-pos"])
         stop = int(hits[key]["Query_end-pos"])
         lower = max(min((start - span), (stop - span)), 0)
-        upper = max((start + span), (stop + span))
+        upper = min(max((start + span), (stop + span)), contig_len)
         tmp_ranges.append((lower , upper))
     
     final = []
