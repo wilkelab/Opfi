@@ -58,7 +58,11 @@ def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
     Called by get_all_orfs.
     """
     parent_len = len(seq)
-    trans = str(seq[frame:].translate())
+    # Add extra Ns to the sequence to ensure we have a complete frame
+    buffer_len = 3 - ((parent_len - frame) % 3)
+    sequence_buffer = "NNN"[:buffer_len]
+
+    trans = str((seq[frame:] + sequence_buffer).translate())
     trans_len = len(trans)
     aa_start = 0
 

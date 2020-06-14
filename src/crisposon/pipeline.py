@@ -411,6 +411,7 @@ class Pipeline:
         for record in SeqIO.parse(data_handle, "fasta"):
             
             contig_id = record.id
+            contig_len = len(record.seq)
             self._working_dir = tempfile.TemporaryDirectory()
             contig_path = os.path.join(self._working_dir.name, "contig.fasta")
             SeqIO.write(record, contig_path, "fasta")
@@ -424,7 +425,7 @@ class Pipeline:
                 
                 if isinstance(step, SeedStep):
                     #print("Begin seed step: {}".format(step.name))
-                    step.execute(self._all_orfs, self.span)
+                    step.execute(self._all_orfs, self.span, contig_len)
 
                     if len(step.hits) != 0:
                         self._get_orfs_in_neighborhood(step.neighborhood_ranges, 

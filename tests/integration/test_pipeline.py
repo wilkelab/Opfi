@@ -66,7 +66,7 @@ def test_with_blast():
     results = p.run(data=genomic_data)
     
     assert len(results) == 1
-    hits = results["NZ_CCKB01000071.1"]["Loc_78093-111502"]["Hits"]
+    hits = results["NZ_CCKB01000071.1"]["Loc_78093-114093"]["Hits"]
     assert len(hits) == 11
     assert "Array_0" in hits
 
@@ -103,7 +103,7 @@ def test_gzip_fasta():
     p = setup_pipeline()
     results = p.run(data=data, gzip=True)
 
-    hits = results["KB405063.1"]["Loc_0-19654"]["Hits"]
+    hits = results["KB405063.1"]["Loc_0-23815"]["Hits"]
     assert "Cas_all_hit-0" in hits
     assert "Array_0" in hits
     

@@ -194,12 +194,12 @@ class SeedStep(SearchStep):
 
         SearchStep.__init__(self, search_tool)
     
-    def execute(self, orfs, span):
+    def execute(self, orfs, span, contig_len):
 
         super().execute(orfs)
 
         if len(self.hits) != 0:
-            self.neighborhood_ranges = get_neighborhood_ranges(self.hits, span)
+            self.neighborhood_ranges = get_neighborhood_ranges(self.hits, contig_len, span)
         else:
             self.neighborhood_ranges = None
 
