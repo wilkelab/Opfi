@@ -26,26 +26,25 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
     """
     low, high = sys.maxsize, 0
     # do one pass to find the bounds of the features we're interested in
-    for feature in operon:
+    for feature in operon.all_features:
         if feature.ignored_reasons and not include_ignored:
             continue
         low = min(low, feature.start)
         high = max(high, feature.end)
-    if low < high:
-        return None
+    assert low < high
     return low, high - low
 
 
 def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dict):
     """ Plots all the Features in an Operon. """
-    if plot_ignored:
-        assert len(tuple(operon.all_features)) > 0
-    else:
-        assert len(operon) > 0
+    if plot_ignored and len(tuple(operon.all_features)) == 0:
+        return None
+    elif not plot_ignored and len(operon) == 0:
+        return None
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
     for feature in operon.all_features:
-        if bool(feature.ignored_reasons) and not plot_ignored:
+        if feature.ignored_reasons and not plot_ignored:
             continue
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
@@ -92,4 +91,6 @@ def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: boo
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
         ax = create_operon_figure(operon, plot_ignored, feature_colors)
+        if ax is None:
+            continue
         save_operon_figure(ax, out_filename)

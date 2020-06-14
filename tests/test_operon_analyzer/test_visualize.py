@@ -32,8 +32,25 @@ def test_calculate_adjusted_operon_bounds_all_ignored():
     operon = get_standard_operon()
     for feature in operon:
         feature.ignore('')
-    result = calculate_adjusted_operon_bounds(operon)
+    with pytest.raises(AssertionError):
+        calculate_adjusted_operon_bounds(operon, False)
+        assert True
+
+
+def test_create_operon_figure_all_ignored():
+    operon = get_standard_operon()
+    for feature in operon:
+        feature.ignore('')
+    result = create_operon_figure(operon, False, None)
     assert result is None
+
+
+def test_create_operon_figure_all_ignored_plot_ignored():
+    operon = get_standard_operon()
+    for feature in operon:
+        feature.ignore('')
+    result = create_operon_figure(operon, True, None)
+    assert result is not None
 
 
 def test_calculate_adjusted_operon_bounds():

@@ -99,7 +99,7 @@ class Operon(object):
 
     def __len__(self):
         """ The number of relevant genes or CRISPR arrays in the operon. """
-        return len(self._features)
+        return len(tuple(iter(self)))
 
     @property
     def feature_names(self):
