@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        cd lib/pilercr1.06 && make install && cd ../..
+        cd lib/pilercr1.06 && sudo make install && cd ../..
         sudo apt install -y ncbi-blast+
         python -m pip install --upgrade pip
         pip install flake8 pytest
@@ -39,4 +39,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        PATH="$HOME/.local/bin:$PATH" pytest tests --runslow
+        pytest tests --runslow
