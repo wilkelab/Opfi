@@ -4,7 +4,6 @@ from typing import Tuple, Dict, IO, List
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
-from operon_analyzer.analyze import load_analyzed_operons
 from operon_analyzer.genes import Operon
 from operon_analyzer.parse import assemble_operons, read_pipeline_output
 
@@ -32,7 +31,8 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
             continue
         low = min(low, feature.start)
         high = max(high, feature.end)
-    assert low < high
+    if low < high:
+        return None
     return low, high - low
 
 

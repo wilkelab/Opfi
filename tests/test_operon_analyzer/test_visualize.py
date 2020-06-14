@@ -1,8 +1,21 @@
 from matplotlib.text import Text
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer.rules import RuleSet, FilterSet
-from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
+from operon_analyzer.visualize import calculate_adjusted_operon_bounds, \
+                                      create_operon_figure, \
+                                      build_image_filename, \
+                                      build_operon_dictionary
 from common import get_standard_operon
+import pytest
+
+
+@pytest.mark.parametrize('directory,expected', [
+    (None, 'QCDRTU-0-3400.png'),
+    ('images', 'images/QCDRTU-0-3400.png'),
+    ('images/', 'images/QCDRTU-0-3400.png'),
+    ])
+def test_build_image_filename(directory: str, expected: str):
+    assert build_image_filename(get_standard_operon(), directory) == expected
 
 
 def _find_plotted_features(ax):
@@ -13,6 +26,14 @@ def _find_plotted_features(ax):
         if type(child) == Text and child._text:
             features.add(child._text)
     return features
+
+
+def test_calculate_adjusted_operon_bounds_all_ignored():
+    operon = get_standard_operon()
+    for feature in operon:
+        feature.ignore('')
+    result = calculate_adjusted_operon_bounds(operon)
+    assert result is None
 
 
 def test_calculate_adjusted_operon_bounds():
