@@ -25,5 +25,4 @@ pilercr: $(CPPOBJ)
 	strip pilercr
 
 install: pilercr
-	mkdir -p "$HOME/.local/bin"
-	cp pilercr "$HOME/.local/bin/"
+	cp pilercr /usr/local/bin/
