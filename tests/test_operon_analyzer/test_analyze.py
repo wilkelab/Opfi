@@ -289,7 +289,7 @@ def random_feature(draw):
     return Feature(name, (start, end), f'lcl|{start}|{end}|1|{strand}', strand, accession, e_val, '', sequence)
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_all_fixed_rules(ls):
@@ -314,7 +314,7 @@ def test_all_fixed_rules(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_at_least_n_bp_from_anything(ls):
@@ -329,7 +329,7 @@ def test_random_operon_at_least_n_bp_from_anything(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_at_most_n_bp_from_anything(ls):
@@ -344,7 +344,7 @@ def test_random_operon_at_most_n_bp_from_anything(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_contains_any_set(ls):
@@ -360,7 +360,7 @@ def test_random_operon_contains_any_set(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_contains_exactly_one_of(ls):
@@ -376,7 +376,7 @@ def test_random_operon_contains_exactly_one_of(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_exclude(ls):
@@ -391,7 +391,7 @@ def test_random_operon_exclude(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_max_distance(ls):
@@ -408,7 +408,7 @@ def test_random_operon_max_distance(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_require(ls):
@@ -423,7 +423,7 @@ def test_random_operon_require(ls):
     assert True
 
 
-@pytest.mark.slow
+@pytest.mark.proptest
 @given(lists(random_feature(), min_size=1, max_size=20, unique=True))
 @settings(max_examples=1000)
 def test_random_operon_same_orientation(ls):
