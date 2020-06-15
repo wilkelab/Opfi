@@ -28,6 +28,15 @@ def _find_plotted_features(ax):
     return features
 
 
+def test_calculate_adjusted_operon_bounds_one_ignored():
+    operon = get_standard_operon()
+    for feature in operon:
+        feature.ignore('')
+        break
+    result = calculate_adjusted_operon_bounds(operon, False)
+    assert result is not None
+
+
 def test_calculate_adjusted_operon_bounds_all_ignored():
     operon = get_standard_operon()
     for feature in operon:

@@ -37,9 +37,7 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
 
 def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dict):
     """ Plots all the Features in an Operon. """
-    if plot_ignored and len(tuple(operon.all_features)) == 0:
-        return None
-    elif not plot_ignored and len(operon) == 0:
+    if not plot_ignored and len(operon) == 0:
         return None
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
