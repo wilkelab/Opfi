@@ -28,14 +28,6 @@ class Feature(object):
         self.sequence = sequence
         self.ignored_reasons = []
 
-    def __hash__(self):
-        return hash((self.name, self.coordinates, self.sequence))
-
-    def __eq__(self, other: 'Feature') -> bool:
-        return self.name == other.name and \
-               self.coordinates == other.coordinates and \
-               self.sequence == other.sequence
-
     def ignore(self, reason: str):
         self.ignored_reasons.append(reason)
 
@@ -99,7 +91,7 @@ class Operon(object):
 
     def __len__(self):
         """ The number of relevant genes or CRISPR arrays in the operon. """
-        return len(self._features)
+        return len(tuple(iter(self)))
 
     @property
     def feature_names(self):

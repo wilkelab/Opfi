@@ -1,29 +1,11 @@
-from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.rules import RuleSet, _feature_distance, _max_distance, _contains_features, FilterSet, _calculate_overlap, _pick_overlapping_features_by_bit_score
-from operon_analyzer.visualize import calculate_adjusted_operon_bounds, create_operon_figure
-from operon_analyzer.overview import _count_results
-from operon_analyzer.parse import _parse_feature
+import random
 import pytest
+import string
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
+from operon_analyzer.rules import Rule, RuleSet, FilterSet, _feature_distance, _calculate_overlap, _contains_features, _require
+from operon_analyzer.genes import Feature, Operon
 from typing import List
-import string
-from matplotlib.text import Text
-import random
-
-
-name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
-
-sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
-
-
-def test_at_most_n_bp_single_feature():
-    """ Ensure we don't crash when a single Feature is present. """
-    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
-    operon = Operon('QCDRTU', 0, 3400, genes)
-    rs = RuleSet().at_most_n_bp_from_anything('cas1', 50)
-    rs.evaluate(operon)
-    assert True
 
 
 def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, arrayend):
@@ -36,6 +18,76 @@ def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, array
             ]
     operon = Operon('QCDRTU', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
     return operon
+
+
+def _get_standard_operon():
+    genes = [
+            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    return operon
+
+
+def test_filterset_within_n_bp_anything():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_anything(10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert 'cas4' not in names
+    assert 'cas1' in names
+    assert 'cas2' in names
+
+
+def test_filterset_within_n_bp_anything_one_feature():
+    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    fs = FilterSet().must_be_within_n_bp_of_anything(10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert names == ['cas1']
+
+
+def test_filterset_within_n_bp_of_feature():
+    operon = _get_standard_operon()
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert 'cas4' not in names
+    assert 'cas1' in names
+    assert 'cas2' in names
+
+
+def test_custom_rule():
+    operon = _get_standard_operon()
+    rule = Rule('require', _require, 'cas1')
+    rs = RuleSet().custom(rule)
+    result = rs.evaluate(operon)
+    assert result.is_passing
+
+    rule = Rule('require', _require, 'cas88')
+    rs = RuleSet().custom(rule)
+    result = rs.evaluate(operon)
+    assert not result.is_passing
+
+
+def test_filterset_within_n_bp_of_feature_only_one_feature():
+    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    fs = FilterSet().must_be_within_n_bp_of_feature('cas1', 10)
+    fs.evaluate(operon)
+    names = list(operon.feature_names)
+    assert 'cas1' in names
+
+
+def test_at_most_n_bp_single_feature():
+    """ Ensure we don't crash when a single Feature is present. """
+    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().at_most_n_bp_from_anything('cas1', 50)
+    rs.evaluate(operon)
+    assert True
 
 
 def test_filter_overlap_reason_text():
@@ -67,9 +119,11 @@ def test_pick_overlapping_features_by_bit_score(positions: List[int],
     operon = _get_repositionable_operon(*positions)
     for gene, bit_score in zip(operon.all_genes, bit_scores):
         gene.bit_score = bit_score
-    _pick_overlapping_features_by_bit_score(operon, 'overlaps-%s', threshold)
+    fs = FilterSet().pick_overlapping_features_by_bit_score(threshold)
+    fs.evaluate(operon)
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
+
 
 def _get_standard_operon_with_overlapping_feature():
     genes = [
@@ -81,12 +135,15 @@ def _get_standard_operon_with_overlapping_feature():
     operon = Operon('QCDRTU', 0, 3400, genes)
     return operon
 
+
 def test_pick_overlapping_features_by_bit_score_2():
     expected = [False, False, False, True]
     operon = _get_standard_operon_with_overlapping_feature()
-    _pick_overlapping_features_by_bit_score(operon, 'overlaps-%s', 0.8)
+    fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
+    fs.evaluate(operon)
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
+
 
 @pytest.mark.parametrize('fstart,fend,ostart,oend,expected', [
     (1, 100, 51, 150, 0.5),
@@ -112,54 +169,6 @@ def test_calculate_overlap(fstart, fend, ostart, oend, expected):
         assert pytest.approx(overlap) == expected
 
 
-@pytest.mark.parametrize('line,expected', [
-    (('GDBD23958235',
-      '327464..369995',
-      'CRISPR array',
-      '369885..369948',
-      '',
-      '',
-      '',
-      '',
-      "Copies: 2, Repeat: 18, Spacer: 27",
-      'AAGAAGGCTGCTAAGGTA'), "CRISPR array"),
-    (('GBDB23958235',
-     '534183..567749',
-     'transposase',
-     '545109..544183',
-     'lcl|545109|544183|1|-1',
-     '-1',
-     'UniRef50_A0A1E3AYK0',
-     '2.03206e-20',
-     'nuclease family transposase n=26 Tax=Bacteria TaxID=2 RepID=A0A1E3AYK0_9FIRM',
-     'EDKVFGMVMENKDFCKYLLEIIIPDLKIKKIDWLDKQVEINNSERK----NEAKEVRLDVLVTDHEGRVFNIEMQTTDQDDIGRRMRYYLSRLDLRYTLNKGKTYRNLKDAFIIFLCNFKPKKDDKFYESYHTYSDQDRSKQSQDGVTKIIINSQVSAEGQSEELKALAKLMNNEPVKLNKHFDYA-----QRRIKEINEDPEMREKIMLYETRMLEREQAAGKAGYEQ'), 'transposase'),
-    ])
-def test_parse_feature_name(line, expected):
-    _, _, feature = _parse_feature(line)
-    assert feature.name == expected
-
-
-
-def _get_standard_operon():
-    genes = [
-            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
-    return operon
-
-
-def _find_plotted_features(ax):
-    # determines the names of all the features plotted in a dna_features_viewer plot
-    features = set()
-    for child in ax.properties()['children']:
-        # we check if child._text is empty since there are blank text boxes for some reason
-        if type(child) == Text and child._text:
-            features.add(child._text)
-    return features
-
-
 @pytest.mark.parametrize('feature_name,expected', [
     ('cas2', True),
     ('cas1', False)
@@ -178,104 +187,9 @@ def test_multicopy_feature(feature_name, expected):
     assert result.is_passing is expected
 
 
-def test_create_operon_figure_with_CRISPR_array():
-    genes = [
-            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            Feature('CRISPR array', (1300, 1400), '', None, '', None, 'Copies: 2, Repeat: 61, Spacer: 59', 'CTCAAACTCTCACTCTGGCTCAATGAGTTAGACAAGCTCTCACTCTGACTCAAGGAATTAC'),
-            ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10000)
-    rs = RuleSet().require('CRISPR array')
-    fs.evaluate(operon)
-    result = rs.evaluate(operon)
-    assert result.is_passing
-    ax = create_operon_figure(operon, True, None)
-    features = _find_plotted_features(ax)
-    assert features == set(['cas1', 'cas2', 'cas4', 'CRISPR array (2)'])
+name_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
-
-def test_create_operon_figure_with_ignored():
-    operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
-    fs.evaluate(operon)
-    ax = create_operon_figure(operon, True, None)
-    features = _find_plotted_features(ax)
-    assert features == set(['cas1', 'cas2', 'cas4 (ignored)'])
-
-
-def test_create_operon_figure_with_colors():
-    operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
-    fs.evaluate(operon)
-    gene_colors = {'cas1': 'purple', 'cas2': 'green'}
-    ax = create_operon_figure(operon, False, gene_colors)
-    features = _find_plotted_features(ax)
-    assert features == set(['cas1', 'cas2'])
-
-
-def test_create_operon_figure():
-    operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
-    fs.evaluate(operon)
-    ax = create_operon_figure(operon, False, None)
-    features = _find_plotted_features(ax)
-    assert features == set(['cas1', 'cas2'])
-
-
-def test_filterset_within_n_bp_of_feature():
-    operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
-    fs.evaluate(operon)
-    names = list(operon.feature_names)
-    assert 'cas4' not in names
-    assert 'cas1' in names
-    assert 'cas2' in names
-
-
-def test_filterset_within_n_bp_anything():
-    operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_anything(10)
-    fs.evaluate(operon)
-    names = list(operon.feature_names)
-    assert 'cas4' not in names
-    assert 'cas1' in names
-    assert 'cas2' in names
-
-
-def test_calculate_adjusted_operon_bounds():
-    operon = _get_standard_operon()
-    offset, length = calculate_adjusted_operon_bounds(operon)
-    assert offset == 12
-    assert length == 1188
-
-
-def test_count_results():
-    csv_text = [line.split(',') for line in [
-            'fail,exclude:cas3,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
-            'fail,require:transposase,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
-            'pass',
-            'fail,exclude:cas3',
-            'fail,require:transposase',
-            'fail,exclude:cas3,max-distance-to-anything:transposase-500,min-distance-to-anything:transposase-1',
-            'fail,max-distance-to-anything:transposase-500',
-            'fail,exclude:cas3']
-            ]
-    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = _count_results(csv_text)
-    expected_urv = {'exclude:cas3': 2,
-                    'require:transposase': 1,
-                    'max-distance-to-anything:transposase-500': 1,
-                    'min-distance-to-anything:transposase-1': 0}
-    expected_fro = {'exclude:cas3': 4,
-                    'max-distance-to-anything:transposase-500': 4,
-                    'min-distance-to-anything:transposase-1': 3,
-                    'require:transposase': 2}
-    expected_rfc = {0: 1, 1: 4, 3: 3}
-    assert unique_rule_violated == expected_urv
-    assert failed_rule_occurrences == expected_fro
-    assert rule_failure_counts == expected_rfc
-
+sequence_characters = 'ACDEFGHIKLMNPQRSTVWY-'
 
 @composite
 def random_feature(draw):
@@ -526,6 +440,14 @@ def test_at_least_n_bp_from_anything(distance: int, expected: bool):
     assert result.is_passing is expected
 
 
+def test_at_least_n_bp_from_anything_no_distances():
+    genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
+    operon = Operon('QCDRTU', 0, 3400, genes)
+    rs = RuleSet().at_least_n_bp_from_anything('cas1', 5)
+    result = rs.evaluate(operon)
+    assert result.is_passing is True
+
+
 @pytest.mark.parametrize('distance,expected', [
     (0, False),
     (50, False),
@@ -543,29 +465,6 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
             ]
     operon = Operon('QCDRTU', 0, 3400, genes)
     rs = RuleSet().at_most_n_bp_from_anything('transposase', distance)
-    result = rs.evaluate(operon)
-    assert result.is_passing is expected
-
-
-@pytest.mark.parametrize('feature_list,feature_count,count_multiple_copies,expected', [
-    (['cas3', 'cas7', 'cas12'], 3, True, False),
-    (['cas2', 'cas7', 'cas12'], 3, True, False),
-    (['cas1', 'cas2', 'cas12'], 3, True, True),
-    (['cas1', 'cas2', 'cas12'], 3, False, False),
-    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 4, True, True),
-    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 5, True, False),
-    (['cas1', 'cas2', 'cas3', 'cas4', 'cas5'], 4, False, False)
-    ])
-def test_contains_at_least_n_features(feature_list, feature_count, count_multiple_copies, expected):
-    genes = [
-            Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas2', (650, 660), 'lcl|650|660|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAM'),
-            Feature('transposase', (700, 800), 'lcl|700|800|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            Feature('cas4', (920, 1200), 'lcl|920|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
-    rs = RuleSet().contains_at_least_n_features(feature_list, feature_count, count_multiple_copies)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -596,6 +495,7 @@ def test_feature_distance_overlapping():
 
 
 @pytest.mark.parametrize('f1name,f2name,expected', [
+    ('cas1', 'cas1', False),
     ('cas1', 'cas2', True),
     ('cas2', 'cas1', True),
     ('cas1', 'cas77', False),
@@ -609,7 +509,9 @@ def test_max_distance_missing(f1name, f2name, expected):
             Feature('cas2', (310, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             ]
     operon = Operon('contig', 0, 1000, genes)
-    assert _max_distance(operon, f1name, f2name, 100) is expected
+    rs = RuleSet().max_distance(f1name, f2name, 100)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
 
 
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end,distance_bp,expected', [
