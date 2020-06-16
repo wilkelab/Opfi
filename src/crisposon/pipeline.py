@@ -61,14 +61,26 @@ class Pipeline:
     """
 
     def __init__(self):
-        """
-        Initialize a Pipeline object.
-
-        Run-specific parameters will be added later
-        when pipeline.run() is called, so the only thing
-        initialized here is the steps tracker.
-        """
+        """Initialize a Pipeline object."""
+        # defined in pipeline.run()
+        self.data_path = None
+        self.min_prot_len = None
+        self.span = None
+        
+        # modified by add_step methods
         self._steps = []
+        
+        # collect results about the input data
+        # will be reset each time pipeline.run() is called
+        self._results = {}
+        self._all_hits = {}
+
+        # collect data specific to a single contig in the input
+        # will be reset each time a new contig is processed
+        self._working_results = {}
+        self._all_orfs = None
+        self._neighborhood_orfs = {}
+        self._working_dir = None
 
     
     def __del__(self):
@@ -76,8 +88,42 @@ class Pipeline:
         Delete the working directory and its contents when 
         this object is garbage collected.
         """
-        #self._working_dir.cleanup()
+        if self._working_dir is not None:
+            self._working_dir.cleanup()
     
+    def _setup_run(self, record):
+        """
+        Prepare for running the pipeline on a new contig.
+        Since the same setup is re-used on multple contigs
+        (or even multiple fasta files) we want to make sure that
+        old data is cleared out.
+
+        Also gather info about the current contig and run 
+        orffinder to get all ORFs in this contig.
+        """
+        self._reset_contig_data()
+        self._working_dir = tempfile.TemporaryDirectory()
+        contig_id = record.id
+        contig_len = len(record.seq)
+        contig_path = os.path.join(self._working_dir.name, "contig.fasta")
+        SeqIO.write(record, contig_path, "fasta")
+        self._get_all_orfs(contig_path, contig_id)
+        self._all_hits[contig_id] = {}
+        return contig_id, contig_len, contig_path
+    
+    def _reset_contig_data(self):
+        """Clear out data from a previous contig."""
+        if self._working_dir is not None:
+            self._working_dir.cleanup()
+        self._working_results = {}
+        self._neighborhood_orfs = {}
+        self._all_orfs = None
+    
+    def _reset_results(self):
+        """Clear out results from a previous run."""
+        self._results = {}
+        self._all_hits = {}
+
     def _open_data(self, data, is_binary):
         """
         Return the appropriate handle/file object for reading
@@ -158,9 +204,9 @@ class Pipeline:
     def _get_all_orfs(self, data, id):
         """Get all of the (translated) open reading frames in this genome."""
 
-        self._all_orfs = os.path.join(self._working_dir.name, "all_orfs.fasta")
-        orffinder(sequence=data, output=self._all_orfs, 
-                    min_prot_len=self.min_prot_len, description=id)
+        orfs = os.path.join(self._working_dir.name, "all_orfs.fasta")
+        self._all_orfs = orffinder(sequence=data, output=orfs, 
+                                    min_prot_len=self.min_prot_len, description=id)
 
     
     def _get_orfs_in_neighborhood(self, ranges, data, id):
@@ -397,36 +443,27 @@ class Pipeline:
         Returns:   
             Results (dict): Candidate systems, grouped by contig id
                 and genomic location.
-
         """
-        
+        self._reset_results()
         self.data_path = data
         self.min_prot_len = min_prot_len
         self.span = span
 
-        self._results = {}
-        self._all_hits = {}
-
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
-            
-            contig_id = record.id
-            contig_len = len(record.seq)
-            self._working_dir = tempfile.TemporaryDirectory()
-            contig_path = os.path.join(self._working_dir.name, "contig.fasta")
-            SeqIO.write(record, contig_path, "fasta")
-            self._get_all_orfs(contig_path, contig_id)
-            
-            self._working_results = {}
-            self._all_hits[contig_id] = {}
-
-            neighborhood_orfs = None
+            # clear out any data that may be leftover from processing a previous
+            # contig and get all ORFs in this contig
+            contig_id, contig_len, contig_path = self._setup_run(record)
+            if self._all_orfs is None:
+                # No ORFs were identified in the contig (probably because it's small),
+                # so we just continue on to the next contig if it exists
+                self._all_hits[contig_id] = {}
+                self._results[contig_id] = {}
+                continue
             for step in self._steps:
-                
                 if isinstance(step, SeedStep):
                     #print("Begin seed step: {}".format(step.name))
                     step.execute(self._all_orfs, self.span, contig_len)
-
                     if len(step.hits) != 0:
                         self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
                                                         contig_path,
@@ -481,12 +518,9 @@ class Pipeline:
                         #print("No putative neighborhoods remain - terminating run")
                         self._results[contig_id] = {}
                         break
-                
-                if record_all_hits:
-                    self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+
+                self._all_hits[contig_id][step.search_tool.step_id] = step.hits
                 self._results[contig_id] = self._working_results
-            
-            self._working_dir.cleanup()
         
         self._format_results(outfrmt, outfile)
         if record_all_hits:
