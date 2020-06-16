@@ -126,6 +126,10 @@ def orffinder(sequence, output, min_prot_len=30, description="putative protein")
     parent_seq = reader(sequence)
     all_orfs = get_all_orfs(parent_seq, min_prot_len)
     build_protein_fasta(all_orfs, output, description)
+    if len(all_orfs) == 0:
+        return None
+    else:
+        return output
 
 def neighborhood_orffinder(sequence, ranges, outdir, min_prot_len=30, description="putative protein"):
     """Find open reading frames in a nucleotide sequence that occur 
