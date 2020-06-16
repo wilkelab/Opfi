@@ -9,7 +9,7 @@ def setup_pipeline():
 
     # load contents of yaml conf file
     stream = open(conf_file, 'r')
-    conf = yaml.load(stream)
+    conf = yaml.full_load(stream)
 
     p = Pipeline()
     for step in conf["steps"]:
