@@ -4,6 +4,8 @@ random.seed(43)
 
 
 # Generates contigs with proteins of interest and CRISPR arrays
+# This was used to generate the FASTA files in integration_data/end-to-end
+# It does not need to be run or used anymore, it's here to document the process
 
 
 def random_sequence(length: int) -> str:
