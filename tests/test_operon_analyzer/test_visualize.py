@@ -76,7 +76,7 @@ def test_create_operon_figure_with_CRISPR_array():
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             Feature('CRISPR array', (1300, 1400), '', None, '', None, 'Copies: 2, Repeat: 61, Spacer: 59', 'CTCAAACTCTCACTCTGGCTCAATGAGTTAGACAAGCTCTCACTCTGACTCAAGGAATTAC'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10000)
     rs = RuleSet().require('CRISPR array')
     fs.evaluate(operon)

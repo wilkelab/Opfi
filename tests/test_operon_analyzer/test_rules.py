@@ -16,7 +16,7 @@ def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, array
             Feature('tnsA', (s4, e4), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
             Feature('CRISPR array', (arraystart, arrayend), '', None, '', None, 'CRISPR array with some repeats', 'ACGTTGATATTTATAGCGCA'),
             ]
-    operon = Operon('QCDRTU', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
     return operon
 
 
@@ -26,7 +26,7 @@ def _get_standard_operon():
             Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     return operon
 
 
@@ -42,7 +42,7 @@ def test_filterset_within_n_bp_anything():
 
 def test_filterset_within_n_bp_anything_one_feature():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     fs = FilterSet().must_be_within_n_bp_of_anything(10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
@@ -74,7 +74,7 @@ def test_custom_rule():
 
 def test_filterset_within_n_bp_of_feature_only_one_feature():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     fs = FilterSet().must_be_within_n_bp_of_feature('cas1', 10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
@@ -84,7 +84,7 @@ def test_filterset_within_n_bp_of_feature_only_one_feature():
 def test_at_most_n_bp_single_feature():
     """ Ensure we don't crash when a single Feature is present. """
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().at_most_n_bp_from_anything('cas1', 50)
     rs.evaluate(operon)
     assert True
@@ -132,7 +132,7 @@ def _get_standard_operon_with_overlapping_feature():
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE', 546),
             Feature('cas5', (630, 1211), 'lcl|630|1211|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'an overlapping gene', 'MLAWPVTLE', 93.7),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     return operon
 
 
@@ -181,7 +181,7 @@ def test_multicopy_feature(feature_name, expected):
             Feature('cas2', (1220, 1300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             Feature('cas1', (2000, 2200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().at_most_n_bp_from_anything(feature_name, 25)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
@@ -211,7 +211,7 @@ def test_all_fixed_rules(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     rs = RuleSet().same_orientation() \
                   .at_least_n_bp_from_anything('cas1', 50) \
                   .at_most_n_bp_from_anything('cas2', 100) \
@@ -236,7 +236,7 @@ def test_random_operon_at_least_n_bp_from_anything(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     rs = RuleSet().at_least_n_bp_from_anything(random_feature, 50)
     rs.evaluate(operon)
@@ -251,7 +251,7 @@ def test_random_operon_at_most_n_bp_from_anything(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     rs = RuleSet().at_most_n_bp_from_anything(random_feature, 50)
     rs.evaluate(operon)
@@ -266,7 +266,7 @@ def test_random_operon_contains_any_set(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_features1 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
     random_features2 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
     rs = RuleSet().contains_any_set_of_features([random_features1, random_features2])
@@ -282,7 +282,7 @@ def test_random_operon_contains_exactly_one_of(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     random_feature2 = random.choice([random.choice(list(operon.feature_names)), "lulz"])
     rs = RuleSet().contains_exactly_one_of(random_feature, random_feature2)
@@ -298,7 +298,7 @@ def test_random_operon_exclude(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice([random.choice(list(operon.feature_names)), "lulz"])
     rs = RuleSet().exclude(random_feature)
     rs.evaluate(operon)
@@ -313,7 +313,7 @@ def test_random_operon_max_distance(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     random_feature2 = random.choice(list(operon.feature_names))
     distance_bp = random.randint(0, 99999)
@@ -330,7 +330,7 @@ def test_random_operon_require(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     rs = RuleSet().require(random_feature)
     rs.evaluate(operon)
@@ -345,7 +345,7 @@ def test_random_operon_same_orientation(ls):
     Just fuzzes evaluation with randomly-generated operons.
     All we're trying to do here is see if we can cause an uncaught exception.
     """
-    operon = Operon('testoperon', 0, 100000, ls)
+    operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     count = random.randint(1, len(operon))
     exceptions = random.choice([random.sample(list(operon.feature_names), count), None])
     rs = RuleSet().same_orientation(exceptions=exceptions)
@@ -359,7 +359,7 @@ def test_not_same_orientation():
             Feature('cas2', (600, 410), 'lcl|410|600|1|-1', -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().same_orientation()
     result = rs.evaluate(operon)
     assert not result.is_passing
@@ -434,7 +434,7 @@ def test_at_least_n_bp_from_anything(distance: int, expected: bool):
             Feature('transposase', (700, 800), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().at_least_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
@@ -442,7 +442,7 @@ def test_at_least_n_bp_from_anything(distance: int, expected: bool):
 
 def test_at_least_n_bp_from_anything_no_distances():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().at_least_n_bp_from_anything('cas1', 5)
     result = rs.evaluate(operon)
     assert result.is_passing is True
@@ -463,7 +463,7 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
             Feature('transposase', (700, 800), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
-    operon = Operon('QCDRTU', 0, 3400, genes)
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     rs = RuleSet().at_most_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
@@ -508,7 +508,7 @@ def test_max_distance_missing(f1name, f2name, expected):
             Feature('cas1', (0, 300), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (310, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             ]
-    operon = Operon('contig', 0, 1000, genes)
+    operon = Operon('contig', '/tmp/dna.fasta', 0, 1000, genes)
     rs = RuleSet().max_distance(f1name, f2name, 100)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
@@ -531,7 +531,7 @@ def test_max_distance(gene1_start, gene1_end, gene2_start, gene2_end, distance_b
             Feature('cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (gene2_start, gene2_end), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             ]
-    operon = Operon('contig', 0, 1000, genes)
+    operon = Operon('contig', '/tmp/dna.fasta', 0, 1000, genes)
     rs = RuleSet().max_distance('cas1', 'cas2', distance_bp)
     result = rs.evaluate(operon)
     assert result.is_passing is expected

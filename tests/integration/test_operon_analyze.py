@@ -15,7 +15,7 @@ def test_reads_file_correctly():
     pipeline_csv = 'tests/integration/integration_data/operon_analyzer/missing-tnsB.csv'
     with open(pipeline_csv) as f:
         operons = build_operon_dictionary(f)
-        operon = operons[('NODE_1005_length_10858_cov_9.0000_ID_1723', 0, 30655)]
+        operon = operons[('NODE_1005_length_10858_cov_9.0000_ID_1723', '/tmp/dna.fasta', 0, 30655)]
         assert 'tnsB' in operon.feature_names
         assert len(operon) == 9
 
@@ -107,10 +107,10 @@ def visualize(condition: str):
         with open(pipeline_csv) as f:
             operons = build_operon_dictionary(f)
         with open(analysis_csv) as f:
-            for contig, start, end, result in load_analyzed_operons(f):
+            for contig, contig_filename, start, end, result in load_analyzed_operons(f):
                 if not result[0].startswith(condition):
                     continue
-                op = operons.get((contig, start, end))
+                op = operons.get((contig, contig_filename, start, end))
                 if op is None:
                     continue
                 good_operons.append(op)

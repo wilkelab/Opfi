@@ -64,6 +64,7 @@ class Operon(object):
 
     def __init__(self,
                  contig: str,
+                 contig_filename: str,
                  start: int,
                  end: int,
                  features: List[Feature]):
@@ -71,6 +72,7 @@ class Operon(object):
         assert 0 <= start and 0 <= end, "Invalid contig position"
         assert features, "Contig did not contain any features"
         self.contig = contig
+        self.contig_filename = contig_filename
         self.start = start
         self.end = end
         self._features = features

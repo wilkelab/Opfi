@@ -80,7 +80,7 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     operons = {}
     lines = read_pipeline_output(f)
     for operon in assemble_operons(lines):
-        operons[(operon.contig, operon.start, operon.end)] = operon
+        operons[(operon.contig, operon.contig_filename, operon.start, operon.end)] = operon
     return operons
 
 

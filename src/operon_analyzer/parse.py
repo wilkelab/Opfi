@@ -16,10 +16,10 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     """
     operon_features = defaultdict(list)
     for line in lines:
-        contig, coordinates, feature = _parse_feature(line)
-        operon_features[(contig, coordinates)].append(feature)
-    for (contig, (start, end)), features in operon_features.items():
-        yield Operon(contig, start, end, features)
+        contig, contig_filename, coordinates, feature = _parse_feature(line)
+        operon_features[(contig, contig_filename, coordinates)].append(feature)
+    for (contig, contig_filename, (start, end)), features in operon_features.items():
+        yield Operon(contig, contig_filename, start, end, features)
 
 
 def parse_coordinates(coordinates: str) -> Coordinates:
@@ -50,7 +50,6 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     description = line[8]
     sequence = line[9]
     bit_score = None
-
     # A newer version of the pipeline writes output with
     # an additonal 12 columns.
     # We'll grab these values too if they're present, but only
@@ -70,9 +69,12 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         qcovhsp = int(line[20]) if line[20] else None
 
         # fasta file name
-        contig_filename = line[21] if line[21] else None
+        contig_filename = line[21] if line[21] else ''
+    else:
+        print(len(line), 'LINELEN')
+        contig_filename = ''
 
-    return contig, coordinates, Feature(
+    return contig, contig_filename, coordinates, Feature(
         feature,
         feature_coordinates,
         query_orfid,

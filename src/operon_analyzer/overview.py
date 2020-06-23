@@ -16,7 +16,7 @@ def load_counts(lines: IO[str]) -> Tuple[Dict[str, int],
 def _extract_results(lines: Iterator[Tuple[str, int, int, str]]) -> Iterator[str]:
     """ Throws out data we don't care about from the analysis output and returns
     only the actual results """
-    for _, _, _, result in lines:
+    for _, _, _, _, result in lines:
         yield result
 
 
