@@ -13,7 +13,6 @@ def random_sequence(length: int) -> str:
 def generate_crispr_array(repeat_type: str, repeat_count: int) -> str:
     repeat_sequence = "GTTTCAATCCACGCGCCCACGCGGGGCGCGAC" if repeat_type == 'cas12a' else "ATTTCAATCCACTCACCCATGAAGGGTGAGAC"
     spacer_length = random.choice(range(35, 42))
-    print(repeat_count, repeat_type, repeat_sequence)
     spacers = [random_sequence(spacer_length) for _ in range(repeat_count)]
     return "".join([f"{repeat_sequence}{spacer}" for spacer in spacers])
 
@@ -64,6 +63,7 @@ if __name__ == '__main__':
               random_sequence(700) + generate_crispr_array("cas12a", 3) + random_sequence(9000),
               random_sequence(9000),
               random_sequence(500) + cas9 + random_sequence(30) + cas9 + random_sequence(35) + cas12a + random_sequence(500),
+              random_sequence(90) + cas12a + random_sequence(10) + transposase + random_sequence(10) + generate_crispr_array("cas12a", 10) + random_sequence(400),
               random_sequence(8000)]
 
     for n, fasta in enumerate([fasta1, fasta2, fasta3]):
