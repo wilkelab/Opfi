@@ -6,18 +6,19 @@ from operon_analyzer.parse import assemble_operons, read_pipeline_output
 import sys
 
 
-def analyze(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None):
+def analyze(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None, output: IO = None):
     """
     Takes a handle to the CSV from the CRISPR-transposon pipeline
     and user-provided rules, and produces text that describes which
     operons adhered to those rules. If an operon fails any of the rules,
     the exact rules will be enumerated.
     """
+    output = sys.stdout if output is None else output
     lines = read_pipeline_output(input_lines)
     operons = assemble_operons(lines)
     results = _evaluate_operons(operons, ruleset, filterset)
-    sys.stdout.write("# {rules}\n".format(rules=str(ruleset)))
-    writer = csv.writer(sys.stdout)
+    output.write("# {rules}\n".format(rules=str(ruleset)))
+    writer = csv.writer(output)
     for result in results:
         line = [result.operon.contig, result.operon.start, result.operon.end]
         if result.is_passing:
