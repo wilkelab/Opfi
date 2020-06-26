@@ -20,7 +20,7 @@ def analyze(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None,
     output.write("# {rules}\n".format(rules=str(ruleset)))
     writer = csv.writer(output)
     for result in results:
-        line = [result.operon.contig, result.operon.start, result.operon.end]
+        line = [result.operon.contig, result.operon.contig_filename, result.operon.start, result.operon.end]
         if result.is_passing:
             line.append("pass")
         else:
@@ -34,11 +34,11 @@ def load_analyzed_operons(f: IO[str]) -> Iterator[Tuple[str, int, int, str]]:
     """ Loads and parses the data from the output of analyze(). This is
     typically used for analyzing or visualizing candidate operons. """
     for line in csv.reader(filter(lambda line: not line.startswith("#"), f)):
-        contig, start, end = line[:3]
+        contig, contig_filename, start, end = line[:4]
         start = int(start)
         end = int(end)
-        result = line[3:]
-        yield contig, start, end, result
+        result = line[4:]
+        yield contig, contig_filename, start, end, result
 
 
 def _evaluate_operons(operons: Iterator[Operon], ruleset: RuleSet, filterset: Optional[FilterSet] = None) -> Iterator[Result]:

@@ -13,10 +13,10 @@ def make_pngs(text, operons):
     tempdir = tempfile.mkdtemp()
     try:
         good_operons = []
-        for contig, start, end, result in load_analyzed_operons(text.strip().split('\n')):
+        for contig, contig_filename, start, end, result in load_analyzed_operons(text.strip().split('\n')):
             if result != ['pass']:
                 continue
-            op = operons.get((contig, start, end))
+            op = operons.get((contig, contig_filename, start, end))
             if op is None:
                 continue
             good_operons.append(op)
