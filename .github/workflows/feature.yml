@@ -5,8 +5,7 @@ name: Feature branches
 
 on:
   pull_request:
-    branches: 
-    - '!master'
+    branches-ignore: [ master ]
 
 jobs:
   build:
