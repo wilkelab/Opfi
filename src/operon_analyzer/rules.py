@@ -54,7 +54,6 @@ class Result(object):
         return bool(self._passing) and not bool(self._failing)
 
 
-
 class Filter(SerializableFunction):
     """
     A function that will be run on an Operon that marks Features as being ignorable
@@ -93,6 +92,11 @@ class FilterSet(object):
         self._filters.append(Filter('overlaps-%s',
                                     _pick_overlapping_features_by_bit_score,
                                     minimum_overlap_threshold))
+        return self
+
+    def custom(self, filt: 'Filter'):
+        """ Add a rule with a user-defined function. """
+        self._filters.append(filt)
         return self
 
     def evaluate(self, operon: Operon):
