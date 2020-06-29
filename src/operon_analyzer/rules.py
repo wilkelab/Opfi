@@ -167,20 +167,20 @@ class RuleSet(object):
         self._rules.append(Rule('require', _require, feature_name))
         return self
 
-    def max_distance(self, feature1_name: str, feature2_name: str, distance_bp: int):
+    def max_distance(self, feature1_name: str, feature2_name: str, distance_bp: int, regex=False):
         """
         The two given features must be no further than distance_bp base pairs
         apart. Requires exactly one of each feature to be present.
         """
-        self._rules.append(Rule('max-distance', _max_distance, feature1_name, feature2_name, distance_bp))
+        self._rules.append(Rule('max-distance', _max_distance, feature1_name, feature2_name, distance_bp, regex))
         return self
 
-    def at_least_n_bp_from_anything(self, feature_name: str, distance_bp: int):
+    def at_least_n_bp_from_anything(self, feature_name: str, distance_bp: int, regex=False):
         """
         Requires that a feature be at least `distance_bp` base pairs away from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
-        self._rules.append(Rule('at-least-n-bp-from-anything', _at_least_n_bp_from_anything, feature_name, distance_bp))
+        self._rules.append(Rule('at-least-n-bp-from-anything', _at_least_n_bp_from_anything, feature_name, distance_bp, regex))
         return self
 
     def at_most_n_bp_from_anything(self, feature_name: str, distance_bp: int):
@@ -271,12 +271,12 @@ def _require(operon: Operon, feature_name: str) -> bool:
     return feature_name.lower() in map(str.lower, operon.feature_names)
 
 
-def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int) -> bool:
+def _max_distance(operon: Operon, feature1_name: str, feature2_name: str, distance_bp: int, regex=False) -> bool:
     """ Returns whether two given Features are within distance_bp base pairs from each other.
     This must hold for all copies of the features with the same name. """
     distances = []
-    for f1 in operon.get(feature1_name):
-        for f2 in operon.get(feature2_name):
+    for f1 in operon.get(feature1_name, regex):
+        for f2 in operon.get(feature2_name, regex):
             if f1 is f2:
                 continue
             distance = _feature_distance(f1, f2)
@@ -297,10 +297,10 @@ def _calculate_all_distances(operon: Operon, feature: Feature) -> Optional[int]:
     return distances
 
 
-def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int, regex=False) -> bool:
     """ Whether a given feature is more than distance_bp base pairs from another Feature. """
     at_least_one_good = False
-    for feature in operon.get(feature_name):
+    for feature in operon.get(feature_name, regex):
         distances = _calculate_all_distances(operon, feature)
         if not distances:
             return True
@@ -310,10 +310,10 @@ def _at_least_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp:
     return at_least_one_good
 
 
-def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int) -> bool:
+def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: int, regex=False) -> bool:
     """ Whether a given feature is less than distance_bp base pairs from any other feature. """
     at_least_one_good = False
-    for feature in operon.get(feature_name):
+    for feature in operon.get(feature_name, regex):
         distances = _calculate_all_distances(operon, feature)
         if not distances:
             return False

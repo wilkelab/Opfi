@@ -1,3 +1,4 @@
+import re
 from typing import List, Tuple, Optional
 
 
@@ -100,17 +101,21 @@ class Operon(object):
         """ Iterates over the name of each feature in the operon """
         yield from (feature.name for feature in self)
 
-    def get(self, feature_name: str) -> List[Feature]:
+    def get(self, feature_name: str, regex=False) -> List[Feature]:
         """ Returns a list of every Feature with a given name. """
+        if regex:
+            rx = re.compile(feature_name)
+        else:
+            rx = re.compile(f"^{feature_name}$")
         features = []
         for feature in self.all_features:
-            if feature.name == feature_name:
+            if rx.search(feature.name):
                 features.append(feature)
         return features
 
-    def get_unique(self, feature_name: str) -> Optional[Feature]:
+    def get_unique(self, feature_name: str, regex=False) -> Optional[Feature]:
         """ Returns a Feature or None if there is more than one Feature with the same name """
-        features = self.get(feature_name)
+        features = self.get(feature_name, regex)
         if len(features) != 1:
             return None
         return features[0]

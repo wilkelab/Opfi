@@ -30,6 +30,17 @@ def _get_standard_operon():
     return operon
 
 
+@pytest.mark.parametrize('feature,expected_count', [
+    ('cas', 3),
+    ('cas4', 1),
+    ('lulz', 0),
+    ])
+def test_regex_rule(feature, expected_count):
+    op = _get_standard_operon()
+    features = op.get(feature, regex=True)
+    assert len(features) == expected_count
+
+
 def test_filterset_within_n_bp_anything():
     operon = _get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_anything(10)
