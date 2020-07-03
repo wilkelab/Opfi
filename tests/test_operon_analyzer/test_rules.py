@@ -10,10 +10,10 @@ from typing import List
 
 def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, arrayend):
     genes = [
-            Feature('cas1', (s1, e1), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (s2, e2), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('transposase', (s3, e3), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            Feature('tnsA', (s4, e4), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
+            Feature('cas1', (s1, e1), 'lcl|12|400|1|-1', 1 if e1 > s1 else -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (s2, e2), 'lcl|410|600|1|-1', 1 if e2 > s2 else -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (s3, e3), 'lcl|620|1200|1|-1', 1 if e3 > s3 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('tnsA', (s4, e4), 'lcl|620|1200|1|-1', 1 if e4 > s4 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
             Feature('CRISPR array', (arraystart, arrayend), '', None, '', None, 'CRISPR array with some repeats', 'ACGTTGATATTTATAGCGCA'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
@@ -28,6 +28,68 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     return operon
+
+
+def test_exclude_regex():
+    op = _get_standard_operon()
+    rs = RuleSet().exclude(r'cas\d', True)
+    assert not rs.evaluate(op).is_passing
+
+
+def test_require_regex():
+    op = _get_standard_operon()
+    rs = RuleSet().require(r'cas\d', True)
+    assert rs.evaluate(op).is_passing
+
+
+@pytest.mark.parametrize('f1,f2,distance,expected', [
+    ('cas2', 'cas', 10, True),
+    ('cas4', 'cas', 19, False),
+    ('cas4', 'cas', 20, True),
+    ('cas', 'cas', 10, True),
+    ('cas', 'cas', 9, False),
+    ('cas2', 'cas4', 19, False),
+    ('cas2', 'cas4', 20, True),
+    (r'cas\d+', r'cas\d+', 10, True),
+    (r'cas\d\d', r'cas\d\d', 10, False),
+    (r'.*?\d', r'cas\d', 10, True),
+    ])
+def test_max_distance_closest_regex(f1, f2, distance, expected):
+    op = _get_standard_operon()
+    rs = RuleSet().max_distance(f1, f2, distance, closest_pair_only=True, regex=True)
+    result = rs.evaluate(op)
+    assert result.is_passing is expected
+
+
+def test_at_least_n_bp_from_anything_regex():
+    op = _get_standard_operon()
+    rs = RuleSet().at_least_n_bp_from_anything(r'cas\d', 10, regex=True)
+    assert rs.evaluate(op).is_passing
+
+
+@pytest.mark.parametrize('name,distance,expected', [
+    (r'cas\d', 20, True),
+    (r'cas\d', 19, False),
+    (r'cas', 20, True),
+    (r'cas', 19, False),
+    (r'lulz', 10, False),
+    ])
+def test_at_most_n_bp_from_anything_regex(name, distance, expected):
+    op = _get_standard_operon()
+    rs = RuleSet().at_most_n_bp_from_anything(name, distance, regex=True)
+    assert rs.evaluate(op).is_passing is expected
+
+
+@pytest.mark.parametrize('f1,f2,expected', [
+    (r'cas', r'lulz', True),
+    (r'lulz', r'cas', True),
+    (r'histone', r'lulz', False),
+    (r'cas', r'cas\d', False),
+    ])
+def test_contains_exactly_one_of_regex(f1, f2, expected):
+    op = _get_standard_operon()
+    rs = RuleSet().contains_exactly_one_of(f1, f2, regex=True)
+    assert rs.evaluate(op).is_passing is expected
 
 
 @pytest.mark.parametrize('feature,expected_count', [
@@ -72,12 +134,12 @@ def test_filterset_within_n_bp_of_feature():
 
 def test_custom_rule():
     operon = _get_standard_operon()
-    rule = Rule('require', _require, 'cas1')
+    rule = Rule('require', _require, 'cas1', None)
     rs = RuleSet().custom(rule)
     result = rs.evaluate(operon)
     assert result.is_passing
 
-    rule = Rule('require', _require, 'cas88')
+    rule = Rule('require', _require, 'cas88', None)
     rs = RuleSet().custom(rule)
     result = rs.evaluate(operon)
     assert not result.is_passing
@@ -381,6 +443,21 @@ def test_same_orientation():
     rs = RuleSet().same_orientation()
     result = rs.evaluate(operon)
     assert result.is_passing
+
+
+@pytest.mark.parametrize('exceptions,expected', [
+        (['cas2', 'CRISPR array'], True),
+        (['cas2'], False),
+        (['CRISPR array'], False),
+        ([], False),
+        (None, False)
+    ])
+def test_same_orientation_with_exceptions(exceptions, expected):
+    positions = [0, 100, 701, 600, 201, 300, 210, 300, 400, 500]
+    operon = _get_repositionable_operon(*positions)
+    rs = RuleSet().same_orientation(exceptions=exceptions)
+    result = rs.evaluate(operon)
+    assert result.is_passing is expected
 
 
 @pytest.mark.parametrize("feature_names,expected", [
