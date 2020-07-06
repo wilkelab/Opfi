@@ -366,6 +366,16 @@ class Pipeline:
         """
 
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
+    
+
+    def _update_output_sequences(self):
+        for neighborhood, path in self._neighborhood_orfs.items():
+            sequences = {}
+            for record in SeqIO.parse(path, "fasta"):
+                sequences[record.id] = str(record.seq)
+            for key, hit in self._working_results[neighborhood]["Hits"].items():
+                if "Query_ORFID" in hit.keys():
+                    self._working_results[neighborhood]["Hits"][key]["Query_seq"] = sequences[hit["Query_ORFID"]]
 
     
     def _format_results(self, outfrmt, outfile):
@@ -520,6 +530,7 @@ class Pipeline:
                         break
 
                 self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+                self._update_output_sequences()
                 self._results[contig_id] = self._working_results
         
         self._format_results(outfrmt, outfile)
