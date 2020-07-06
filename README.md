@@ -89,6 +89,7 @@ if __name__ == '__main__':
   * `must_be_within_n_bp_of_anything(distance_bp: int)`: If a feature is very far away from anything it's probably not part of an operon.
   * `must_be_within_n_bp_of_feature(feature_name: str, distance_bp: int)`: There may be situations where two features always appear near each other in functional operons.  
   * `pick_overlapping_features_by_bit_score(minimum_overlap_threshold: float)`: If two features overlap by more than `minimum_overlap_threshold`, the one with the lower bit score is ignored.
+  * `custom(filt: 'Filter')`: Add a filter with a user-defined function. 
 
 ### Analysis Output 
 
