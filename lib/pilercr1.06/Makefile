@@ -23,3 +23,6 @@ $(CPPOBJ): %.o: %.cpp
 pilercr: $(CPPOBJ)
 	$(LD) -o pilercr $(CPPOBJ) $(LDLIBS)
 	strip pilercr
+
+install: pilercr
+	cp pilercr /usr/local/bin/

@@ -21,7 +21,8 @@ def concatenate(in_dir, file_names):
     
     return out
 
-def get_neighborhood_ranges(hits, span=20000):
+    
+def get_neighborhood_ranges(hits, contig_len, span=20000):
     """Determine the start and end positions of genomic
     neighborhoods surrounding one or more blast hit.
 
@@ -41,41 +42,31 @@ def get_neighborhood_ranges(hits, span=20000):
         span (int, optional): Number of nucleotides directly to the 
             left and right of the hit to retain. Default is 20000.
     """
-    hit_coords = []
-    # sort the hit dictionary dictionary keys by hit start position
+    # sort the hit dictionary keys by hit start position
     keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["Query_start-pos"]), int(hits[k]["Query_end-pos"])))
     
-    # use sorted keys to construct a sorted list of hit coordinates
+    tmp_ranges = []
+    # use sorted keys to construct a temporary list of ranges
     for key in keys_sorted:
         start = int(hits[key]["Query_start-pos"])
         stop = int(hits[key]["Query_end-pos"])
-        lower = min(start, stop)
-        upper = max(start, stop)
-        hit_coords.append((lower, upper))
+        lower = max(min((start - span), (stop - span)), 0)
+        upper = min(max((start + span), (stop + span)), contig_len)
+        tmp_ranges.append((lower , upper))
     
-    # Construct the first neighborhood 
-    ranges = []
-    first_coord = hit_coords.pop(0)
-    lower = max((first_coord[0] - span), 0)
-    upper = first_coord[1] + span
-    ranges.append((lower, upper))
-    
-    # iterate through the remaining hit coordinates, checking if they
-    # should be placed in the previous neighborhood or used to
-    # construct a new neighborhood
-    for coord in hit_coords:
-        found_new = False
-        last_range = ranges[-1]
-        if coord[0] > last_range[1] + span:
-            found_new = True
-        elif (coord[0] <= last_range[1] + span) and not (coord[1] <= last_range[1]):
-            adjusted = (last_range[0], coord[1] + span)
-            ranges[-1] = adjusted
+    final = []
+    # merge overlapping ranges to create final list
+    for this_coord in tmp_ranges:
+        if len(final) == 0:
+            final.append(this_coord)
+            continue
+        
+        last_coord = final[-1]
+        if this_coord[0] > last_coord[1]:
+            final.append(this_coord)
+        elif this_coord[0] <= last_coord[1] and this_coord[1] > last_coord[1]:
+            final[-1] = (last_coord[0], this_coord[1])
+        else:
+            continue
 
-        if found_new:
-            lower = coord[0] - span
-            upper = coord[1] + span
-            ranges.append((lower, upper))
-
-    return ranges
-    
+    return final

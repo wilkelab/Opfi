@@ -1,66 +1,73 @@
-import os, json
-import xml.etree.ElementTree as ET
+import os, json, csv
 
-def parse_blast_xml(blast_xml, blast_id):
-    """Parse blast xml output generated from 
-    running a blast step in the pipeline. 
+def parse_search_output(tsv, step_id, search_type):
+    """Parse output from a search step (in blast tabular format).
 
-    Queries (ORFs) for which no alignments were returned
-    are excluded from the output.
+    Expects a tsv file with the following format
+    fields: qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive (blast/diamond only) \
+        gapopen gaps (blast/diamond only) \
+        ppos (blast/diamond only) qcovs
 
-    Returns a dictionary of dictionaries if hits print(len(self.hits))
-    were found; otherwise, returns None.
-
-    Args:
-        blast_xml(str): Path to blast output.
-        blast_id(str, optional): A unique ID for the
-            blast step.
+    Returns a dictionary of best hits for each query that had a 
+    hit, where "best" means the lowest e-value score.
     """
+
     try:
-        tree = ET.parse(blast_xml)
-        blast_output = tree.getroot()
-        
         hits = {}
-        hit_num = 0
-        for iteration in blast_output.iter('Iteration'):
-            hit = iteration.find('Iteration_hits').find('Hit')
-            
-            if hit is not None:
-                hit_dic = {}
-                
-                # get the ORF id
-                query = iteration.find("Iteration_query-def").text
-                query = query.split().pop(0)
-                hit_dic["Query_ORFID"] = query
+        with open(tsv, newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter="\t")
 
-                # get query start/stop pos (nt) from ORF id
-                query = query.split("|")
-                hit_dic["Query_start-pos"] = query[1]
-                hit_dic["Query_end-pos"] = query[2]
+            for row in reader:
+                if _keep_row(row, hits):
+                    hit_dic = {}
+                    local_query_id = row[0].split()[0]
+                    hit_dic["Query_ORFID"] = local_query_id
 
-                # information about the reference protein
-                hit_def = hit.find("Hit_def").text.split()
-                hit_dic["Hit_name"] = hit_def.pop(1)
-                hit_dic["Hit_accession"] = hit_def.pop(0)
-                hit_dic["Hit_description"] = " ".join(hit_def)
+                    # get query start/stop pos (nt) from ORF id
+                    local_query_id = local_query_id.split("|")
+                    hit_dic["Query_start-pos"] = local_query_id[1]
+                    hit_dic["Query_end-pos"] = local_query_id[2]
 
-                # e val for this hsp
-                e_val = hit.find("Hit_hsps").find("Hsp").find("Hsp_evalue").text
-                hit_dic["Hit_e-val"] = e_val
+                    # information about the reference protein
+                    hit_def = row[2].split()
+                    hit_dic["Hit_name"] = hit_def.pop(1)
+                    hit_dic["Hit_accession"] = hit_def.pop(0)
+                    hit_dic["Hit_description"] = " ".join(hit_def)
+                    
+                    # alignment statistics
+                    hit_dic["Hit_e-val"] = row[3]
+                    hit_dic["Bitscore"] = row[4]
+                    hit_dic["Raw_score"] = row[5]
+                    hit_dic["Alignment_length"] = row[6]
+                    hit_dic["Alignment_percent-identical"] = row[7]
+                    hit_dic["Alignment_num-identical"] = row[8]
+                    hit_dic["Alignment_mismatches"] = row[9]
 
-                # Sequence of the translated ORF used as the query
-                query_sequence = hit.find("Hit_hsps").find("Hsp").find("Hsp_qseq").text
-                hit_dic["Query_sequence"] = query_sequence
+                    if search_type in ("blast", "diamond"):
+                        hit_dic["Alignment_num-positive"] = row[10]
+                        hit_dic["Alignment_num-gapopenings"] = row[11]
+                        hit_dic["Alignment_num-gaps"] = row[12]
+                        hit_dic["Alignment_percent-pos"] = row[13]
+                        hit_dic["Alignment_query-cov"] = row[14]
+                        hit_dic["Query_seq"] = row[15]
+                    
+                    else: # mmseqs doesn't output some of these
+                        hit_dic["Alignment_num-positive"] = None
+                        hit_dic["Alignment_num-gapopenings"] = row[10]
+                        hit_dic["Alignment_num-gaps"] = None
+                        hit_dic["Alignment_percent-pos"] = None
+                        hit_dic["Alignment_query-cov"] = row[11]
+                        hit_dic["Query_seq"] = row[12]
 
-                # Capitalize first letter only of blast_id (set by pipeline.add_step() name param)
-                hit_name = "{}{}_hit-{}".format(blast_id[:1].upper(), blast_id[1:], str(hit_num))
-                hits[hit_name] = hit_dic
-                hit_num += 1
+                    hit_name = row[0]
+                    hits[hit_name] = hit_dic
 
+        hits = _reformat_hit_ids(hits, step_id)
         return hits
     
-    except ET.ParseError:
-
+    except csv.Error:
         return {}
 
 def _is_int(string):
@@ -160,14 +167,34 @@ def parse_pilercr_summary(pilercr_out):
 
     return arrays
 
-if __name__ == "__main__":
-    pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/vcrass"
-    #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/a_brierleyi"
-    #pilercr_out = "/home/alexis/Projects/CRISPR-Transposons/out/pilercr/C2558"
+def _keep_row(row, hits):
+    """Parser helper function.
 
-    arrays = parse_pilercr_summary(pilercr_out)
-    print(json.dumps(arrays, indent=4))
+    Determine if given row represents the best hit for this
+    query so far by comparing e-values. 
+    """
 
-    #blast_out = "/home/alexis/Projects/CRISPR-Transposons/data/tmp/v_crass.xml"
-    #hits = parse_blast_xml(blast_out, blast_id="v_crass")
-    #print(json.dumps(hits, indent=4))
+    if row[0] in hits:
+        if float(row[3]) < float(hits[row[0]]["Hit_e-val"]):
+            return True
+        else:
+            return False
+    else:
+        return True
+
+def _reformat_hit_ids(hits, step_id):
+    """Parser helper function.
+
+    For consistency, copy over hit info from a dict where keys are the
+    utility-specific query IDs to a dict where keys are in the 
+    format created by the other crisposon parsers.
+    """
+
+    re_hits = {}
+    hit_num = 0
+    for hit in hits.values():
+        hit_id = "{}{}_hit-{}".format(step_id[:1].upper(), step_id[1:], str(hit_num))
+        re_hits[hit_id] = hit
+        hit_num += 1
+    
+    return re_hits

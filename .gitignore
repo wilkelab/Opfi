@@ -3,11 +3,13 @@ env/
 env_test/
 
 # distribution stuff
-crisposon.egg-info/
 dist/
+.eggs/
 
 # build stuff
 __pycache__/
+crisposon.egg-info/
+.eggs/
 
 # dev tools
 .vscode
@@ -17,3 +19,6 @@ junk/
 data/
 out
 job_scripts/
+
+# Don't check metadata for property-based tests into version control
+.hypothesis
