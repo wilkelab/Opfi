@@ -1,6 +1,5 @@
 from crisposon.orffinder import orffinder, neighborhood_orffinder
 from crisposon.utils import concatenate
-from crisposon.build_blast_db import build_blast_db
 from crisposon.steps import (SearchStep, 
                                 FilterStep, 
                                 SeedStep, 
