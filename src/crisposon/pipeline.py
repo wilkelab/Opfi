@@ -368,7 +368,7 @@ class Pipeline:
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
 
-    def _update_orf_sequences(self):
+    def _update_output_sequences(self):
         for neighborhood, path in self._neighborhood_orfs.items():
             sequences = {}
             for record in SeqIO.parse(path, "fasta"):
@@ -530,7 +530,7 @@ class Pipeline:
                         break
 
                 self._all_hits[contig_id][step.search_tool.step_id] = step.hits
-                self._update_orf_sequences()
+                self._update_output_sequences()
                 self._results[contig_id] = self._working_results
         
         self._format_results(outfrmt, outfile)
