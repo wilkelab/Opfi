@@ -108,7 +108,7 @@ class Operon(object):
         else:
             rx = re.compile(f"^{feature_name}$")
         features = []
-        for feature in self.all_features:
+        for feature in self:
             if rx.search(feature.name):
                 features.append(feature)
         return features

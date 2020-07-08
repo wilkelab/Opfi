@@ -30,6 +30,15 @@ def _get_standard_operon():
     return operon
 
 
+def test_ignore_filtered_features_in_rule():
+    op = _get_standard_operon()
+    rs = RuleSet().exclude('cas4')
+    assert not rs.evaluate(op).is_passing
+    fs = FilterSet().must_be_within_n_bp_of_anything(15)
+    fs.evaluate(op)
+    assert rs.evaluate(op).is_passing
+
+
 def test_exclude_regex():
     op = _get_standard_operon()
     rs = RuleSet().exclude(r'cas\d', True)
@@ -171,8 +180,13 @@ def test_filter_overlap_reason_text():
         gene.bit_score = bit_score
     fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
     fs.evaluate(operon)
-    feature = operon.get_unique('transposase')
-    assert feature.ignored_reasons == ['overlaps-tnsA:0.8']
+    for feature in operon.all_features:
+        if feature.name == 'transposase':
+            assert feature.ignored_reasons == ['overlaps-tnsA:0.8']
+            break
+    else:
+        # make sure we ran the above assertion and broke out of the loop
+        assert False
 
 
 @pytest.mark.parametrize('positions,bit_scores,expected,threshold', [
