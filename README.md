@@ -1,8 +1,10 @@
-# crisposon
+# Opfi
+
+# Gene Finder
 
 ## Requirements
 
-Crisposon uses NCBI BLAST+ applications to perform homology searches, and a slightly modified version of [piler-cr](https://www.drive5.com/pilercr/) to identify CRISPR arrays. 
+Gene finder uses NCBI BLAST+ applications to perform homology searches, and a slightly modified version of [piler-cr](https://www.drive5.com/pilercr/) to identify CRISPR arrays. 
 
 You can find NCBI BLAST+ install info [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/).
 
@@ -10,12 +12,11 @@ Instructions for building piler-cr are detailed below.
 
 ## Installation
 
-First grab your own fork of crisposon and clone it. Then (from the main project directory) you can do:
+First grab your own fork of Opfi and clone it. Then (from the main project directory) you can do:
 ```
 pip3 install .
 pip3 install -r requirements.txt
 ```
-This should install crisposon and its only python dependency, biopython. 
 
 The last thing you need to do is compile the custom piler-cr source code, which is in lib/pilercr1.06.
 ```
@@ -25,9 +26,9 @@ sudo make install
 
 ## Using crisposon
 
-The crisposon API is centered around the Pipeline class. Typical usage looks something like this:
+The gene finder API is centered around the Pipeline class. Typical usage looks something like this:
 ```python
-from crisposon.pipeline import Pipeline
+from gene_finder.pipeline import Pipeline
 
 p = Pipeline()
 p.add_seed_step(db="data/blast_databases/tnsAB", name="tnsAB", e_val=0.001, type="PROT")
