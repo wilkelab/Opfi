@@ -1,5 +1,5 @@
 import csv
-from crisposon.output_writers import FIELDNAMES
+from gene_finder.output_writers import FIELDNAMES
 from collections import defaultdict
 from typing import Tuple, Iterator, IO
 from operon_analyzer.genes import Feature, Operon

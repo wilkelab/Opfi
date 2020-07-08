@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import pytest
 from io import StringIO
-from crisposon.pipeline import Pipeline
+from gene_finder.pipeline import Pipeline
 from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.analyze import analyze, load_analyzed_operons
 from operon_analyzer.visualize import build_operon_dictionary, plot_operons
