@@ -40,7 +40,7 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Opt
     if not plot_ignored and len(operon) == 0:
         return None
     # set the default color to the user-supplied one, if given, otherwise use blue
-    default_color = feature_colors.get("default", "blue")
+    default_color = feature_colors.get("", "blue")
 
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
