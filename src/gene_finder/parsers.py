@@ -187,7 +187,7 @@ def _reformat_hit_ids(hits, step_id):
 
     For consistency, copy over hit info from a dict where keys are the
     utility-specific query IDs to a dict where keys are in the 
-    format created by the other crisposon parsers.
+    format created by the other gene finder parsers.
     """
 
     re_hits = {}

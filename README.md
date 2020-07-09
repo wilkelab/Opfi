@@ -24,7 +24,7 @@ cd lib/pilercr1.06
 sudo make install
 ```
 
-## Using crisposon
+## Using gene finder
 
 The gene finder API is centered around the Pipeline class. Typical usage looks something like this:
 ```python
