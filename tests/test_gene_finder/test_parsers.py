@@ -1,5 +1,5 @@
 import pytest
-from crisposon.parsers import (
+from gene_finder.parsers import (
     parse_search_output
 )
 
@@ -8,7 +8,7 @@ def test_empty_tsv():
     Test that parser correctly handles an empty tsv.
     """
 
-    result = parse_search_output("tests/test_crisposon/tsv/empty.tsv", 
+    result = parse_search_output("tests/test_gene_finder/tsv/empty.tsv", 
                             "empty", "blast")
 
     assert isinstance(result, dict)
@@ -20,7 +20,7 @@ def test_mmseqs():
     for multiple queries.
     """
 
-    result = parse_search_output("tests/test_crisposon/tsv/mmseqs_parse_test.tsv",
+    result = parse_search_output("tests/test_gene_finder/tsv/mmseqs_parse_test.tsv",
                             "mmseqs", "mmseqs")
 
     assert len(result) == 3
@@ -34,7 +34,7 @@ def test_diamond():
     for multiple queries.
     """
 
-    result = parse_search_output("tests/test_crisposon/tsv/diamond_parse_test.tsv",
+    result = parse_search_output("tests/test_gene_finder/tsv/diamond_parse_test.tsv",
                              "diamond", "diamond")
 
     assert len(result) == 2

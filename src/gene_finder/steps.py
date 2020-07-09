@@ -1,9 +1,9 @@
 from Bio.Blast.Applications import (NcbiblastpCommandline, 
                                     NcbipsiblastCommandline)
 
-from crisposon.utils import get_neighborhood_ranges
-from crisposon.parsers import parse_search_output, parse_pilercr_summary
-from crisposon.option_handling import (build_blastp_command,
+from gene_finder.utils import get_neighborhood_ranges
+from gene_finder.parsers import parse_search_output, parse_pilercr_summary
+from gene_finder.option_handling import (build_blastp_command,
                                         build_psiblast_command)
 
 import os, subprocess, tempfile, multiprocessing

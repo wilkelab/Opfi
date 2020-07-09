@@ -1,7 +1,7 @@
-# Example config file for a crisposon run
+# Example config file for running gene_finder on some genomic data
 #
 # Path placeholders are given for reference, but should be 
-# replaced with absolute paths to the user's resources
+# replaced with paths to the user's resources
 ---
   out-dir: "/path/to/work/directory/runs/example_run/out/"
   min-prot-len: 30

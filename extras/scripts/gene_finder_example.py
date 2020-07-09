@@ -1,10 +1,10 @@
-from crisposon.pipeline import Pipeline
+from gene_finder.pipeline import Pipeline
 from Bio import SeqIO
 import yaml
 import json, os, sys, tempfile
 
 if __name__ == "__main__":
-    """Example usage of the crisposon package
+    """Example usage of the gene finder package
 
     Command line args:
         1. Path to input fasta file

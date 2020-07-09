@@ -1,6 +1,6 @@
-from crisposon.orffinder import orffinder, neighborhood_orffinder
-from crisposon.utils import concatenate
-from crisposon.steps import (SearchStep, 
+from gene_finder.orffinder import orffinder, neighborhood_orffinder
+from gene_finder.utils import concatenate
+from gene_finder.steps import (SearchStep, 
                                 FilterStep, 
                                 SeedStep, 
                                 CrisprStep, 
@@ -10,7 +10,7 @@ from crisposon.steps import (SearchStep,
                                 Diamond,
                                 Pilercr)
 
-from crisposon.output_writers import CSVWriter
+from gene_finder.output_writers import CSVWriter
 
 import tempfile, os, json, gzip
 from Bio import SeqIO

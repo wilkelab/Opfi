@@ -1,6 +1,6 @@
 import pytest
 import yaml, json, tempfile, os, shutil
-from crisposon.pipeline import Pipeline
+from gene_finder.pipeline import Pipeline
 
 def setup_pipeline():
     """Initialize a Pipeline object."""

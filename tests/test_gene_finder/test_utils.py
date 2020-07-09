@@ -1,5 +1,5 @@
 import pytest
-from crisposon.utils import get_neighborhood_ranges
+from gene_finder.utils import get_neighborhood_ranges
 
 def _build_hit_dictionary(coords):
     hits = {}

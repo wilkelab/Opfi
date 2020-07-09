@@ -4,11 +4,11 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="crisposon", 
-    version="0.0.3",
-    author="Alexis M Hill",
+    name="opfi", 
+    version="0.1.0",
+    author="Alexis M Hill, James Rybarski",
     author_email="alexismhill3@gmail.com",
-    description="A suite of tools for finding and annotating putative CRISPR-Transposon elements",
+    description="A suite of tools for finding and analyzing genomic systems of interest.",
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/alexismhill3/CRISPR-Transposons",
