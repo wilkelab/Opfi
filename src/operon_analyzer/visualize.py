@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Tuple, Dict, IO, List
+from typing import Tuple, Dict, IO, List, Optional
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
@@ -35,15 +35,19 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
     return low, high - low
 
 
-def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dict):
+def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Optional[dict] = {}):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
+    # set the default color to the user-supplied one, if given, otherwise use blue
+    default_color = feature_colors.get("default", "blue")
+
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
     for feature in operon.all_features:
         if feature.ignored_reasons and not plot_ignored:
             continue
+        color = feature_colors.get(feature.name, default_color)
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name
@@ -52,9 +56,6 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: dic
             _, count = copies.split()
             feature.name = f"CRISPR array ({count})"
         label = feature.name if not feature.ignored_reasons else f"{feature.name} (ignored)"
-        color = "blue"
-        if feature_colors is not None and label in feature_colors:
-            color = feature_colors[label]
         graphic_feature = GraphicFeature(start=feature.start - offset,
                                          strand=feature.strand,
                                          end=feature.end - offset,
@@ -84,7 +85,7 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     return operons
 
 
-def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: dict = None):
+def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: Optional[dict] = {}):
     """ Takes Operons and saves plots of them to disk. """
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
