@@ -1,4 +1,4 @@
-from crisposon.pipeline import Pipeline
+from gene_finder.pipeline import Pipeline
 from Bio import SeqIO
 import yaml
 import json, os, sys, tempfile
