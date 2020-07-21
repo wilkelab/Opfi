@@ -65,7 +65,7 @@ def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Opt
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
 
-    ax, _ = record.plot(figure_width=5)
+    ax, _ = record.plot(figure_width=max(int(operon_length/900), 1))
     record.plot(ax)
     return ax
 
