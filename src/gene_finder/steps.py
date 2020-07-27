@@ -216,7 +216,8 @@ class SeedWithCoordinatesStep():
         self.end = end
         self.contig_id = contig_id
 
-        # may be updated if real coordinates weren't specified
+        # Will be updated for each contig if no 
+        # coordinates were given when the step was added
         self.coordinates = (start, end)
     
     def update_start_coord(self, new_start):
