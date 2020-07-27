@@ -1,6 +1,6 @@
 import os, json, csv
 
-def parse_search_output(tsv, step_id, search_type, parse_descriptions):
+def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
     """Parse output from a search step (in blast tabular format).
 
     Expects a tsv file with the following format
