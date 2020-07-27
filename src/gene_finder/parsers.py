@@ -1,6 +1,6 @@
 import os, json, csv
 
-def parse_search_output(tsv, step_id, search_type):
+def parse_search_output(tsv, step_id, search_type, parse_descriptions):
     """Parse output from a search step (in blast tabular format).
 
     Expects a tsv file with the following format
@@ -32,9 +32,22 @@ def parse_search_output(tsv, step_id, search_type):
 
                     # information about the reference protein
                     hit_def = row[2].split()
-                    hit_dic["Hit_name"] = hit_def.pop(1)
-                    hit_dic["Hit_accession"] = hit_def.pop(0)
-                    hit_dic["Hit_description"] = " ".join(hit_def)
+                    if len(hit_def) == 0:
+                        hit_dic["Hit_accession"] = "No accession/ID found for reference"
+                        hit_dic["Hit_name"] = "No gene name found for reference"
+                        hit_dic["Hit_description"] = "No gene description found for reference"
+                    elif len(hit_def) == 1:
+                        hit_dic["Hit_accession"] = hit_def[0]
+                        hit_dic["Hit_name"] = hit_def[0]
+                        hit_dic["Hit_description"] = hit_def[0]
+                    elif len(hit_def) == 2 or not parse_descriptions:
+                        hit_dic["Hit_accession"] = hit_def.pop(0)
+                        hit_dic["Hit_name"] = " ".join(hit_def)
+                        hit_dic["Hit_description"] = " ".join(hit_def)
+                    else:
+                        hit_dic["Hit_accession"] = hit_def.pop(0)
+                        hit_dic["Hit_name"] = hit_def.pop(0)
+                        hit_dic["Hit_description"] = " ".join(hit_def)
                     
                     # alignment statistics
                     hit_dic["Hit_e-val"] = row[3]
