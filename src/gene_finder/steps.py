@@ -210,11 +210,14 @@ class SeedStep(SearchStep):
 class SeedWithCoordinatesStep():
 
     def __init__(self, start, end, contig_id):
-
+        
+        # these shouldn't change after initialization
         self.start = start
         self.end = end
-        self.coordinates = (start, end)
         self.contig_id = contig_id
+
+        # may be updated if real coordinates weren't specified
+        self.coordinates = (start, end)
     
     def update_start_coord(self, new_start):
         self.coordinates = (new_start, self.coordinates[1])

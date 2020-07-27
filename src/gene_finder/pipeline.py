@@ -507,6 +507,12 @@ class Pipeline:
 
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
+            # if this run was seeded with a particular contig id, skip all other contigs
+            # in the file if they exit
+            # saves a bit of time, since there is overhead associated with getting things set up
+            if isinstance(self._steps[0], SeedWithCoordinatesStep):
+                if self._steps[0].contig_id is not None and self._steps[0].contig_id != record.id:
+                    continue
             # clear out any data that may be leftover from processing a previous
             # contig and get all ORFs in this contig
             contig_id, contig_len, contig_path = self._setup_run(record)
@@ -536,8 +542,6 @@ class Pipeline:
                         break
 
                 elif isinstance(step, SeedWithCoordinatesStep):
-                    if step.contig_id is not None and step.contig_id != contig_id:
-                        break
                     if step.start is None:
                         step.update_start_coord(0)
                     if step.end is None:
