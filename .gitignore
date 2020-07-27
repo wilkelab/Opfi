@@ -8,7 +8,7 @@ dist/
 
 # build stuff
 __pycache__/
-crisposon.egg-info/
+opfi.egg-info/
 .eggs/
 
 # dev tools
