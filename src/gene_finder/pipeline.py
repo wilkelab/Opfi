@@ -286,7 +286,8 @@ class Pipeline:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
 
-    def add_seed_with_coordinates_step(self, start=None, end=None, contig_id=None):
+    def add_seed_with_coordinates_step(self, db, e_val, blast_type, title=None, sensitivity=None, 
+                                       start=None, end=None, contig_id=None, **kwargs):
         """
         Define a genomic region to search with coordinates instead of a bait gene.
 
@@ -295,6 +296,18 @@ class Pipeline:
         known.
 
         Args:
+            db (str): Path to the target database to search against.
+            e_val (float): Expect value to use as a threshhold. 
+            blast_type (str): Specifies which search program to use. 
+                This can be either "PROT" (blastp), "PSI" (psiblast),
+                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
+                mmseqs2 and diamond support is currently experimental.
+            title (str, optional): A unique name for this step. If no 
+                title is given, the pipeline automatically assigns one
+                based on the order the step was added, i.e. "step_<index>"
+            sensitivity (str): Sets the sensitivity param 
+                for mmseqs and diamond (does nothing if blast is the
+                seach type).
             start (int): Defines the beginning of the region to search (in bp).
                 If no start position is given the first (zero indexed) position
                 in the contig is used.
