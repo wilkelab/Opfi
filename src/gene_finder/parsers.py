@@ -35,8 +35,7 @@ def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
                     hit_dic["Hit_accession"] = hit_acc if len(hit_acc) > 0 else "No accession/ID found for reference"
                     hit_def = row[2].split()
                     if parse_descriptions and len(hit_def) >= 2:
-                        hit_def.pop(0)
-                        hit_dic["Hit_name"] = hit_def.pop(0)
+                        hit_dic["Hit_name"] = hit_def[1]
                         hit_dic["Hit_description"] = " ".join(hit_def)
                     else:
                         hit_def = " ".join(hit_def)

@@ -246,6 +246,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -259,7 +260,9 @@ class Pipeline:
                 specifically, descriptions are split on whitespace characters
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
-                (i.e everything after the first whitespace in the header). 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
@@ -292,6 +295,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -308,7 +312,9 @@ class Pipeline:
                 specifically, descriptions are split on whitespace characters
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
-                (i.e everything after the first whitespace in the header).  
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.  
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
@@ -336,6 +342,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -352,7 +359,9 @@ class Pipeline:
                 specifically, descriptions are split on whitespace characters
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
-                (i.e everything after the first whitespace in the header). 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
