@@ -19,12 +19,13 @@ class Blastp():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id, kwargs):
+    def __init__(self, db, e_val, step_id, parse_descriptions, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.parse_descriptions = parse_descriptions
         self.kwargs = kwargs
     
     def construct_cmd(self, query, out):
@@ -35,7 +36,7 @@ class Blastp():
         blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
         cmd = self.construct_cmd(orfs, blast_out)
         subprocess.run(cmd, check=True)
-        hits = parse_search_output(blast_out, self.step_id, "blast")
+        hits = parse_search_output(blast_out, self.step_id, "blast", self.parse_descriptions)
         return hits
         
 class Blastpsi():
@@ -49,12 +50,13 @@ class Blastpsi():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id, kwargs):
+    def __init__(self, db, e_val, step_id, parse_descriptions, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
+        self.parse_descriptions = parse_descriptions
         self.kwargs = kwargs
     
     def construct_cmd(self, query, out):
@@ -65,7 +67,7 @@ class Blastpsi():
         blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
         cmd = self.construct_cmd(orfs, blast_out)
         subprocess.run(cmd, check=True)
-        hits = parse_search_output(blast_out, self.step_id, "blast")
+        hits = parse_search_output(blast_out, self.step_id, "blast", self.parse_descriptions)
         return hits
 
 class MMseqs():
@@ -75,7 +77,7 @@ class MMseqs():
         bits raw alnlen pident \
         nident mismatch gapopen qcov qseq"
 
-    def __init__(self, db, e_val, step_id, sensitivity):
+    def __init__(self, db, e_val, step_id, sensitivity, parse_descriptions):
         """Initialize a mmseqs command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -83,6 +85,7 @@ class MMseqs():
         self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
+        self.parse_descriptions = parse_descriptions
     
     def _make_query_db(self, orfs):
         """Covert query orfs to mmseqs custom database format."""
@@ -107,7 +110,7 @@ class MMseqs():
                             result_db, results_tsv, "--format-output", tsv_fields]
         subprocess.run(convertalis_cmd, check=True)
         
-        hits = parse_search_output(results_tsv, self.step_id, "mmseqs")
+        hits = parse_search_output(results_tsv, self.step_id, "mmseqs", self.parse_descriptions)
         return hits
     
     def run(self, orfs):
@@ -135,7 +138,7 @@ class Diamond():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id, sensitivity):
+    def __init__(self, db, e_val, step_id, sensitivity, parse_descriptions):
         """Initialize a diamond command line run"""
 
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -143,6 +146,7 @@ class Diamond():
         self.step_id = step_id
         self.e_val = e_val
         self.sensitivity = sensitivity
+        self.parse_descriptions = parse_descriptions
 
     def run(self, orfs):
         """Execute the diamond blastp command and parse output."""
@@ -157,7 +161,7 @@ class Diamond():
         subprocess.run(cmd, check=True, shell=True)
         
         # parse output
-        hits = parse_search_output(result, self.step_id, "diamond")
+        hits = parse_search_output(result, self.step_id, "diamond", self.parse_descriptions)
         return hits       
 
 class Pilercr():

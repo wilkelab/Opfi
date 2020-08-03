@@ -2,7 +2,7 @@ from gene_finder.orffinder import orffinder, neighborhood_orffinder
 from gene_finder.utils import concatenate
 from gene_finder.steps import (SearchStep, 
                                 FilterStep, 
-                                SeedStep, 
+                                SeedStep,
                                 CrisprStep, 
                                 Blastp, 
                                 Blastpsi, 
@@ -226,7 +226,7 @@ class Pipeline:
             self._neighborhood_orfs[key] = path
 
     
-    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, **kwargs):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, parse_descriptions=True, **kwargs):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -246,6 +246,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -253,7 +254,15 @@ class Pipeline:
                 mmseqs2 and diamond support is currently experimental.
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
-                seach type). 
+                seach type).
+            parse_descriptions (bool, optional): By default, reference protein
+                descriptions (from fasta headers) are parsed for gene name labels;
+                specifically, descriptions are split on whitespace characters
+                and the second item is used for the label. Make this false to 
+                simply use the whole protein description for the label 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
@@ -265,21 +274,18 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(SeedStep(Blastp(db, e_val, name, kwargs)))
+            self._steps.append(SeedStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(SeedStep(Blastpsi(db, e_val, name, kwargs)))
+            self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
-            self._steps.append(SeedStep(MMseqs(db, str(e_val), name, 
-                                                str(sensitivity))))
+            self._steps.append(SeedStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         elif blast_type == "diamond":
-            self._steps.append(SeedStep(Diamond(db, str(e_val), name, 
-                                                str(sensitivity))))
+            self._steps.append(SeedStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
 
-    
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
-                        sensitivity=None, **kwargs):
+                        sensitivity=None, parse_descriptions=True, **kwargs):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -289,6 +295,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -299,7 +306,15 @@ class Pipeline:
                 is one.
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
-                seach type). 
+                seach type).
+            parse_descriptions (bool, optional): By default, reference protein
+                descriptions (from fasta headers) are parsed for gene name labels;
+                specifically, descriptions are split on whitespace characters
+                and the second item is used for the label. Make this false to 
+                simply use the whole protein description for the label 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.  
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
@@ -307,19 +322,19 @@ class Pipeline:
                 is set to mmseqs or diamond, kwargs will be silently ignored.
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(FilterStep(Blastp(db, e_val, name, kwargs), min_prot_count))
+            self._steps.append(FilterStep(Blastp(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(FilterStep(Blastpsi(db, e_val, name, kwargs), min_prot_count))
+            self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
-            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity)), min_prot_count))
+            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
         elif blast_type == "diamond":
-            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity)), min_prot_count))
+            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
     
     def add_blast_step(self, db, name, e_val, blast_type, 
-                        sensitivity=None, **kwargs):
+                        sensitivity=None, parse_descriptions=True, **kwargs):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -327,6 +342,7 @@ class Pipeline:
 
         Args:
             db (str): Path to the target (seed) protein database.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
@@ -338,6 +354,14 @@ class Pipeline:
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
+            parse_descriptions (bool, optional): By default, reference protein
+                descriptions (from fasta headers) are parsed for gene name labels;
+                specifically, descriptions are split on whitespace characters
+                and the second item is used for the label. Make this false to 
+                simply use the whole protein description for the label 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                flag when creating protein databases with `makeblastdb`.
             **kwargs: These can be any additional blast parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
@@ -345,13 +369,13 @@ class Pipeline:
                 is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
         if blast_type == "PROT" or "blastp":
-            self._steps.append(SearchStep(Blastp(db, e_val, name, kwargs)))
+            self._steps.append(SearchStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "PSI" or "psiblast":
-            self._steps.append(SearchStep(Blastpsi(db, e_val, name, kwargs)))
+            self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
-            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity))))
+            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         elif blast_type == "diamond":
-            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity))))
+            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     
