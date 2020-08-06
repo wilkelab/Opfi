@@ -286,8 +286,9 @@ class Pipeline:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
 
-    def add_seed_with_coordinates_step(self, db, e_val, blast_type, title=None, sensitivity=None, 
-                                       start=None, end=None, contig_id=None, **kwargs):
+    def add_seed_with_coordinates_step(self, db, name, e_val, blast_type, sensitivity=None, 
+                                       parse_descriptions=True, start=None, end=None, 
+                                       contig_id=None, **kwargs):
         """
         Define a genomic region to search with coordinates instead of a bait gene.
 
@@ -297,14 +298,12 @@ class Pipeline:
 
         Args:
             db (str): Path to the target database to search against.
+            name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use as a threshhold. 
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
                 "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
                 mmseqs2 and diamond support is currently experimental.
-            title (str, optional): A unique name for this step. If no 
-                title is given, the pipeline automatically assigns one
-                based on the order the step was added, i.e. "step_<index>"
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type).
@@ -318,8 +317,16 @@ class Pipeline:
                 input file using the coordinates specified. Note that the contig ID 
                 is defined as the substring between the ">" character and the first
                 " " character in the contig header.
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
         """
         self._steps.append(SeedWithCoordinatesStep(start=start, end=end, contig_id=contig_id))
+        self.add_blast_step(db=db, name=name, e_val=e_val, blast_type=blast_type, 
+                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, kwargs=kwargs)
+
 
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
                         sensitivity=None, parse_descriptions=True, **kwargs):
