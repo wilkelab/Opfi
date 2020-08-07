@@ -8,8 +8,11 @@ dist/
 
 # build stuff
 __pycache__/
-crisposon.egg-info/
+opfi.egg-info/
 .eggs/
+*.o
+build/
+lib/pilercr1.06/pilercr
 
 # dev tools
 .vscode
