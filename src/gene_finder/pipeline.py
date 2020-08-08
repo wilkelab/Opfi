@@ -3,6 +3,7 @@ from gene_finder.utils import concatenate
 from gene_finder.steps import (SearchStep, 
                                 FilterStep, 
                                 SeedStep,
+                                SeedWithCoordinatesStep, 
                                 CrisprStep, 
                                 Blastp, 
                                 Blastpsi, 
@@ -283,6 +284,49 @@ class Pipeline:
             self._steps.append(SeedStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
+    
+
+    def add_seed_with_coordinates_step(self, db, name, e_val, blast_type, sensitivity=None, 
+                                       parse_descriptions=True, start=None, end=None, 
+                                       contig_id=None, **kwargs):
+        """
+        Define a genomic region to search with coordinates instead of a bait gene.
+
+        An alternative to `add_seed_step`. Most useful for re-annotating 
+        putative systems of interest, where the region coordinates are already
+        known.
+
+        Args:
+            db (str): Path to the target database to search against.
+            name (str): A unique name/ID for this step in the pipeline.
+            e_val (float): Expect value to use as a threshhold. 
+            blast_type (str): Specifies which search program to use. 
+                This can be either "PROT" (blastp), "PSI" (psiblast),
+                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
+                mmseqs2 and diamond support is currently experimental.
+            sensitivity (str): Sets the sensitivity param 
+                for mmseqs and diamond (does nothing if blast is the
+                seach type).
+            start (int): Defines the beginning of the region to search (in bp).
+                If no start position is given the first (zero indexed) position
+                in the contig is used.
+            end (int): Defines the end of the region to search (in bp). If no
+                end position is given the last position in the contig is used.
+            contig_id(string, optional): An identifier for the contig to search.
+                If no ID is given, the pipeline will search every contig in the
+                input file using the coordinates specified. Note that the contig ID 
+                is defined as the substring between the ">" character and the first
+                " " character in the contig header.
+            **kwargs: These can be any additional blast parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
+        """
+        self._steps.append(SeedWithCoordinatesStep(start=start, end=end, contig_id=contig_id))
+        self.add_blast_step(db=db, name=name, e_val=e_val, blast_type=blast_type, 
+                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, kwargs=kwargs)
+
 
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
                         sensitivity=None, parse_descriptions=True, **kwargs):
@@ -483,6 +527,12 @@ class Pipeline:
 
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
+            # if this run was seeded with a particular contig id, skip all other contigs
+            # in the file if they exit
+            # saves a bit of time, since there is overhead associated with getting things set up
+            if isinstance(self._steps[0], SeedWithCoordinatesStep):
+                if self._steps[0].contig_id is not None and self._steps[0].contig_id != record.id:
+                    continue
             # clear out any data that may be leftover from processing a previous
             # contig and get all ORFs in this contig
             contig_id, contig_len, contig_path = self._setup_run(record)
@@ -510,6 +560,20 @@ class Pipeline:
                         #print("No hits for seed gene - terminating run")
                         self._results[contig_id] = {}
                         break
+
+                elif isinstance(step, SeedWithCoordinatesStep):
+                    if step.start is None:
+                        step.update_start_coord(0)
+                    if step.end is None:
+                        step.update_end_coord(contig_len)
+                    self._get_orfs_in_neighborhood(step.neighborhood_ranges,
+                                                   contig_path,
+                                                   contig_id)
+                    self._results_init(step.neighborhood_ranges)
+                    neighborhood_orfs = concatenate(self._working_dir.name,
+                                                    self._neighborhood_orfs.values())
+                    # skip hit processing at the end of the loop, since we don't have hits yet
+                    continue
 
                 elif isinstance(step, FilterStep):
                     #print("Begin filter step: {}".format(step.name))

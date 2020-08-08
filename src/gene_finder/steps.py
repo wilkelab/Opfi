@@ -207,6 +207,29 @@ class SeedStep(SearchStep):
         else:
             self.neighborhood_ranges = None
 
+class SeedWithCoordinatesStep():
+
+    def __init__(self, start, end, contig_id):
+        
+        # these shouldn't change after initialization
+        self.start = start
+        self.end = end
+        self.contig_id = contig_id
+
+        # Will be updated for each contig if no 
+        # coordinates were given when the step was added
+        self.coordinates = (start, end)
+    
+    def update_start_coord(self, new_start):
+        self.coordinates = (new_start, self.coordinates[1])
+    
+    def update_end_coord(self, new_end):
+        self.coordinates = (self.coordinates[0], new_end)
+    
+    @property
+    def neighborhood_ranges(self):
+        return [self.coordinates]
+
 class FilterStep(SearchStep):
     
     def __init__ (self, search_tool, min_prot_count):
