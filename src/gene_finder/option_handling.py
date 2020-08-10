@@ -28,9 +28,9 @@ def build_blastp_command(query, db, evalue, kwargs, output_fields, out):
     for key, value in kwargs.items():
         if key in (BLAST_OPTIONS_COMMON + BLASTP_OPTIONS):
             cmd.append("-{}".format(key))
-            cmd.append(value)
+            cmd.append(str(value))
         elif key in (BLAST_FLAGS) and value:
-            cmd.append("--{}".format(key))
+            cmd.append("-{}".format(key))
 
     cmd.append("-outfmt")
     cmd.append("6 {}".format(output_fields))
@@ -47,11 +47,11 @@ def build_psiblast_command(query, db, evalue, kwargs, output_fields, out):
 
     cmd = ["psiblast", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
     for key, value in kwargs.items():
-        if key in (BLAST_OPTIONS_COMMON + BLASTP_OPTIONS):
+        if key in (BLAST_OPTIONS_COMMON + PSIBLAST_OPTIONS):
             cmd.append("-{}".format(key))
-            cmd.append(value)
+            cmd.append(str(value))
         elif key in (BLAST_FLAGS) and value:
-            cmd.append("--{}".format(key))
+            cmd.append("-{}".format(key))
 
     cmd.append("-outfmt")
     cmd.append("6 {}".format(output_fields))
