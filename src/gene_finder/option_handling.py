@@ -2,12 +2,16 @@ BLAST_OPTIONS_COMMON = ['dbsize',
 'word_size', 'gapopen', 'gapextend', 'qcov_hsp_perc', 
 'xdrop_ungap', 'xdrop_gap', 'xdrop_gap_final', 'searchsp', 
 'sum_stats', 'seg', 'soft_masking', 'matrix', 
-'threshold', 'culling_limit', 
-'window_size', 'num_threads', 
-'comp_based_stats']
+'threshold', 'culling_limit', 'window_size', 'num_threads', 
+'comp_based_stats', 'gilist', 'seqidlist', 'negative_gilist',
+'db_soft_mask', 'db_hard_mask', 'entrez_query', 'max_hsps',
+'best_hit_overhang',  'best_hit_score_edge', 'max_target_seqs',
+'import_search_strategy', 'export_search_strategy']
 
-BLAST_FLAGS = ['lcase_masking', 'ungapped', 'use_sw_tback', 
-'save_pssm_after_last_round', 'save_each_pssm']
+BLAST_FLAGS = ['lcase_masking', 'ungapped', 'use_sw_tback', 'remote']
+
+PSIBLAST_FLAGS = ['lcase_masking', 'use_sw_tback', 
+'save_pssm_after_last_round', 'save_each_pssm', 'remote']
 
 BLASTP_OPTIONS = ['task']
 
@@ -50,7 +54,7 @@ def build_psiblast_command(query, db, evalue, kwargs, output_fields, out):
         if key in (BLAST_OPTIONS_COMMON + PSIBLAST_OPTIONS):
             cmd.append("-{}".format(key))
             cmd.append(str(value))
-        elif key in (BLAST_FLAGS) and value:
+        elif key in (PSIBLAST_FLAGS) and value:
             cmd.append("-{}".format(key))
 
     cmd.append("-outfmt")
