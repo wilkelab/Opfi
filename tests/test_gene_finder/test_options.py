@@ -11,7 +11,7 @@ def test_build_command1():
 
 def test_build_command2():
     # tests that unknown/prohibited arguments are ignored
-    kwargs = {"not_a_real": "blast_argument", "num_alignments": 200}
+    kwargs = {"not_a_real": "blast_argument", "outfmt": 2}
     cmd = build_blastp_command(query="my_query", db="my_db", evalue=0.001, kwargs=kwargs, 
                                output_fields="qseqid sseqid stitle", out="out.tsv")
     assert cmd == ["blastp", "-query", "my_query", "-db", "my_db", "-evalue", "0.001", "-out", "out.tsv",

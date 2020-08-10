@@ -6,7 +6,7 @@ BLAST_OPTIONS_COMMON = ['dbsize',
 'comp_based_stats', 'gilist', 'seqidlist', 'negative_gilist',
 'db_soft_mask', 'db_hard_mask', 'entrez_query', 'max_hsps',
 'best_hit_overhang',  'best_hit_score_edge', 'max_target_seqs',
-'import_search_strategy', 'export_search_strategy']
+'import_search_strategy', 'export_search_strategy', 'num_alignments']
 
 BLAST_FLAGS = ['lcase_masking', 'ungapped', 'use_sw_tback', 'remote']
 
