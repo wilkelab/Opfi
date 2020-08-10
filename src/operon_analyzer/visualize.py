@@ -45,11 +45,6 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     # that should exactly match a feature name, or a regular expression. The values of the dictionary
     # should be anything that matplotlib interprets as a color.
 
-    # First, see if we have an exact match.
-    color = feature_colors.get(feature_name)
-    if color is not None:
-        return color
-
     default_color = feature_colors.get("", "blue")
     # Since there was no exact match, either the key is a regular expression or the feature is one
     # the user doesn't care about, in which case we'll try to use the default
