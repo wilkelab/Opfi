@@ -1,6 +1,7 @@
 import os
+import re
 import sys
-from typing import Tuple, Dict, IO, List, Optional, Iterable, Set
+from typing import Tuple, Dict, IO, List, Optional, Iterable, Set, Any
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
@@ -39,19 +40,38 @@ def calculate_adjusted_operon_bounds(operon: Operon, include_ignored: bool = Tru
     return low, high - low
 
 
+def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any:
+    # Decides what color a feature should be. The keys in `feature_colors` are either strings
+    # that should exactly match a feature name, or a regular expression. The values of the dictionary
+    # should be anything that matplotlib interprets as a color.
+
+    # First, see if we have an exact match.
+    color = feature_colors.get(feature_name)
+    if color is not None:
+        return color
+
+    default_color = feature_colors.get("", "blue")
+    # Since there was no exact match, either the key is a regular expression or the feature is one
+    # the user doesn't care about, in which case we'll try to use the default
+    for pattern, color in feature_colors.items():
+        if re.search(pattern, feature_name, re.IGNORECASE):
+            return color
+    return default_color
+
+
 def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Optional[dict] = {}):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
     # set the default color to the user-supplied one, if given, otherwise use blue
-    default_color = feature_colors.get("", "blue")
 
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
     for feature in operon.all_features:
         if feature.ignored_reasons and not plot_ignored:
             continue
-        color = feature_colors.get(feature.name, default_color)
+        # color = feature_colors.get(feature.name, default_color)
+        color = _get_feature_color(feature.name, feature_colors)
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name

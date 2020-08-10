@@ -4,7 +4,7 @@ from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds, \
                                       create_operon_figure, \
                                       build_image_filename, \
-                                      build_operon_dictionary
+                                      _get_feature_color
 from common import get_standard_operon
 import pytest
 
@@ -113,3 +113,48 @@ def test_create_operon_figure():
     ax = create_operon_figure(operon, False)
     features = _find_plotted_features(ax)
     assert features == set(['cas1', 'cas2'])
+
+
+def test_get_feature_color_no_regex():
+    feature_colors = {"cas9": "red",
+                      "rad51": "green"}
+    assert _get_feature_color("cas9", feature_colors) == "red"
+    assert _get_feature_color("rad51", feature_colors) == "green"
+    assert _get_feature_color("nonexistent", feature_colors) == "blue"
+
+
+def test_get_feature_color_no_regex_default():
+    feature_colors = {"cas9": "red",
+                      "rad51": "green",
+                      "": "cornflour blue"}
+    assert _get_feature_color("cas9", feature_colors) == "red"
+    assert _get_feature_color("rad51", feature_colors) == "green"
+    assert _get_feature_color("nonexistent", feature_colors) == "cornflour blue"
+
+
+def test_get_feature_color_regex():
+    feature_colors = {"cas9": "red",
+                      "rad51": "green"}
+    assert _get_feature_color("S. pyogenes Cas9", feature_colors) == "red"
+    assert _get_feature_color("Human Rad51", feature_colors) == "green"
+    assert _get_feature_color("nonexistent", feature_colors) == "blue"
+
+
+def test_get_feature_color_regex_default():
+    feature_colors = {"cas9": "red",
+                      "rad51": "green",
+                      "": "cornflour blue"}
+    assert _get_feature_color("S. pyogenes Cas9", feature_colors) == "red"
+    assert _get_feature_color("Human Rad51", feature_colors) == "green"
+    assert _get_feature_color("nonexistent", feature_colors) == "cornflour blue"
+
+
+def test_get_feature_color_real_regex_default():
+    feature_colors = {"cas(9|12a)": "red",
+                      "rad51": "green",
+                      "": "cornflour blue"}
+    assert _get_feature_color("S. pyogenes Cas9, an acceptable, but frankly inferior nuclease", feature_colors) == "red"
+    assert _get_feature_color("cas9", feature_colors) == "red"
+    assert _get_feature_color("Acidaminococcus sp. BV3L6 Cas12a, CRISPR endonuclease of legend", feature_colors) == "red"
+    assert _get_feature_color("Human Rad51", feature_colors) == "green"
+    assert _get_feature_color("nonexistent", feature_colors) == "cornflour blue"
