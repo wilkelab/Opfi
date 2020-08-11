@@ -45,7 +45,7 @@ def test_make_operon_pairs():
                 "b": (250, 350),
                 "c": (600, 450),
                 "e": (400, 12000)}
-    for operon, candidate, overlap in pairs:
+    for operon, candidate in pairs:
         start, end = expected[operon.contig]
         assert start == candidate.start
         assert end == candidate.end
