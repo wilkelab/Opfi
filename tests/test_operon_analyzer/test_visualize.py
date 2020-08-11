@@ -4,9 +4,52 @@ from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import calculate_adjusted_operon_bounds, \
                                       create_operon_figure, \
                                       build_image_filename, \
-                                      _get_feature_color
+                                      _get_feature_color, \
+                                      _make_operon_pairs
 from common import get_standard_operon
 import pytest
+
+
+def test_make_operon_pairs():
+    features = [Feature('cas1', (0, 20), "", 1, "", 1e-30, "", "MDGYACGYAC", 1234)]
+
+    # perfect overlap
+    operon1 = Operon("a", "a.fasta", 0, 100, features)
+    other1 = Operon("a", "a.fasta", 0, 100, features)
+
+    # partial overlap
+    operon2 = Operon("b", "b.fasta", 200, 300, features)
+    other2 = Operon("b", "b.fasta", 250, 350, features)
+
+    # two competing partial overlaps
+    operon3 = Operon("c", "c.fasta", 600, 400, features)
+    other3good = Operon("c", "c.fasta", 600, 450, features)
+    other3bad = Operon("c", "c.fasta", 600, 500, features)
+
+    # no overlap
+    operon4 = Operon("d", "d.fasta", 1000, 10000, features)
+    other4 = Operon("d", "d.fasta", 20000, 30000, features)
+
+    # other is superset
+    operon5 = Operon("e", "e.fasta", 1000, 10000, features)
+    other5 = Operon("e", "e.fasta", 400, 12000, features)
+
+    operons = [operon1, operon2, operon3, operon4, operon5]
+    others = [other1, other2, other3good, other3bad, other4, other5]
+
+    pairs = _make_operon_pairs(operons, others)
+    # Since all the operons must have the same accession and filename for this test to
+    # be meaningful, we're distinguishing them by their bounds alone. Hence this janky
+    # comparison to expected values:
+    expected = {"a": (0, 100),
+                "b": (250, 350),
+                "c": (600, 450),
+                "e": (400, 12000)}
+    for operon, candidate in pairs:
+        start, end = expected[operon.contig]
+        assert start == candidate.start
+        assert end == candidate.end
+    assert len(pairs) == 4
 
 
 @pytest.mark.parametrize('directory,expected', [
