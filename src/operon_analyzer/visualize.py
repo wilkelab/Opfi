@@ -55,24 +55,28 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
-def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: Optional[dict] = {}):
+def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str, plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
     """ Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
-    
     """
     pairs = _make_operon_pairs(operons, other_operons)
     for operon, other in pairs:
-        # TODO: I'm pretty sure this next line is wrong if the operon start and end aren't exactly the same
         offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
+        upper_bound = offset + operon_length
         out_filename = build_image_filename(operon, output_directory)
 
-        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+        # TODO: This figure size should probably be dynamically set
+        # Currently the figures are generally too big and have lots of whitespace,
+        # but if we let it use the default, the re-BLASTed contig is usually far too
+        # compressed for the labels to be readable.
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(15, 10))
         ax = create_operon_figure(operon, plot_ignored, feature_colors, existing_ax=ax1)
-        other_ax = create_operon_figure(other, plot_ignored, feature_colors, offset=offset, operon_length=operon_length, existing_ax=ax2)
+        other_ax = create_operon_figure(other, plot_ignored, feature_colors, bounds=(offset, upper_bound), existing_ax=ax2)
         if ax is None or other_ax is None:
             continue
-        save_pair_figure(ax, other_ax, out_filename)
+        save_pair_figure(fig, out_filename)
+        plt.close()
 
 
 def _make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple[Operon, Operon]]:
@@ -86,11 +90,11 @@ def _make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple
     The regions covered by operons in `operons` are used as the reference point. """
     other_lookup = defaultdict(list)
     for operon in other:
-        other_lookup[(operon.contig, operon.contig_filename)].append(operon)
+        other_lookup[operon.contig].append(operon)
 
     pairs = []
     for operon in operons:
-        candidates = other_lookup.get((operon.contig, operon.contig_filename))
+        candidates = other_lookup.get(operon.contig)
         if not candidates:
             continue
         best_overlap = 0
@@ -107,7 +111,7 @@ def _make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple
                 best_candidate = candidate
                 best_overlap = overlap
         if best_candidate is not None:
-            pairs.append((operon, best_candidate, best_overlap))
+            pairs.append((operon, best_candidate))
     return pairs
 
 
@@ -131,18 +135,22 @@ def _calculate_operon_overlap(operon: Operon, other_operon: Operon) -> Optional[
 def create_operon_figure(operon: Operon,
                          plot_ignored: bool,
                          feature_colors: Optional[dict] = {},
-                         offset: Optional[int] = None,
-                         operon_length: Optional[int] = None,
+                         bounds: Optional[Tuple[int, int]] = None,
                          existing_ax: Optional[Axes] = None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
 
-    if offset is None or operon_length is None:
+    if not bounds:
         offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
+    else:
+        offset = bounds[0]
+        operon_length = bounds[1] - bounds[0]
     graphic_features = []
     for feature in operon.all_features:
         if feature.ignored_reasons and not plot_ignored:
+            continue
+        if bounds and (not bounds[0] <= feature.start or not bounds[1] >= feature.end):
             continue
         color = _get_feature_color(feature.name, feature_colors)
         # we alter the name of CRISPR arrays to add the number of repeats
