@@ -2,6 +2,7 @@ import os
 import re
 import sys
 from typing import Tuple, Dict, IO, List, Optional, Iterable, Set, Any
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
@@ -54,19 +55,30 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
-def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Optional[dict] = {}):
+def create_operon_figure(operon: Operon, plot_ignored: bool, feature_colors: Optional[dict] = {}, color_by_blast_feature=None, colormin=None, colormax=None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
-    # set the default color to the user-supplied one, if given, otherwise use blue
+    if colormin is not None and colormax is not None:
+        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.epsilon, vmax=colormax)
+        cmap = matplotlib.cm.get_cmap('viridis') 
 
     offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     graphic_features = []
     for feature in operon.all_features:
         if feature.ignored_reasons and not plot_ignored:
             continue
-        # color = feature_colors.get(feature.name, default_color)
-        color = _get_feature_color(feature.name, feature_colors)
+        if colormin is not None and colormax is not None and not feature_colors:
+            value = getattr(feature, color_by_blast_feature)
+            if value is None:
+                color = 'gray'
+            elif value == 0:
+                color = cmap(0)
+            else:
+                normed_value = norm(value)
+                color = cmap(normed_value)
+        else:
+            color = _get_feature_color(feature.name, feature_colors)
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name
@@ -105,14 +117,32 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     return operons
 
 
-def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: Optional[dict] = {}):
+def plot_operons(operons: List[Operon],
+                 output_directory: str,
+                 plot_ignored: bool = True,
+                 color_by_blast_feature: Optional[str] = None,
+                 feature_colors: Optional[dict] = {}):
     """ Takes Operons and saves plots of them to disk. """
+    lower, upper = None, None
+    if color_by_blast_feature is not None:
+        lower = sys.maxsize
+        upper = -sys.maxsize
+        for operon in operons:
+            for feature in operon:
+                if feature.strand is None:
+                    # This is a CRISPR array
+                    continue
+                value = getattr(feature, color_by_blast_feature)
+                lower = min(value, lower)
+                upper = max(value, upper)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        ax = create_operon_figure(operon, plot_ignored, feature_colors)
+        fig, ax1 = plt.subplots()
+        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_feature=color_by_blast_feature, colormin=lower, colormax=upper)
         if ax is None:
             continue
         save_operon_figure(ax, out_filename)
+        plt.close()
 
 
 def _load_passing_contigs(handle: IO):
