@@ -3,8 +3,7 @@ import pytest
 import string
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
-from operon_analyzer import rules 
-# rules.Rule, rules.RuleSet, rules.FilterSet, rules._feature_distance, rules._calculate_overlap, rules._contains_features, rules._require
+from operon_analyzer import rules
 from operon_analyzer.genes import Feature, Operon
 from typing import List
 
