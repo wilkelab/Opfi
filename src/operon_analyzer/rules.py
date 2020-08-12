@@ -149,7 +149,7 @@ def _must_be_within_n_bp_of_anything(operon: Operon, ignored_reason_message: str
 
 
 def _must_be_within_n_bp_of_feature(operon: Operon, ignored_reason_message: str, feature_name: str, distance_bp: int, regex: bool):
-    reg = re.compile(feature_name)
+    reg = re.compile(feature_name, re.IGNORECASE)
     for feature in operon.all_features:
         if reg.match(feature.name):
             continue
@@ -227,8 +227,7 @@ class RuleSet(object):
         self._rules.append(Rule('contains-exactly-one-of',
                                 _contains_exactly_one_of,
                                 feature1_name,
-                                feature2_name,
-                                regex))
+                                feature2_name))
         return self
 
     def contains_at_least_n_features(self, feature_names: List[str], feature_count: int, count_multiple_copies: bool = False):
@@ -268,14 +267,14 @@ class RuleSet(object):
 
 
 def _exclude(operon: Operon, feature_name: str, regex: str) -> bool:
-    """ Returns false if a feature's name in the operon matches the given string. Case insensitive. """
+    """ Returns false if a feature's name in the operon matches the given string. """
     return not _require(operon, feature_name, regex)
 
 
 def _require(operon: Operon, feature_name: str, regex: bool) -> bool:
-    """ Returns true if a feature's name in the operon matches the given string. Case insensitive. """
+    """ Returns true if a feature's name in the operon matches the given string. """
     if regex:
-        rx = re.compile(feature_name)
+        rx = re.compile(feature_name, re.IGNORECASE)
         return any([rx.match(name) for name in operon.feature_names])
     return feature_name.lower() in map(str.lower, operon.feature_names)
 
@@ -338,13 +337,13 @@ def _at_most_n_bp_from_anything(operon: Operon, feature_name: str, distance_bp: 
 def _same_orientation(operon: Operon, exceptions: Optional[List[str]]) -> bool:
     """ Whether every gene is transcribed in the same direction. """
     exceptions = [] if exceptions is None else exceptions
-    strands = set([feature.strand for feature in operon if feature.name not in exceptions])
+    strands = set([feature.strand for feature in operon if feature.name.lower() not in map(str.lower, exceptions)])
     return len(strands) == 1
 
 
 def _contains_features(operon: Operon, feature_names: List[str]) -> bool:
     """ Whether an Operon contains features with the given names. """
-    return len(set(operon.feature_names) & set(feature_names)) == len(feature_names)
+    return len(set(map(str.lower, operon.feature_names)) & set(map(str.lower, feature_names))) == len(feature_names)
 
 
 def _contains_any_set_of_features(operon: Operon, sets: List[List[str]]) -> bool:
@@ -352,16 +351,16 @@ def _contains_any_set_of_features(operon: Operon, sets: List[List[str]]) -> bool
     return any([_contains_features(operon, feature_names) for feature_names in sets])
 
 
-def _contains_exactly_one_of(operon: Operon, f1: str, f2: str, regex: bool) -> bool:
+def _contains_exactly_one_of(operon: Operon, f1: str, f2: str) -> bool:
     """ Whether the operon has one feature or another, but not both. """
-    reg1 = re.compile(f1)
-    reg2 = re.compile(f2)
+    reg1 = re.compile(f1, re.IGNORECASE)
+    reg2 = re.compile(f2, re.IGNORECASE)
     return any(map(reg1.match, operon.feature_names)) ^ any(map(reg2.match, operon.feature_names))
 
 
 def _contains_at_least_n_features(operon: Operon, feature_names: List[str], feature_count: int, count_multiple_copies: bool) -> bool:
     """ Whether the operon has at least feature_count given features. """
-    matches = [feature_name for feature_name in operon.feature_names if feature_name in feature_names]
+    matches = [feature_name for feature_name in operon.feature_names if feature_name.lower() in map(str.lower, feature_names)]
     if len(matches) >= feature_count and count_multiple_copies:
         return True
     elif len(set(matches)) >= feature_count:
