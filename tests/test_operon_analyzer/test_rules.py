@@ -3,7 +3,8 @@ import pytest
 import string
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
 from hypothesis import given, settings
-from operon_analyzer.rules import Rule, RuleSet, FilterSet, _feature_distance, _calculate_overlap, _contains_features, _require
+from operon_analyzer import rules 
+# rules.Rule, rules.RuleSet, rules.FilterSet, rules._feature_distance, rules._calculate_overlap, rules._contains_features, rules._require
 from operon_analyzer.genes import Feature, Operon
 from typing import List
 
@@ -30,24 +31,52 @@ def _get_standard_operon():
     return operon
 
 
+def test_case_insensitivity():
+    genes = [
+            Feature('Cas1', (12, 400), 'lcl|12|400|1|1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('Cas2', (410, 600), 'lcl|410|600|1|-1', -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('Cas4', (620, 1200), 'lcl|620|1200|1|1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
+    assert rules._contains_features(operon, ['cas1', 'cas2'])
+    assert rules._at_least_n_bp_from_anything(operon, 'cas1', 5)
+    assert rules._at_least_n_bp_from_anything(operon, 'cas1', 5, regex=True)
+    assert rules._at_most_n_bp_from_anything(operon, 'cas1', 100)
+    assert rules._at_most_n_bp_from_anything(operon, 'cas1', 100, regex=True)
+    assert rules._contains_any_set_of_features(operon, [['cas1', 'cas2']])
+    assert rules._contains_at_least_n_features(operon, ['cas1', 'cas2', 'cas4'], 1, False)
+    assert rules._contains_exactly_one_of(operon, 'cas1', 'cas9')
+    assert rules._contains_features(operon, ['cas1', 'cas2', 'cas4'])
+    assert rules._exclude(operon, 'cas9', False)
+    assert rules._exclude(operon, 'cas9', True)
+    assert rules._max_distance(operon, 'cas1', 'cas2', 20, True, False)
+    assert not rules._max_distance(operon, 'cas1', 'cas2', 5, True, False)
+    assert rules._require(operon, 'cas1', False)
+    assert rules._require(operon, 'cas1', True)
+    assert not rules._require(operon, 'cas9', False)
+    assert not rules._require(operon, 'cas9', True)
+    assert rules._same_orientation(operon, exceptions=['cas2'])
+    assert not rules._same_orientation(operon, exceptions=[])
+
+
 def test_ignore_filtered_features_in_rule():
     op = _get_standard_operon()
-    rs = RuleSet().exclude('cas4')
+    rs = rules.RuleSet().exclude('cas4')
     assert not rs.evaluate(op).is_passing
-    fs = FilterSet().must_be_within_n_bp_of_anything(15)
+    fs = rules.FilterSet().must_be_within_n_bp_of_anything(15)
     fs.evaluate(op)
     assert rs.evaluate(op).is_passing
 
 
 def test_exclude_regex():
     op = _get_standard_operon()
-    rs = RuleSet().exclude(r'cas\d', True)
+    rs = rules.RuleSet().exclude(r'cas\d', True)
     assert not rs.evaluate(op).is_passing
 
 
 def test_require_regex():
     op = _get_standard_operon()
-    rs = RuleSet().require(r'cas\d', True)
+    rs = rules.RuleSet().require(r'cas\d', True)
     assert rs.evaluate(op).is_passing
 
 
@@ -65,14 +94,14 @@ def test_require_regex():
     ])
 def test_max_distance_closest_regex(f1, f2, distance, expected):
     op = _get_standard_operon()
-    rs = RuleSet().max_distance(f1, f2, distance, closest_pair_only=True, regex=True)
+    rs = rules.RuleSet().max_distance(f1, f2, distance, closest_pair_only=True, regex=True)
     result = rs.evaluate(op)
     assert result.is_passing is expected
 
 
 def test_at_least_n_bp_from_anything_regex():
     op = _get_standard_operon()
-    rs = RuleSet().at_least_n_bp_from_anything(r'cas\d', 10, regex=True)
+    rs = rules.RuleSet().at_least_n_bp_from_anything(r'cas\d', 10, regex=True)
     assert rs.evaluate(op).is_passing
 
 
@@ -85,7 +114,7 @@ def test_at_least_n_bp_from_anything_regex():
     ])
 def test_at_most_n_bp_from_anything_regex(name, distance, expected):
     op = _get_standard_operon()
-    rs = RuleSet().at_most_n_bp_from_anything(name, distance, regex=True)
+    rs = rules.RuleSet().at_most_n_bp_from_anything(name, distance, regex=True)
     assert rs.evaluate(op).is_passing is expected
 
 
@@ -97,7 +126,7 @@ def test_at_most_n_bp_from_anything_regex(name, distance, expected):
     ])
 def test_contains_exactly_one_of_regex(f1, f2, expected):
     op = _get_standard_operon()
-    rs = RuleSet().contains_exactly_one_of(f1, f2, regex=True)
+    rs = rules.RuleSet().contains_exactly_one_of(f1, f2, regex=True)
     assert rs.evaluate(op).is_passing is expected
 
 
@@ -114,7 +143,7 @@ def test_regex_rule(feature, expected_count):
 
 def test_filterset_within_n_bp_anything():
     operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_anything(10)
+    fs = rules.FilterSet().must_be_within_n_bp_of_anything(10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
     assert 'cas4' not in names
@@ -125,7 +154,7 @@ def test_filterset_within_n_bp_anything():
 def test_filterset_within_n_bp_anything_one_feature():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    fs = FilterSet().must_be_within_n_bp_of_anything(10)
+    fs = rules.FilterSet().must_be_within_n_bp_of_anything(10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
     assert names == ['cas1']
@@ -133,7 +162,7 @@ def test_filterset_within_n_bp_anything_one_feature():
 
 def test_filterset_within_n_bp_of_feature():
     operon = _get_standard_operon()
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
+    fs = rules.FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
     assert 'cas4' not in names
@@ -143,13 +172,13 @@ def test_filterset_within_n_bp_of_feature():
 
 def test_custom_rule():
     operon = _get_standard_operon()
-    rule = Rule('require', _require, 'cas1', None)
-    rs = RuleSet().custom(rule)
+    rule = rules.Rule('require', rules._require, 'cas1', None)
+    rs = rules.RuleSet().custom(rule)
     result = rs.evaluate(operon)
     assert result.is_passing
 
-    rule = Rule('require', _require, 'cas88', None)
-    rs = RuleSet().custom(rule)
+    rule = rules.Rule('require', rules._require, 'cas88', None)
+    rs = rules.RuleSet().custom(rule)
     result = rs.evaluate(operon)
     assert not result.is_passing
 
@@ -157,7 +186,7 @@ def test_custom_rule():
 def test_filterset_within_n_bp_of_feature_only_one_feature():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    fs = FilterSet().must_be_within_n_bp_of_feature('cas1', 10)
+    fs = rules.FilterSet().must_be_within_n_bp_of_feature('cas1', 10)
     fs.evaluate(operon)
     names = list(operon.feature_names)
     assert 'cas1' in names
@@ -167,7 +196,7 @@ def test_at_most_n_bp_single_feature():
     """ Ensure we don't crash when a single Feature is present. """
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().at_most_n_bp_from_anything('cas1', 50)
+    rs = rules.RuleSet().at_most_n_bp_from_anything('cas1', 50)
     rs.evaluate(operon)
     assert True
 
@@ -178,7 +207,7 @@ def test_filter_overlap_reason_text():
     operon = _get_repositionable_operon(*positions)
     for gene, bit_score in zip(operon.all_genes, bit_scores):
         gene.bit_score = bit_score
-    fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
+    fs = rules.FilterSet().pick_overlapping_features_by_bit_score(0.8)
     fs.evaluate(operon)
     for feature in operon.all_features:
         if feature.name == 'transposase':
@@ -206,7 +235,7 @@ def test_pick_overlapping_features_by_bit_score(positions: List[int],
     operon = _get_repositionable_operon(*positions)
     for gene, bit_score in zip(operon.all_genes, bit_scores):
         gene.bit_score = bit_score
-    fs = FilterSet().pick_overlapping_features_by_bit_score(threshold)
+    fs = rules.FilterSet().pick_overlapping_features_by_bit_score(threshold)
     fs.evaluate(operon)
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
@@ -226,7 +255,7 @@ def _get_standard_operon_with_overlapping_feature():
 def test_pick_overlapping_features_by_bit_score_2():
     expected = [False, False, False, True]
     operon = _get_standard_operon_with_overlapping_feature()
-    fs = FilterSet().pick_overlapping_features_by_bit_score(0.8)
+    fs = rules.FilterSet().pick_overlapping_features_by_bit_score(0.8)
     fs.evaluate(operon)
     actual = [bool(feature.ignored_reasons) for feature in operon.all_genes]
     assert expected == actual
@@ -249,7 +278,7 @@ def test_pick_overlapping_features_by_bit_score_2():
 def test_calculate_overlap(fstart, fend, ostart, oend, expected):
     feature = Feature("tnsA", (fstart, fend), "", 1, "", 0.001, "", "MRTK")
     other_feature = Feature("transposase", (ostart, oend), "", 1, "", 0.001, "", "MGWRN")
-    overlap = _calculate_overlap(feature, other_feature)
+    overlap = rules._calculate_overlap(feature, other_feature)
     if expected is None:
         assert overlap is None
     else:
@@ -269,7 +298,7 @@ def test_multicopy_feature(feature_name, expected):
             Feature('cas1', (2000, 2200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().at_most_n_bp_from_anything(feature_name, 25)
+    rs = rules.RuleSet().at_most_n_bp_from_anything(feature_name, 25)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -299,7 +328,7 @@ def test_all_fixed_rules(ls):
     All we're trying to do here is see if we can cause an uncaught exception.
     """
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
-    rs = RuleSet().same_orientation() \
+    rs = rules.RuleSet().same_orientation() \
                   .at_least_n_bp_from_anything('cas1', 50) \
                   .at_most_n_bp_from_anything('cas2', 100) \
                   .contains_any_set_of_features([['cas5', 'cas6', 'cas7'],
@@ -325,7 +354,7 @@ def test_random_operon_at_least_n_bp_from_anything(ls):
     """
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
-    rs = RuleSet().at_least_n_bp_from_anything(random_feature, 50)
+    rs = rules.RuleSet().at_least_n_bp_from_anything(random_feature, 50)
     rs.evaluate(operon)
     assert True
 
@@ -340,7 +369,7 @@ def test_random_operon_at_most_n_bp_from_anything(ls):
     """
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
-    rs = RuleSet().at_most_n_bp_from_anything(random_feature, 50)
+    rs = rules.RuleSet().at_most_n_bp_from_anything(random_feature, 50)
     rs.evaluate(operon)
     assert True
 
@@ -356,7 +385,7 @@ def test_random_operon_contains_any_set(ls):
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_features1 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
     random_features2 = random.sample(list(operon.feature_names), random.randint(1, len(operon)))
-    rs = RuleSet().contains_any_set_of_features([random_features1, random_features2])
+    rs = rules.RuleSet().contains_any_set_of_features([random_features1, random_features2])
     rs.evaluate(operon)
     assert True
 
@@ -372,7 +401,7 @@ def test_random_operon_contains_exactly_one_of(ls):
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
     random_feature2 = random.choice([random.choice(list(operon.feature_names)), "lulz"])
-    rs = RuleSet().contains_exactly_one_of(random_feature, random_feature2)
+    rs = rules.RuleSet().contains_exactly_one_of(random_feature, random_feature2)
     rs.evaluate(operon)
     assert True
 
@@ -387,7 +416,7 @@ def test_random_operon_exclude(ls):
     """
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice([random.choice(list(operon.feature_names)), "lulz"])
-    rs = RuleSet().exclude(random_feature)
+    rs = rules.RuleSet().exclude(random_feature)
     rs.evaluate(operon)
     assert True
 
@@ -404,7 +433,7 @@ def test_random_operon_max_distance(ls):
     random_feature = random.choice(list(operon.feature_names))
     random_feature2 = random.choice(list(operon.feature_names))
     distance_bp = random.randint(0, 99999)
-    rs = RuleSet().max_distance(random_feature, random_feature2, distance_bp)
+    rs = rules.RuleSet().max_distance(random_feature, random_feature2, distance_bp)
     rs.evaluate(operon)
     assert True
 
@@ -419,7 +448,7 @@ def test_random_operon_require(ls):
     """
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     random_feature = random.choice(list(operon.feature_names))
-    rs = RuleSet().require(random_feature)
+    rs = rules.RuleSet().require(random_feature)
     rs.evaluate(operon)
     assert True
 
@@ -435,7 +464,7 @@ def test_random_operon_same_orientation(ls):
     operon = Operon('testoperon', '/tmp/dna.fasta', 0, 100000, ls)
     count = random.randint(1, len(operon))
     exceptions = random.choice([random.sample(list(operon.feature_names), count), None])
-    rs = RuleSet().same_orientation(exceptions=exceptions)
+    rs = rules.RuleSet().same_orientation(exceptions=exceptions)
     rs.evaluate(operon)
     assert True
 
@@ -447,14 +476,14 @@ def test_not_same_orientation():
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().same_orientation()
+    rs = rules.RuleSet().same_orientation()
     result = rs.evaluate(operon)
     assert not result.is_passing
 
 
 def test_same_orientation():
     operon = _get_standard_operon()
-    rs = RuleSet().same_orientation()
+    rs = rules.RuleSet().same_orientation()
     result = rs.evaluate(operon)
     assert result.is_passing
 
@@ -469,7 +498,7 @@ def test_same_orientation():
 def test_same_orientation_with_exceptions(exceptions, expected):
     positions = [0, 100, 701, 600, 201, 300, 210, 300, 400, 500]
     operon = _get_repositionable_operon(*positions)
-    rs = RuleSet().same_orientation(exceptions=exceptions)
+    rs = rules.RuleSet().same_orientation(exceptions=exceptions)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -481,11 +510,11 @@ def test_same_orientation_with_exceptions(exceptions, expected):
     ])
 def test_contains_features(feature_names, expected):
     operon = _get_standard_operon()
-    assert _contains_features(operon, feature_names) is expected
+    assert rules._contains_features(operon, feature_names) is expected
 
 
 def test_contains_any_set_of_serialization():
-    rs = RuleSet().contains_any_set_of_features([['cas1', 'cas2'],
+    rs = rules.RuleSet().contains_any_set_of_features([['cas1', 'cas2'],
                                                  ['cas2', 'cas3', 'cas4']])
     rule = rs._rules[0]
     expected = "contains-any-set-of-features:cas1-cas2|cas2-cas3-cas4"
@@ -500,7 +529,7 @@ def test_contains_any_set_of_serialization():
     ])
 def test_contains_any_set_of_features(sets, expected):
     operon = _get_standard_operon()
-    rs = RuleSet().contains_any_set_of_features(sets)
+    rs = rules.RuleSet().contains_any_set_of_features(sets)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -516,7 +545,7 @@ def test_contains_any_set_of_features(sets, expected):
     ])
 def test_contains_exactly_one_of(f1, f2, expected):
     operon = _get_standard_operon()
-    rs = RuleSet().contains_exactly_one_of(f1, f2)
+    rs = rules.RuleSet().contains_exactly_one_of(f1, f2)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -537,7 +566,7 @@ def test_at_least_n_bp_from_anything(distance: int, expected: bool):
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().at_least_n_bp_from_anything('transposase', distance)
+    rs = rules.RuleSet().at_least_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -545,7 +574,7 @@ def test_at_least_n_bp_from_anything(distance: int, expected: bool):
 def test_at_least_n_bp_from_anything_no_distances():
     genes = [Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().at_least_n_bp_from_anything('cas1', 5)
+    rs = rules.RuleSet().at_least_n_bp_from_anything('cas1', 5)
     result = rs.evaluate(operon)
     assert result.is_passing is True
 
@@ -566,7 +595,7 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
             Feature('cas4', (920, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
-    rs = RuleSet().at_most_n_bp_from_anything('transposase', distance)
+    rs = rules.RuleSet().at_most_n_bp_from_anything('transposase', distance)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -581,8 +610,8 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
 def test_feature_distance(gene1_start, gene1_end, gene2_start, gene2_end):
     f1 = Feature('cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')
     f2 = Feature('cas2', (gene2_start, gene2_end), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')
-    distance = _feature_distance(f1, f2)
-    distance_reverse = _feature_distance(f2, f1)
+    distance = rules._feature_distance(f1, f2)
+    distance_reverse = rules._feature_distance(f2, f1)
     assert distance == 10
     assert distance == distance_reverse
 
@@ -590,8 +619,8 @@ def test_feature_distance(gene1_start, gene1_end, gene2_start, gene2_end):
 def test_feature_distance_overlapping():
     f1 = Feature('cas1', (100, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')
     f2 = Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')
-    distance = _feature_distance(f1, f2)
-    distance_reverse = _feature_distance(f2, f1)
+    distance = rules._feature_distance(f1, f2)
+    distance_reverse = rules._feature_distance(f2, f1)
     assert distance == 0
     assert distance == distance_reverse
 
@@ -611,7 +640,7 @@ def test_max_distance_missing(f1name, f2name, expected):
             Feature('cas2', (310, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             ]
     operon = Operon('contig', '/tmp/dna.fasta', 0, 1000, genes)
-    rs = RuleSet().max_distance(f1name, f2name, 100)
+    rs = rules.RuleSet().max_distance(f1name, f2name, 100)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
 
@@ -630,10 +659,10 @@ def test_max_distance_missing(f1name, f2name, expected):
     ])
 def test_max_distance(gene1_start, gene1_end, gene2_start, gene2_end, distance_bp, expected):
     genes = [
-            Feature('cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (gene2_start, gene2_end), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('Cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('Cas2', (gene2_start, gene2_end), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             ]
     operon = Operon('contig', '/tmp/dna.fasta', 0, 1000, genes)
-    rs = RuleSet().max_distance('cas1', 'cas2', distance_bp)
+    rs = rules.RuleSet().max_distance('cas1', 'cas2', distance_bp)
     result = rs.evaluate(operon)
     assert result.is_passing is expected
