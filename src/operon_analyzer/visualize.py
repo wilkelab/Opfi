@@ -200,8 +200,7 @@ def create_operon_figure(operon: Operon,
                            features=graphic_features)
 
     figure_width = max(int(operon_length/900), 5)
-    ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=50)
-    record.plot(ax)
+    ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
     return ax
 
 
