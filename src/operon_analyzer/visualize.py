@@ -107,21 +107,6 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
-    pairs = _make_operon_pairs(operons, other_operons)
-    for operon, other in pairs:
-        offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
-        upper_bound = offset + operon_length
-        out_filename = build_image_filename(operon, output_directory)
-
-        # TODO: This figure size should probably be dynamically set
-        # Currently the figures are generally too big and have lots of whitespace,
-        # but if we let it use the default, the re-BLASTed contig is usually far too
-        # compressed for the labels to be readable.
-        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(15, 10))
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
-        other_ax = create_operon_figure(other, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, bounds=(offset, upper_bound), colormin=lower, colormax=upper, existing_ax=ax2)
-        if ax is None or other_ax is None:
-            continue
     for operon, other in _make_operon_pairs(operons, other_operons):
 
         # Calculate the figure size and the range of coordinates in the contig that we will plot
