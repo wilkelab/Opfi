@@ -104,9 +104,9 @@ class Operon(object):
     def get(self, feature_name: str, regex=False) -> List[Feature]:
         """ Returns a list of every Feature with a given name. """
         if regex:
-            rx = re.compile(feature_name)
+            rx = re.compile(feature_name, re.IGNORECASE)
         else:
-            rx = re.compile(f"^{feature_name}$")
+            rx = re.compile(f"^{feature_name}$", re.IGNORECASE)
         features = []
         for feature in self:
             if rx.search(feature.name):
