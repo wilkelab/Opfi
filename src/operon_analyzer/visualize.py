@@ -56,9 +56,9 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
-def _find_colormap_bounds(operons: List[Operon], color_by_blast_feature) -> Tuple[float, float]:
+def _find_colormap_bounds(operons: List[Operon], color_by_blast_statistic) -> Tuple[float, float]:
     lower, upper = None, None
-    if color_by_blast_feature is not None:
+    if color_by_blast_statistic is not None:
         lower = sys.maxsize
         upper = -sys.maxsize
         for operon in operons:
@@ -66,7 +66,7 @@ def _find_colormap_bounds(operons: List[Operon], color_by_blast_feature) -> Tupl
                 if feature.strand is None:
                     # This is a CRISPR array
                     continue
-                value = getattr(feature, color_by_blast_feature)
+                value = getattr(feature, color_by_blast_statistic)
                 lower = min(value, lower)
                 upper = max(value, upper)
     return lower, upper
@@ -75,27 +75,27 @@ def _find_colormap_bounds(operons: List[Operon], color_by_blast_feature) -> Tupl
 def plot_operons(operons: List[Operon],
                  output_directory: str,
                  plot_ignored: bool = True,
-                 color_by_blast_feature: Optional[str] = None,
+                 color_by_blast_statistic: Optional[str] = None,
                  feature_colors: Optional[dict] = {}):
     """ Takes Operons and saves plots of them to disk. """
-    lower, upper = _find_colormap_bounds(operons, color_by_blast_feature)
+    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
         fig, ax1 = plt.subplots()
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_feature=color_by_blast_feature, colormin=lower, colormax=upper, existing_ax=ax1)
+        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
         if ax is None:
             continue
         save_operon_figure(ax, out_filename)
 
 
 def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str,
-                      color_by_blast_feature: Optional[str] = None,
+                      color_by_blast_statistic: Optional[str] = None,
                       plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
     """ Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
-    lower, upper = _find_colormap_bounds(operons, color_by_blast_feature)
+    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     pairs = _make_operon_pairs(operons, other_operons)
     for operon, other in pairs:
         offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
@@ -107,8 +107,8 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         # but if we let it use the default, the re-BLASTed contig is usually far too
         # compressed for the labels to be readable.
         fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(15, 10))
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_feature=color_by_blast_feature, colormin=lower, colormax=upper, existing_ax=ax1)
-        other_ax = create_operon_figure(other, plot_ignored, feature_colors, color_by_blast_feature=color_by_blast_feature, bounds=(offset, upper_bound), colormin=lower, colormax=upper, existing_ax=ax2)
+        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
+        other_ax = create_operon_figure(other, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, bounds=(offset, upper_bound), colormin=lower, colormax=upper, existing_ax=ax2)
         if ax is None or other_ax is None:
             continue
         save_pair_figure(fig, out_filename)
@@ -172,7 +172,7 @@ def create_operon_figure(operon: Operon,
                          feature_colors: Optional[dict] = {},
                          bounds: Optional[Tuple[int, int]] = None,
                          existing_ax: Optional[Axes] = None,
-                         color_by_blast_feature: Optional[str] = None,
+                         color_by_blast_statistic: Optional[str] = None,
                          colormin: Optional[float] = None,
                          colormax: Optional[float] = None):
     """ Plots all the Features in an Operon. """
@@ -195,7 +195,7 @@ def create_operon_figure(operon: Operon,
             continue
 
         if colormin is not None and colormax is not None and not feature_colors:
-            value = getattr(feature, color_by_blast_feature)
+            value = getattr(feature, color_by_blast_statistic)
             if value is None:
                 color = 'gray'
             elif value == 0:
