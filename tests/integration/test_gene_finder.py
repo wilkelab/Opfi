@@ -158,4 +158,34 @@ def test_record_all_hits_2():
         assert "cas_all" in hits
         assert "tnsCD" not in hits
         assert "CRISPR" not in hits
-        
+
+
+@pytest.mark.slow
+def test_pipeline_with_arbitrary_blast_flags1():
+    """Tries to run the pipeline using arbitrary blast flags at each step."""
+
+    genomic_data = "tests/integration/integration_data/contigs/record_all_hits_test_1"
+    tnsAB_db = "tests/integration/integration_data/blast_databases/tnsAB/blast_db"
+    cas_db = "tests/integration/integration_data/blast_databases/cas/blast_db"
+    tns_CD = "tests/integration/integration_data/blast_databases/tnsCD/blast_db"
+    p = Pipeline()
+    p.add_seed_step(db=tnsAB_db, name="tnsAB", e_val=0.001, blast_type="PROT", word_size=4, gap_open=12)
+    p.add_blast_step(db=tns_CD, name="tnsCD", e_val=0.001, blast_type="PSI", gap_trigger=24)
+    p.add_filter_step(db=cas_db, name="cas", e_val=0.001, blast_type="PROT", lcase_masking=True)
+    results = p.run(data=genomic_data)
+    # the test data should contain some genes of interest; check that we still found something
+    assert len(results) != 0
+
+
+@pytest.mark.slow
+def test_pipeline_with_arbitrary_blast_flags2():
+    """Tries to run the pipeline using arbitrary blast flags at each step."""
+
+    genomic_data = "tests/integration/integration_data/contigs/record_all_hits_test_1"
+    tnsAB_db = "tests/integration/integration_data/blast_databases/tnsAB/blast_db"
+    p = Pipeline()
+    p.add_seed_with_coordinates_step(db=tnsAB_db, name="tnsAB", e_val=0.001, blast_type="PROT", word_size=4, gap_open=12)
+    results = p.run(data=genomic_data)
+    # the test data should contain some genes of interest; check that we still found something
+    assert len(results) != 0
+    
