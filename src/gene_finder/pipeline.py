@@ -325,7 +325,7 @@ class Pipeline:
         """
         self._steps.append(SeedWithCoordinatesStep(start=start, end=end, contig_id=contig_id))
         self.add_blast_step(db=db, name=name, e_val=e_val, blast_type=blast_type, 
-                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, kwargs=kwargs)
+                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, **kwargs)
 
 
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
