@@ -125,6 +125,9 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         create_operon_figure(operon,
                              plot_ignored,
                              feature_colors,
+                             color_by_blast_statistic=color_by_blast_statistic,
+                             colormin=lower,
+                             colormax=upper,
                              existing_ax=ax1,
                              figure_height=height_top)
 
@@ -133,6 +136,9 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         create_operon_figure(other,
                              plot_ignored,
                              feature_colors,
+                             color_by_blast_statistic=color_by_blast_statistic,
+                             colormin=lower,
+                             colormax=upper,
                              bounds=(lower_coordinates_bound, upper_coordinates_bound),
                              existing_ax=ax2,
                              figure_height=height_bottom)
