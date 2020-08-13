@@ -1,8 +1,9 @@
 from collections import defaultdict
+import math
 import os
 import re
 import sys
-from typing import Tuple, Dict, IO, List, Optional, Iterable, Set, Any
+from typing import Tuple, Dict, IO, List, Optional, Iterable, Any
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
@@ -55,26 +56,53 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
+def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_length: int, plot_ignored: bool):
+    """ Determines the figure height and width needed to make a stacked operon figure.
+    This is essentially a bunch of magic heuristics that seem to come up with values that
+    minimize whitespace and avoid overlapping feature labels. """
+    height_top = min(6, int(max(2, math.sqrt(len(operon)))))
+    height_bottom = min(6, int(max(2, math.sqrt(len(other)))))
+    figure_width = max(int(operon_length/1000), 8)
+    return height_top, height_bottom, figure_width
+
+
 def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str, plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
     """ Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
-    pairs = _make_operon_pairs(operons, other_operons)
-    for operon, other in pairs:
-        offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
-        upper_bound = offset + operon_length
-        out_filename = build_image_filename(operon, output_directory)
+    for operon, other in _make_operon_pairs(operons, other_operons):
 
-        # TODO: This figure size should probably be dynamically set
-        # Currently the figures are generally too big and have lots of whitespace,
-        # but if we let it use the default, the re-BLASTed contig is usually far too
-        # compressed for the labels to be readable.
-        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(15, 10))
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, existing_ax=ax1)
-        other_ax = create_operon_figure(other, plot_ignored, feature_colors, bounds=(offset, upper_bound), existing_ax=ax2)
-        if ax is None or other_ax is None:
-            continue
+        # Calculate the figure size and the range of coordinates in the contig that we will plot
+        lower_coordinates_bound, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
+        upper_coordinates_bound = lower_coordinates_bound + operon_length
+        height_top, height_bottom, figure_width = _calculate_paired_figure_dimensions(operon, other, operon_length, plot_ignored)
+
+        # We create a Figure and two Axes and make DNA Features Viewer
+        # use them so that we can stay in control of the dimensions
+        fig, (ax1, ax2) = plt.subplots(nrows=2,
+                                       ncols=1,
+                                       figsize=(figure_width, height_top + height_bottom),
+                                       gridspec_kw={"height_ratios": (height_top, height_bottom)})
+
+        # Plot the top operon
+        create_operon_figure(operon,
+                             plot_ignored,
+                             feature_colors,
+                             existing_ax=ax1,
+                             figure_height=height_top)
+
+        # Plot the bottom operon. We set bounds here so that it exactly
+        # matches the location in the contig of the top operon
+        create_operon_figure(other,
+                             plot_ignored,
+                             feature_colors,
+                             bounds=(lower_coordinates_bound, upper_coordinates_bound),
+                             existing_ax=ax2,
+                             figure_height=height_bottom)
+
+        # Save the figure to disk
+        out_filename = build_image_filename(operon, output_directory)
         save_pair_figure(fig, out_filename)
         plt.close()
 
@@ -136,7 +164,8 @@ def create_operon_figure(operon: Operon,
                          plot_ignored: bool,
                          feature_colors: Optional[dict] = {},
                          bounds: Optional[Tuple[int, int]] = None,
-                         existing_ax: Optional[Axes] = None):
+                         existing_ax: Optional[Axes] = None,
+                         figure_height: Optional[int] = None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
@@ -171,8 +200,7 @@ def create_operon_figure(operon: Operon,
                            features=graphic_features)
 
     figure_width = max(int(operon_length/900), 5)
-    ax, _ = record.plot(figure_width=figure_width, ax=existing_ax)
-    record.plot(ax)
+    ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
     return ax
 
 
