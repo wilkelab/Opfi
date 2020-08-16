@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from typing import Tuple, Dict, IO, List, Optional, Iterable, Any
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
@@ -56,6 +57,38 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
+def _find_colormap_bounds(operons: List[Operon], color_by_blast_statistic) -> Tuple[float, float]:
+    lower, upper = None, None
+    if color_by_blast_statistic is not None:
+        lower = sys.maxsize
+        upper = -sys.maxsize
+        for operon in operons:
+            for feature in operon:
+                if feature.strand is None:
+                    # This is a CRISPR array
+                    continue
+                value = getattr(feature, color_by_blast_statistic)
+                lower = min(value, lower)
+                upper = max(value, upper)
+    return lower, upper
+
+
+def plot_operons(operons: List[Operon],
+                 output_directory: str,
+                 plot_ignored: bool = True,
+                 color_by_blast_statistic: Optional[str] = None,
+                 feature_colors: Optional[dict] = {}):
+    """ Takes Operons and saves plots of them to disk. """
+    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
+    for operon in operons:
+        out_filename = build_image_filename(operon, output_directory)
+        fig, ax1 = plt.subplots()
+        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
+        if ax is None:
+            continue
+        save_operon_figure(ax, out_filename)
+
+
 def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_length: int, plot_ignored: bool):
     """ Determines the figure height and width needed to make a stacked operon figure.
     This is essentially a bunch of magic heuristics that seem to come up with values that
@@ -66,11 +99,14 @@ def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_le
     return height_top, height_bottom, figure_width
 
 
-def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str, plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
+def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str,
+                      color_by_blast_statistic: Optional[str] = None,
+                      plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
     """ Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
+    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon, other in _make_operon_pairs(operons, other_operons):
 
         # Calculate the figure size and the range of coordinates in the contig that we will plot
@@ -89,6 +125,9 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         create_operon_figure(operon,
                              plot_ignored,
                              feature_colors,
+                             color_by_blast_statistic=color_by_blast_statistic,
+                             colormin=lower,
+                             colormax=upper,
                              existing_ax=ax1,
                              figure_height=height_top)
 
@@ -97,6 +136,9 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         create_operon_figure(other,
                              plot_ignored,
                              feature_colors,
+                             color_by_blast_statistic=color_by_blast_statistic,
+                             colormin=lower,
+                             colormax=upper,
                              bounds=(lower_coordinates_bound, upper_coordinates_bound),
                              existing_ax=ax2,
                              figure_height=height_bottom)
@@ -104,7 +146,6 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
         # Save the figure to disk
         out_filename = build_image_filename(operon, output_directory)
         save_pair_figure(fig, out_filename)
-        plt.close()
 
 
 def _make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple[Operon, Operon]]:
@@ -165,23 +206,42 @@ def create_operon_figure(operon: Operon,
                          feature_colors: Optional[dict] = {},
                          bounds: Optional[Tuple[int, int]] = None,
                          existing_ax: Optional[Axes] = None,
+                         color_by_blast_statistic: Optional[str] = None,
+                         colormin: Optional[float] = None,
+                         colormax: Optional[float] = None,
                          figure_height: Optional[int] = None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
+
+    if colormin is not None and colormax is not None:
+        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.epsilon, vmax=colormax)
+        cmap = matplotlib.cm.get_cmap('viridis_r')
 
     if not bounds:
         offset, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
     else:
         offset = bounds[0]
         operon_length = bounds[1] - bounds[0]
+
     graphic_features = []
     for feature in operon.all_features:
         if feature.ignored_reasons and not plot_ignored:
             continue
+
+        if colormin is not None and colormax is not None and not feature_colors:
+            value = getattr(feature, color_by_blast_statistic)
+            if value is None:
+                color = 'gray'
+            elif value == 0:
+                color = cmap(0)
+            else:
+                normed_value = norm(value)
+                color = cmap(normed_value)
+        else:
+            color = _get_feature_color(feature.name, feature_colors)
         if bounds and (not bounds[0] <= feature.start or not bounds[1] >= feature.end):
             continue
-        color = _get_feature_color(feature.name, feature_colors)
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name
@@ -207,11 +267,13 @@ def create_operon_figure(operon: Operon,
 def save_operon_figure(ax: Axes, out_filename: str):
     """ Writes the operon figure to disk. """
     ax.figure.savefig(out_filename, bbox_inches='tight')
+    plt.close()
 
 
 def save_pair_figure(fig, out_filename: str):
     """ Writes the operon pair figure to disk. """
     fig.savefig(out_filename, bbox_inches='tight')
+    plt.close()
 
 
 def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
@@ -221,16 +283,6 @@ def build_operon_dictionary(f: IO[str]) -> Dict[Tuple[str, int, int], Operon]:
     for operon in assemble_operons(lines):
         operons[(operon.contig, operon.contig_filename, operon.start, operon.end)] = operon
     return operons
-
-
-def plot_operons(operons: List[Operon], output_directory: str, plot_ignored: bool = True, feature_colors: Optional[dict] = {}):
-    """ Takes Operons and saves plots of them to disk. """
-    for operon in operons:
-        out_filename = build_image_filename(operon, output_directory)
-        ax = create_operon_figure(operon, plot_ignored, feature_colors)
-        if ax is None:
-            continue
-        save_operon_figure(ax, out_filename)
 
 
 def _load_passing_contigs(handle: IO):
