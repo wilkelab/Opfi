@@ -43,7 +43,7 @@ def count_cluster_reannotations(operons: List[genes.Operon],
         reannotated_operon = reannotated_operons.get(operon.contig)
         if reannotated_operon is None:
             continue
-        update = count_reannotations(cluster_reannotations, reannotated_operon, operon)
+        update = count_reannotations(operon, reannotated_operon)
         for feature_name, reannotation_data in update.items():
             for reannotated_feature_name, count in reannotation_data.items():
                 current_count = cluster_reannotations[feature_name].get(reannotated_feature_name, 0)
@@ -51,9 +51,8 @@ def count_cluster_reannotations(operons: List[genes.Operon],
     return cluster_reannotations
 
 
-def count_reannotations(reannotations: ReannotationCounts,
-                        reannotated_operon: genes.Operon,
-                        operon: genes.Operon):
+def count_reannotations(operon: genes.Operon,
+                        reannotated_operon: genes.Operon):
     # To disambiguate features that occur more than once in each operon, we keep track of how many we have
     # of each. This way, we can refer to "transposase" and "transposase-2" as separate entities that
     # might BLAST to two completely different proteins.
