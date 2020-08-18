@@ -38,38 +38,50 @@ def count_cluster_reannotations(operons: List[genes.Operon],
     will be included in the counts.
 
     """
-    reannotations = {}
+    cluster_reannotations = defaultdict(dict)
     for operon in operons:
-        # To disambiguate features that occur more than once in each operon, we keep track of how many we have
-        # of each. This way, we can refer to "transposase" and "transposase-2" as separate entities that
-        # might BLAST to two completely different proteins.
-        feature_counts = defaultdict(int)
         reannotated_operon = reannotated_operons.get(operon.contig)
         if reannotated_operon is None:
             continue
-        for feature in operon:
-            # determine which feature we're referring to in case more than one has the same name
-            # if there is more than one, figure out what the number we need to append to the name should be
-            count = feature_counts.get(feature.name)
-            if not count:
-                feature_name = (feature.name, 1)
-                reannotations[feature_name] = defaultdict(int)
-                feature_counts[feature.name] = 1
-            else:
-                feature_counts[feature.name] += 1
-                feature_name = (feature.name, count + 1)
-                if feature_name not in reannotations:
-                    reannotations[feature_name] = defaultdict(int)
+        update = count_reannotations(cluster_reannotations, reannotated_operon, operon)
+        for feature_name, reannotation_data in update.items():
+            for reannotated_feature_name, count in reannotation_data.items():
+                current_count = cluster_reannotations[feature_name].get(reannotated_feature_name, 0)
+                cluster_reannotations[feature_name][reannotated_feature_name] = count + current_count
+    return cluster_reannotations
 
-            for reannotated_feature in reannotated_operon:
-                if feature.start <= reannotated_feature.start and feature.end >= reannotated_feature.end:
-                    # reannotated_feature is completely overlapped by feature. It's possible
-                    # that there are multiple reannotated hits that map to this feature.
-                    # if that is the case, we could get >100% identities
-                    reannotations[feature_name][reannotated_feature.name] += 1
-                elif reannotated_feature.start <= feature.start and reannotated_feature.end >= feature.end:
-                    # feature is completely overlapped by reannotated_feature
-                    reannotations[feature_name][reannotated_feature.name] += 1
+
+def count_reannotations(reannotations: ReannotationCounts,
+                        reannotated_operon: genes.Operon,
+                        operon: genes.Operon):
+    # To disambiguate features that occur more than once in each operon, we keep track of how many we have
+    # of each. This way, we can refer to "transposase" and "transposase-2" as separate entities that
+    # might BLAST to two completely different proteins.
+    reannotations = {}
+    feature_counts = defaultdict(int)
+    for feature in operon:
+        # determine which feature we're referring to in case more than one has the same name
+        # if there is more than one, figure out what the number we need to append to the name should be
+        count = feature_counts.get(feature.name)
+        if not count:
+            feature_name = (feature.name, 1)
+            reannotations[feature_name] = defaultdict(int)
+            feature_counts[feature.name] = 1
+        else:
+            feature_counts[feature.name] += 1
+            feature_name = (feature.name, count + 1)
+            if feature_name not in reannotations:
+                reannotations[feature_name] = defaultdict(int)
+
+        for reannotated_feature in reannotated_operon:
+            if feature.start <= reannotated_feature.start and feature.end >= reannotated_feature.end:
+                # reannotated_feature is completely overlapped by feature. It's possible
+                # that there are multiple reannotated hits that map to this feature.
+                # if that is the case, we could get >100% identities
+                reannotations[feature_name][reannotated_feature.name] += 1
+            elif reannotated_feature.start <= feature.start and reannotated_feature.end >= feature.end:
+                # feature is completely overlapped by reannotated_feature
+                reannotations[feature_name][reannotated_feature.name] += 1
     return reannotations
 
 
