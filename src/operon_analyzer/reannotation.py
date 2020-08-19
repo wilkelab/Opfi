@@ -39,15 +39,27 @@ def count_cluster_reannotations(operons: List[genes.Operon],
 
     """
     cluster_reannotations = defaultdict(dict)
+
     for operon in operons:
         reannotated_operon = reannotated_operons.get(operon.contig)
         if reannotated_operon is None:
+            # We don't have a reannotation for this particular operon
+            # This is common if we only re-BLAST a subset of our data
+            # for efficiency's sake
             continue
+
+        # Count the reannotations for a single pair of operons and merge those counts into the 
+        # running total for the entire cluster
         update = count_reannotations(operon, reannotated_operon)
         for feature_name, reannotation_data in update.items():
             for reannotated_feature_name, count in reannotation_data.items():
                 current_count = cluster_reannotations[feature_name].get(reannotated_feature_name, 0)
                 cluster_reannotations[feature_name][reannotated_feature_name] = count + current_count
+
+            # If we get no reannotations for feature_name, we still need to add feature_name to the
+            # cluster_reannotations dictionary, so that we can see when features are NEVER reannotated
+            if not cluster_reannotations.get(feature_name):
+                cluster_reannotations[feature_name] = defaultdict(int)
     return cluster_reannotations
 
 
@@ -104,7 +116,7 @@ def format_reannotation_summary(contig_label: str,
                                 fractional_reannotations: ReannotationCounts,
                                 show_top: Optional[int] = 3) -> str:
     """ Converts summary data into a formatted string that can be printed. """
-    output = [f"{contig_label} ({num_operons} operons):"]
+    output = [f"{num_operons}-{contig_label}"]
     for (feature_name, feature_count), reannotated_feature_data in fractional_reannotations.items():
         formatted_feature_name = feature_name if feature_count == 1 else f"{feature_name}-{feature_count}"
         output.append(f"  {formatted_feature_name}:")
