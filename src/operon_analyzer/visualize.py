@@ -1,5 +1,4 @@
 from collections import defaultdict
-from pprint import pprint
 import math
 import os
 import re
@@ -11,7 +10,7 @@ from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
 from operon_analyzer.genes import Operon
 from operon_analyzer.parse import assemble_operons, read_pipeline_output
-from operon_analyzer import analyze, reannotation
+from operon_analyzer import analyze
 
 
 ContigDescriptor = Tuple[str, str, int, int]  # contig accession ID, contig filename, start coordinate, end coordinate
@@ -321,12 +320,7 @@ def make_clustered_stacked_operon_plots(operons: Iterable[Operon],
         os.makedirs(image_directory)
 
     clustered_operons = analyze.cluster_operons_by_feature_order(operons)
-    pprint(clustered_operons)
-    for motif_items, ops in clustered_operons.items():
-        motif_name = '-'.join(motif_items)
-        motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
-        os.mkdir(motif_directory)
-        plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+    _plot_clustered_stacked_operons(clustered_operons, other_operons, image_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
 
 
 def make_clustered_operon_plots(analysis_csv: str,
@@ -382,12 +376,16 @@ def make_clustered_operon_plots(analysis_csv: str,
     _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, feature_colors)
 
 
-def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, feature_colors: Optional[dict]):
-    for motif_items, operons in clustered_operons.items():
+def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
+                                    other_operons: List[Operon],
+                                    image_directory: str,
+                                    plot_ignored: bool,
+                                    feature_colors: Optional[dict]):
+    for motif_items, ops in clustered_operons.items():
         motif_name = '-'.join(motif_items)
-        motif_directory = _make_motif_directory_name(motif_name, len(operons), image_dir)
+        motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
         os.mkdir(motif_directory)
-        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+        plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
 
 
 def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, feature_colors: Optional[dict]):
