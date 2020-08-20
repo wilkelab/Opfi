@@ -1,6 +1,5 @@
 import csv
 from gene_finder.output_writers import FIELDNAMES
-from collections import defaultdict
 from typing import Tuple, Iterator, IO
 from operon_analyzer.genes import Feature, Operon
 import sys
@@ -21,12 +20,22 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     Takes the output from the CRISPR-transposon pipeline, loads all features,
     and assembles them into putative Operons.
     """
-    operon_features = defaultdict(list)
+    first = next(lines)
+    contig, contig_filename, coordinates, feature = _parse_feature(first)
+    current_contig = (contig, contig_filename, coordinates)
+    features = [feature]
+
     for line in lines:
         contig, contig_filename, coordinates, feature = _parse_feature(line)
-        operon_features[(contig, contig_filename, coordinates)].append(feature)
-    for (contig, contig_filename, (start, end)), features in operon_features.items():
-        yield Operon(contig, contig_filename, start, end, features)
+        if (contig, contig_filename, coordinates) != current_contig:
+            (current_contig, current_contig_filename, (current_start, current_end)) = current_contig
+            yield Operon(current_contig, current_contig_filename, current_start, current_end, features)
+            features = [feature]
+            current_contig = (contig, contig_filename, coordinates)
+        else:
+            features.append(feature)
+    (current_contig, current_contig_filename, (current_start, current_end)) = current_contig
+    yield Operon(current_contig, current_contig_filename, current_start, current_end, features)
 
 
 def parse_coordinates(coordinates: str) -> Coordinates:
