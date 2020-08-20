@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pprint import pprint
 import math
 import os
 import re
@@ -10,7 +11,7 @@ from matplotlib.axes import Axes
 from dna_features_viewer import GraphicFeature, GraphicRecord
 from operon_analyzer.genes import Operon
 from operon_analyzer.parse import assemble_operons, read_pipeline_output
-from operon_analyzer import analyze
+from operon_analyzer import analyze, reannotation
 
 
 ContigDescriptor = Tuple[str, str, int, int]  # contig accession ID, contig filename, start coordinate, end coordinate
@@ -294,6 +295,40 @@ def _load_passing_contigs(handle: IO):
     return good_contigs
 
 
+def make_clustered_stacked_operon_plots(operons: Iterable[Operon],
+                                        other_operons: Iterable[Operon],
+                                        image_directory: str,
+                                        min_count: int = 10,
+                                        plot_ignored: bool = False,
+                                        feature_colors: Optional[dict] = None
+                                        ):
+    """
+    Clusters operons and plots them on top of a reannotated version of the same operon. This allows the user to BLAST
+    some set of data with a curated database, then re-BLAST it against a more general database, and compare the two
+    directly in a cluster-specific manner.
+
+    If a FilterSet was used during analysis, that same FilterSet should be evaluated on each operon before passing it
+    into this function.
+
+    operons:            the operons of interest
+    other_operons:      reannotated operons
+    image_directory:    the directory where all subdirectories will be created. Will be created if it does not exist
+    min_count:          groups must have at least this many systems in order to be plotted
+    plot_ignored:       plot ignored features
+    feature_colors:     a dictionary of feature names and their colors
+    """
+    if not os.path.exists(image_directory):
+        os.makedirs(image_directory)
+
+    clustered_operons = analyze.cluster_operons_by_feature_order(operons)
+    pprint(clustered_operons)
+    for motif_items, ops in clustered_operons.items():
+        motif_name = '-'.join(motif_items)
+        motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
+        os.mkdir(motif_directory)
+        plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+
+
 def make_clustered_operon_plots(analysis_csv: str,
                                 operons: Iterable[Operon],
                                 image_directory: str,
@@ -345,6 +380,14 @@ def make_clustered_operon_plots(analysis_csv: str,
     plottable_operons = {k: ops for k, ops in all_clustered_operons.items()
                          if k not in diff_clustered_operon_motifs and len(ops) >= min_count}
     _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, feature_colors)
+
+
+def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, feature_colors: Optional[dict]):
+    for motif_items, operons in clustered_operons.items():
+        motif_name = '-'.join(motif_items)
+        motif_directory = _make_motif_directory_name(motif_name, len(operons), image_dir)
+        os.mkdir(motif_directory)
+        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
 
 
 def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, feature_colors: Optional[dict]):
