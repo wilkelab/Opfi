@@ -66,6 +66,8 @@ class Pipeline:
         self.data_path = None
         self.min_prot_len = None
         self.span = None
+        self.job_id = None
+        self.output_directory = None
         
         # modified by add_step methods
         self._steps = []
@@ -445,7 +447,7 @@ class Pipeline:
                     self._working_results[neighborhood]["Hits"][key]["Query_seq"] = sequences[hit["Query_ORFID"]]
 
     
-    def _format_results(self, outfrmt, outfile):
+    def _format_results(self, outfrmt):
         """Process results into their final format.
 
         If an output format was specified, also 
@@ -460,40 +462,33 @@ class Pipeline:
         
         if outfrmt is not None:
             if outfrmt == "JSON":
-                try:
-                    with open(outfile, 'w') as jsonfile:
-                        json.dump(self._results, jsonfile)
-                except FileNotFoundError:
-                    with open("results.json", 'w') as jsonfile:
-                        json.dump(self._results, jsonfile)
+                filename = "{}_results.json".format(self.job_id)
+                if self.output_directory is not None and os.path.exists(self.output_directory):
+                    filename = os.path.join(self.output_directory, filename)
+                with open(filename, 'w') as f:
+                    json.dump(self._results, f)
 
             elif outfrmt == "CSV":
-                csv_writer = CSVWriter(self._results, outfile)
+                filename = "{}_results.csv".format(self.job_id)
+                if self.output_directory is not None and os.path.exists(self.output_directory):
+                    filename = os.path.join(self.output_directory, filename)
+                csv_writer = CSVWriter(self._results, filename)
                 csv_writer.to_csv(self.data_path)
     
     
-    def _record_all_hits(self, outfile):
+    def _record_all_hits(self):
         """Write all/intermediate hits to a json file."""
         
-        try:
-            with open(outfile, "w") as jsonfile:
-                json.dump(self._all_hits, jsonfile)
-        
-        except (FileNotFoundError, TypeError) as e:
-            with open("all_hits.json", "w") as jsonfile:
-                json.dump(self._all_hits, jsonfile)
-            
-            if isinstance(e, FileNotFoundError):
-                print("Cannot open {}".format(outfile),
-                        " writing all hits to working directory")
-            else:
-                print("No output file given for writing all" +
-                        " hits, using working directory")
+        filename = "{}_all_hits.json".format(self.job_id)
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        with open(filename, "w") as f:
+            json.dump(self._all_hits, f)
 
     
-    def run(self, data, min_prot_len=60, span=10000,
-            outfrmt=None, outfile=None, record_all_hits=False,
-            all_hits_outfile=None, gzip=False) -> dict:
+    def run(self, job_id, data, output_directory=None, min_prot_len=60, 
+            span=10000, outfrmt="CSV", record_all_hits=False, 
+            gzip=False) -> dict:
         """Sequentially execute each step in the pipeline.
 
         Args:
@@ -524,6 +519,8 @@ class Pipeline:
         self.data_path = data
         self.min_prot_len = min_prot_len
         self.span = span
+        self.job_id = job_id
+        self.output_directory = output_directory
 
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
@@ -597,9 +594,9 @@ class Pipeline:
                 self._update_output_sequences()
                 self._results[contig_id] = self._working_results
         
-        self._format_results(outfrmt, outfile)
+        self._format_results(outfrmt)
         if record_all_hits:
-            self._record_all_hits(all_hits_outfile)
+            self._record_all_hits()
         
         data_handle.close() # make sure to close the input data file object
         return self._results
