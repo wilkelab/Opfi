@@ -546,20 +546,13 @@ class Pipeline:
                 if isinstance(step, SeedStep):
                     #print("Begin seed step: {}".format(step.name))
                     step.execute(self._all_orfs, self.span, contig_len)
-                    if len(step.hits) != 0:
-                        self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
-                                                        contig_path,
-                                                        contig_id)
-                        self._results_init(step.neighborhood_ranges)
-                        self._results_update(step.hits, min_prot_count=0)
-                        neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                        self._neighborhood_orfs.values())
-                        #print("Seed step complete")
-                    
-                    else:
-                        #print("No hits for seed gene - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
+                                                    contig_path,
+                                                    contig_id)
+                    self._results_init(step.neighborhood_ranges)
+                    self._results_update(step.hits, min_prot_count=0)
+                    neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                    self._neighborhood_orfs.values())
 
                 elif isinstance(step, SeedWithCoordinatesStep):
                     if step.start is None:
@@ -577,43 +570,28 @@ class Pipeline:
 
                 elif isinstance(step, FilterStep):
                     #print("Begin filter step: {}".format(step.name))
-                    
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(neighborhood_orfs)
-                        self._results_update(step.hits, min_prot_count=step.min_prot_count)
-                        neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                        self._neighborhood_orfs.values())
-                        #print("Filtering for {} genes complete".format(step.name))
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits, min_prot_count=step.min_prot_count)
+                    neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                    self._neighborhood_orfs.values())
+                    #print("Filtering for {} genes complete".format(step.name))
                 
                 elif isinstance(step, CrisprStep):
                     #print("Begin CRISPR array search")
-                    
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(contig_path)
-                        self._results_update_crispr(step.hits)
-                        #print("CRISPR array search complete")
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    step.execute(contig_path)
+                    self._results_update_crispr(step.hits)
+                    #print("CRISPR array search complete")
                         
                 else:
                     #print("Begin blast step: {}".format(step.name))
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(neighborhood_orfs)
-                        self._results_update(step.hits, min_prot_count=0)
-                        #print("Blast step complete")
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits, min_prot_count=0)
+                    #print("Blast step complete")
+                
+                if len(self._neighborhood_orfs) == 0:
+                    #print("No putative neighborhoods remain - terminating run")
+                    self._results[contig_id] = {}
+                    break
 
                 self._all_hits[contig_id][step.search_tool.step_id] = step.hits
                 self._update_output_sequences()

@@ -153,9 +153,9 @@ def test_record_all_hits_2():
 
     with open(all_hits, "r") as f:
         hits = json.load(f)["JNYE01000019.1"]
-        assert len(hits) == 2
+        assert len(hits) == 1
         assert "tnsAB" in hits
-        assert "cas_all" in hits
+        assert "cas_all" not in hits
         assert "tnsCD" not in hits
         assert "CRISPR" not in hits
 
