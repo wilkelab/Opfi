@@ -47,7 +47,7 @@ def test_end_to_end(requirement, pass_count, fail_count):
         p.add_crispr_step()
 
         outfile_id = f"e2e{n}"
-        results = p.run(outfile_id, filename, "/tmp", outfrmt="CSV", min_prot_len=30, span=10000)
+        results = p.run(filename, outfile_id, "/tmp", min_prot_len=30, span=10000)
 
         with open(os.path.join("/tmp", outfile_id + "_results.csv")) as f:
             for line in f.readlines():
