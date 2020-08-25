@@ -466,7 +466,7 @@ class Pipeline:
         if self.output_directory is not None and os.path.exists(self.output_directory):
             filename = os.path.join(self.output_directory, filename)
         csv_writer = CSVWriter(results_data, filename)
-        mode = "a" if incremental_output and self._appending_hits else "w"
+        mode = "a" if incremental_output and self._appending_results else "w"
         csv_writer.to_csv(self.data_path, mode)
         self._appending_results = True
     
