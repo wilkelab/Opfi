@@ -511,7 +511,7 @@ class Pipeline:
             f.write("{},{}".format(contig_id, self.data_path))
     
 
-    def _remove_checkpoint_file(self):
+    def _remove_checkpoint_file(self, incremental_output):
         """
         Remove the contig ID checkpoint file. This is only called after the entire job
         has been successfully completed.
@@ -519,7 +519,8 @@ class Pipeline:
         filename = "{}_checkpoint.txt".format(self.job_id) if self.job_id is not None else "gene_finder_checkpoint.txt"
         if self.output_directory is not None and os.path.exists(self.output_directory):
             filename = os.path.join(self.output_directory, filename)
-        if os.path.exists(filename):
+        # check that the checkpoint file was actually created during this run
+        if os.path.exists(filename) and incremental_output:
             os.remove(filename)
     
 
@@ -670,6 +671,6 @@ class Pipeline:
             if record_all_hits:
                 self._record_all_hits(self._all_hits)
         
-        self._remove_checkpoint_file()
+        self._remove_checkpoint_file(incremental_output)
         data_handle.close() # make sure to close the input data file object
         return self._results
