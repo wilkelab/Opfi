@@ -77,6 +77,12 @@ class Pipeline:
         self._results = {}
         self._all_hits = {}
 
+        # basically give the current state of the output files; that is, 
+        # whether any data from this run has been written to disk yet
+        # these are also reset (to this state) when pipeline.run() is called
+        self._appending_results = False
+        self._appending_hits = False
+
         # collect data specific to a single contig in the input
         # will be reset each time a new contig is processed
         self._working_results = {}
@@ -125,6 +131,8 @@ class Pipeline:
         """Clear out results from a previous run."""
         self._results = {}
         self._all_hits = {}
+        self._appending_hits = False
+        self._appending_results = False
 
     def _open_data(self, data, is_binary):
         """
@@ -447,48 +455,80 @@ class Pipeline:
                     self._working_results[neighborhood]["Hits"][key]["Query_seq"] = sequences[hit["Query_ORFID"]]
 
     
-    def _format_results(self, outfrmt):
-        """Process results into their final format.
-
-        If an output format was specified, also 
-        writes results to either a JSON file or
-        a CSV file.
+    def _format_results(self, results_data, incremental_output):
         """
-        
+        Process results into their final format. If an output format was specified, also 
+        writes results to either a JSON file or a CSV file.
+        """
         # Remove temporary hit counter tag
-        for contig in self._results:
-            for neighborhood in self._results[contig]:
-                del self._results[contig][neighborhood]["new_hit_count"]
+        for contig in results_data:
+            for neighborhood in results_data[contig]:
+                del results_data[contig][neighborhood]["new_hit_count"]
         
-        if outfrmt is not None:
-            if outfrmt == "JSON":
-                filename = "{}_results.json".format(self.job_id)
-                if self.output_directory is not None and os.path.exists(self.output_directory):
-                    filename = os.path.join(self.output_directory, filename)
-                with open(filename, 'w') as f:
-                    json.dump(self._results, f)
+        filename = "{}_results.csv".format(self.job_id) if self.job_id is not None else "gene_finder_results.csv"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        csv_writer = CSVWriter(results_data, filename)
+        mode = "a" if incremental_output and self._appending_hits else "w"
+        csv_writer.to_csv(self.data_path, mode)
+        self._appending_results = True
+    
+    
+    def _record_all_hits(self, all_hit_data):
+        """Write all hits from one or more contigs to disk (in json format)."""
+        
+        filename = "{}_hits.json".format(self.job_id) if self.job_id is not None else "gene_finder_hits.json"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        mode = "a" if self._appending_hits else "w"
+        # looping allows the json-like data to be written incrementally, which is 
+        # admittedly not really what json is intended for
+        # we'll do this regardless of whether `incremental_output` is true so
+        # that the file format is the same in both cases
+        with open(filename, mode) as f:
+            for contig in all_hit_data:
+                final_candidate_count = self._final_candidate_count(contig)
+                contig_data = {contig: {"final_candidate_count": final_candidate_count, "hits": all_hit_data[contig]}}
+                json.dump(contig_data, f)
+                f.write("\n")
+        self._appending_hits = True
 
-            elif outfrmt == "CSV":
-                filename = "{}_results.csv".format(self.job_id)
-                if self.output_directory is not None and os.path.exists(self.output_directory):
-                    filename = os.path.join(self.output_directory, filename)
-                csv_writer = CSVWriter(self._results, filename)
-                csv_writer.to_csv(self.data_path)
+
+    def _final_candidate_count(self, contig_id):
+        """Returns the number of candidate systems (per contig) that were found."""
+        return len(self._results[contig_id])
     
     
-    def _record_all_hits(self):
-        """Write all/intermediate hits to a json file."""
-        
-        filename = "{}_all_hits.json".format(self.job_id)
+    def _write_checkpoint_file(self, contig_id):
+        """
+        Write the ID of the current contig (i.e the contig currently being processed)
+        to disk. This gets overwritten with each new contig ID, and removed once the
+        job completes successfully. The point is that if the user is running gene 
+        finder in "incremental" mode and the job fails unexpectedly, the ID can be
+        used to re-start gene finder from where it left off.
+        """
+        filename = "{}_checkpoint.txt".format(self.job_id) if self.job_id is not None else "gene_finder_checkpoint.txt"
         if self.output_directory is not None and os.path.exists(self.output_directory):
             filename = os.path.join(self.output_directory, filename)
         with open(filename, "w") as f:
-            json.dump(self._all_hits, f)
-
+            f.write("{},{}".format(contig_id, self.data_path))
     
-    def run(self, job_id, data, output_directory=None, min_prot_len=60, 
-            span=10000, outfrmt="CSV", record_all_hits=False, 
-            gzip=False) -> dict:
+
+    def _remove_checkpoint_file(self):
+        """
+        Remove the contig ID checkpoint file. This is only called after the entire job
+        has been successfully completed.
+        """
+        filename = "{}_checkpoint.txt".format(self.job_id) if self.job_id is not None else "gene_finder_checkpoint.txt"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        if os.path.exists(filename):
+            os.remove(filename)
+    
+
+    def run(self, data, job_id=None, output_directory=None, min_prot_len=60, 
+            span=10000, record_all_hits=False, incremental_output=False,
+            starting_contig=None, gzip=False) -> dict:
         """Sequentially execute each step in the pipeline.
 
         Args:
@@ -524,6 +564,11 @@ class Pipeline:
 
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
+            if starting_contig is not None:
+                if record.id == starting_contig:
+                    starting_contig = None
+                else:
+                    continue
             # if this run was seeded with a particular contig id, skip all other contigs
             # in the file if they exit
             # saves a bit of time, since there is overhead associated with getting things set up
@@ -533,11 +578,15 @@ class Pipeline:
             # clear out any data that may be leftover from processing a previous
             # contig and get all ORFs in this contig
             contig_id, contig_len, contig_path = self._setup_run(record)
+            if incremental_output:
+                self._write_checkpoint_file(contig_id)
             if self._all_orfs is None:
                 # No ORFs were identified in the contig (probably because it's small),
                 # so we just continue on to the next contig if it exists
                 self._all_hits[contig_id] = {}
                 self._results[contig_id] = {}
+                if incremental_output and record_all_hits:
+                    self._record_all_hits({contig_id: {}})
                 continue
             for step in self._steps:
                 if isinstance(step, SeedStep):
@@ -585,18 +634,30 @@ class Pipeline:
                     self._results_update(step.hits, min_prot_count=0)
                     #print("Blast step complete")
                 
+                if len(step.hits) != 0:
+                    self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+                # check if all candidates have been eliminated (if so, no need to
+                # continue searching)
                 if len(self._neighborhood_orfs) == 0:
                     #print("No putative neighborhoods remain - terminating run")
                     self._results[contig_id] = {}
                     break
-
-                self._all_hits[contig_id][step.search_tool.step_id] = step.hits
                 self._update_output_sequences()
                 self._results[contig_id] = self._working_results
+
+            # The current contig is finished processing; if outputing results incrementally,
+            # we'll dump data about this contig to disk now 
+            if incremental_output:
+                self._format_results({contig_id: self._results[contig_id]}, True)
+                if record_all_hits:
+                    self._record_all_hits({contig_id: self._all_hits[contig_id]})
+
+        # all contigs have finished processing; dump all data to disk if we haven't already
+        if not incremental_output:
+            self._format_results(self._results, False)
+            if record_all_hits:
+                self._record_all_hits(self._all_hits)
         
-        self._format_results(outfrmt)
-        if record_all_hits:
-            self._record_all_hits()
-        
+        self._remove_checkpoint_file()
         data_handle.close() # make sure to close the input data file object
         return self._results
