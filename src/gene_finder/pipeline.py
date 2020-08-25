@@ -532,24 +532,39 @@ class Pipeline:
         """Sequentially execute each step in the pipeline.
 
         Args:
-            data (str): Path to input data file. Can be a single-
+            data (str): Path to the input data file. Can be a single-
                 or multi-sequence file in fasta format.
+            job_id (str, optional): A unique ID to prefix all output
+                files. If no ID is given, the string "gene_finder" 
+                will be used as the prefix. In any case, results from
+                the pipeline are written to the file <prefix>_results.csv.
+            output_directory (str, optional): The directory to write
+                output data files to.
             min_prot_len (int, optional): Minimum ORF length (aa).
                 Default is 60.
             span (int, optional): Length (nt) upsteam and downstream
                 of each seed hit to keep. Defines the aproximate size
                 of the genomic neighborhoods that will be used as the
                 search space after the seed step.
-            outfrmt (str, optional): Specifies the output file format.
-                Can be either "CSV" or "JSON". If no output format is
-                given then the results will not be written to disk.
-            outfile (str, optional): Path to the file to write results
-                to.
-            record_all_hits (bool, optional): If set to True then 
-                all hits against all references will be written to
-                a file.
-            all_hits_outfile (str, optional): Path to the file to
-                write all hit data to.
+            record_all_hits (bool, optional): Write data about all hits 
+                (even discarded ones) to the file <job_id>_hits.json,
+                grouped by contig. Note that this contains much of the same
+                information as is in the results CSV file; nevertheless, it
+                may be useful for collecting metadata about the run.
+            incremental_output (bool, optional): Write results to disk
+                incrementally, i.e after each contig is processed. Using
+                this option also creates a checkpoint file that gives the
+                ID of the contig that is currently being processed; if the
+                job finishes successfully, this file will be automatically
+                cleaned up. This feature is particularly useful for long-running
+                jobs. 
+            starting_contig (bool, optional): The sequence identifier of
+                the contig where the run should begin. In other words, 
+                skip over records in the input file until
+                the specified contig is reached, and then run the pipeline
+                as normal. This is usually used in conjunction with 
+                `incremental_output`.
+            gzip (bool, optional): Was this file compressed with gzip? 
 
         Returns:   
             Results (dict): Candidate systems, grouped by contig id
