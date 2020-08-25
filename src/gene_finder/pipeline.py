@@ -456,10 +456,7 @@ class Pipeline:
 
     
     def _format_results(self, results_data, incremental_output):
-        """
-        Process results into their final format. If an output format was specified, also 
-        writes results to either a JSON file or a CSV file.
-        """
+        """Process results into their final CSV format and write them to disk."""
         # Remove temporary hit counter tag
         for contig in results_data:
             for neighborhood in results_data[contig]:
