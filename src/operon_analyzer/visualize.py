@@ -299,6 +299,7 @@ def make_clustered_stacked_operon_plots(operons: Iterable[Operon],
                                         image_directory: str,
                                         min_count: int = 10,
                                         plot_ignored: bool = False,
+                                        color_by_blast_statistic: Optional[str] = None,
                                         feature_colors: Optional[dict] = None
                                         ):
     """
@@ -320,7 +321,7 @@ def make_clustered_stacked_operon_plots(operons: Iterable[Operon],
         os.makedirs(image_directory)
 
     clustered_operons = analyze.cluster_operons_by_feature_order(operons)
-    _plot_clustered_stacked_operons(clustered_operons, other_operons, image_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+    _plot_clustered_stacked_operons(clustered_operons, other_operons, image_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
 def make_clustered_operon_plots(analysis_csv: str,
@@ -329,6 +330,7 @@ def make_clustered_operon_plots(analysis_csv: str,
                                 min_count: int = 10,
                                 diff_against_csv: Optional[str] = None,
                                 plot_ignored: bool = False,
+                                color_by_blast_statistic: Optional[str] = None,
                                 feature_colors: Optional[dict] = None
                                 ):
     """ Clusters operons by the order of their features and plots them in separate directories,
@@ -373,23 +375,24 @@ def make_clustered_operon_plots(analysis_csv: str,
     diff_clustered_operon_motifs = set(analyze.cluster_operons_by_feature_order(diff_operons).keys())
     plottable_operons = {k: ops for k, ops in all_clustered_operons.items()
                          if k not in diff_clustered_operon_motifs and len(ops) >= min_count}
-    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, feature_colors)
+    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
 def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
                                     other_operons: List[Operon],
                                     image_directory: str,
                                     plot_ignored: bool,
-                                    feature_colors: Optional[dict]):
+                                    color_by_blast_statistic: Optional[str] = None,
+                                    feature_colors: Optional[dict] = None):
     for motif_items, ops in clustered_operons.items():
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
-        if not os.path.exists(motif_directory):
-            os.makedirs(motif_directory)
-        plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+        if not os.path.exists(image_directory):
+            os.makedirs(image_directory)
+        plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
-def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, feature_colors: Optional[dict]):
+def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None):
     """ Plots contigs, placing them in directories named by the count and motif of the operons.
     For example, if there are 527 operons with Cas9, glmS, a CRISPR array, and Cas1 (in that order or exactly reversed),
     the directory name will be 527-cas9-glms-array-cas1. """
@@ -397,7 +400,7 @@ def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_di
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(operons), image_dir)
         os.mkdir(motif_directory)
-        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, feature_colors=feature_colors)
+        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
 def _make_motif_directory_name(motif_name: str, num_operons: int, image_dir: str) -> str:
