@@ -390,9 +390,10 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
     for motif_items, ops in clustered_operons.items():
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
-        if not os.path.exists(image_directory):
-            os.makedirs(image_directory)
+        if not os.path.exists(motif_directory):
+            os.makedirs(motif_directory)
         plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
+
 
 
 def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None):
