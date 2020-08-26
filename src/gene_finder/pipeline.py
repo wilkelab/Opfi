@@ -66,6 +66,8 @@ class Pipeline:
         self.data_path = None
         self.min_prot_len = None
         self.span = None
+        self.job_id = None
+        self.output_directory = None
         
         # modified by add_step methods
         self._steps = []
@@ -74,6 +76,12 @@ class Pipeline:
         # will be reset each time pipeline.run() is called
         self._results = {}
         self._all_hits = {}
+
+        # basically give the current state of the output files; that is, 
+        # whether any data from this run has been written to disk yet
+        # these are also reset (to this state) when pipeline.run() is called
+        self._appending_results = False
+        self._appending_hits = False
 
         # collect data specific to a single contig in the input
         # will be reset each time a new contig is processed
@@ -123,6 +131,8 @@ class Pipeline:
         """Clear out results from a previous run."""
         self._results = {}
         self._all_hits = {}
+        self._appending_hits = False
+        self._appending_results = False
 
     def _open_data(self, data, is_binary):
         """
@@ -445,76 +455,114 @@ class Pipeline:
                     self._working_results[neighborhood]["Hits"][key]["Query_seq"] = sequences[hit["Query_ORFID"]]
 
     
-    def _format_results(self, outfrmt, outfile):
-        """Process results into their final format.
-
-        If an output format was specified, also 
-        writes results to either a JSON file or
-        a CSV file.
-        """
-        
+    def _format_results(self, results_data, incremental_output):
+        """Process results into their final CSV format and write them to disk."""
         # Remove temporary hit counter tag
-        for contig in self._results:
-            for neighborhood in self._results[contig]:
-                del self._results[contig][neighborhood]["new_hit_count"]
+        for contig in results_data:
+            for neighborhood in results_data[contig]:
+                del results_data[contig][neighborhood]["new_hit_count"]
         
-        if outfrmt is not None:
-            if outfrmt == "JSON":
-                try:
-                    with open(outfile, 'w') as jsonfile:
-                        json.dump(self._results, jsonfile)
-                except FileNotFoundError:
-                    with open("results.json", 'w') as jsonfile:
-                        json.dump(self._results, jsonfile)
+        filename = "{}_results.csv".format(self.job_id) if self.job_id is not None else "gene_finder_results.csv"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        csv_writer = CSVWriter(results_data, filename)
+        mode = "a" if incremental_output and self._appending_results else "w"
+        csv_writer.to_csv(self.data_path, mode)
+        self._appending_results = True
+    
+    
+    def _record_all_hits(self, all_hit_data):
+        """Write all hits from one or more contigs to disk (in json format)."""
+        
+        filename = "{}_hits.json".format(self.job_id) if self.job_id is not None else "gene_finder_hits.json"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        mode = "a" if self._appending_hits else "w"
+        # looping allows the json-like data to be written incrementally, which is 
+        # admittedly not really what json is intended for
+        # we'll do this regardless of whether `incremental_output` is true so
+        # that the file format is the same in both cases
+        with open(filename, mode) as f:
+            for contig in all_hit_data:
+                final_candidate_count = self._final_candidate_count(contig)
+                contig_data = {contig: {"final_candidate_count": final_candidate_count, "hits": all_hit_data[contig]}}
+                json.dump(contig_data, f)
+                f.write("\n")
+        self._appending_hits = True
 
-            elif outfrmt == "CSV":
-                csv_writer = CSVWriter(self._results, outfile)
-                csv_writer.to_csv(self.data_path)
-    
-    
-    def _record_all_hits(self, outfile):
-        """Write all/intermediate hits to a json file."""
-        
-        try:
-            with open(outfile, "w") as jsonfile:
-                json.dump(self._all_hits, jsonfile)
-        
-        except (FileNotFoundError, TypeError) as e:
-            with open("all_hits.json", "w") as jsonfile:
-                json.dump(self._all_hits, jsonfile)
-            
-            if isinstance(e, FileNotFoundError):
-                print("Cannot open {}".format(outfile),
-                        " writing all hits to working directory")
-            else:
-                print("No output file given for writing all" +
-                        " hits, using working directory")
 
+    def _final_candidate_count(self, contig_id):
+        """Returns the number of candidate systems (per contig) that were found."""
+        return len(self._results[contig_id])
     
-    def run(self, data, min_prot_len=60, span=10000,
-            outfrmt=None, outfile=None, record_all_hits=False,
-            all_hits_outfile=None, gzip=False) -> dict:
+    
+    def _write_checkpoint_file(self, contig_id):
+        """
+        Write the ID of the current contig (i.e the contig currently being processed)
+        to disk. This gets overwritten with each new contig ID, and removed once the
+        job completes successfully. The point is that if the user is running gene 
+        finder in "incremental" mode and the job fails unexpectedly, the ID can be
+        used to re-start gene finder from where it left off.
+        """
+        filename = "{}_checkpoint.txt".format(self.job_id) if self.job_id is not None else "gene_finder_checkpoint.txt"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        with open(filename, "w") as f:
+            f.write("{},{}".format(contig_id, self.data_path))
+    
+
+    def _remove_checkpoint_file(self, incremental_output):
+        """
+        Remove the contig ID checkpoint file. This is only called after the entire job
+        has been successfully completed.
+        """
+        filename = "{}_checkpoint.txt".format(self.job_id) if self.job_id is not None else "gene_finder_checkpoint.txt"
+        if self.output_directory is not None and os.path.exists(self.output_directory):
+            filename = os.path.join(self.output_directory, filename)
+        # check that the checkpoint file was actually created during this run
+        if os.path.exists(filename) and incremental_output:
+            os.remove(filename)
+    
+
+    def run(self, data, job_id=None, output_directory=None, min_prot_len=60, 
+            span=10000, record_all_hits=False, incremental_output=False,
+            starting_contig=None, gzip=False) -> dict:
         """Sequentially execute each step in the pipeline.
 
         Args:
-            data (str): Path to input data file. Can be a single-
+            data (str): Path to the input data file. Can be a single-
                 or multi-sequence file in fasta format.
+            job_id (str, optional): A unique ID to prefix all output
+                files. If no ID is given, the string "gene_finder" 
+                will be used as the prefix. In any case, results from
+                the pipeline are written to the file <prefix>_results.csv.
+            output_directory (str, optional): The directory to write
+                output data files to.
             min_prot_len (int, optional): Minimum ORF length (aa).
                 Default is 60.
             span (int, optional): Length (nt) upsteam and downstream
                 of each seed hit to keep. Defines the aproximate size
                 of the genomic neighborhoods that will be used as the
                 search space after the seed step.
-            outfrmt (str, optional): Specifies the output file format.
-                Can be either "CSV" or "JSON". If no output format is
-                given then the results will not be written to disk.
-            outfile (str, optional): Path to the file to write results
-                to.
-            record_all_hits (bool, optional): If set to True then 
-                all hits against all references will be written to
-                a file.
-            all_hits_outfile (str, optional): Path to the file to
-                write all hit data to.
+            record_all_hits (bool, optional): Write data about all hits 
+                (even discarded ones) to the file <job_id>_hits.json,
+                grouped by contig. Note that this contains much of the same
+                information as is in the results CSV file; nevertheless, it
+                may be useful for collecting metadata about the run.
+            incremental_output (bool, optional): Write results to disk
+                incrementally, i.e after each contig is processed. Using
+                this option also creates a checkpoint file that gives the
+                ID of the contig that is currently being processed; if the
+                job finishes successfully, this file will be automatically
+                cleaned up. This feature is particularly useful for long-running
+                jobs. 
+            starting_contig (bool, optional): The sequence identifier of
+                the contig where the run should begin. In other words, 
+                skip over records in the input file until
+                the specified contig is reached, and then run the pipeline
+                as normal. This is usually used in conjunction with 
+                `incremental_output`.
+            gzip (bool, optional): Was this file compressed with gzip? 
 
         Returns:   
             Results (dict): Candidate systems, grouped by contig id
@@ -524,9 +572,16 @@ class Pipeline:
         self.data_path = data
         self.min_prot_len = min_prot_len
         self.span = span
+        self.job_id = job_id
+        self.output_directory = output_directory
 
         data_handle = self._open_data(self.data_path, gzip)
         for record in SeqIO.parse(data_handle, "fasta"):
+            if starting_contig is not None:
+                if record.id == starting_contig:
+                    starting_contig = None
+                else:
+                    continue
             # if this run was seeded with a particular contig id, skip all other contigs
             # in the file if they exit
             # saves a bit of time, since there is overhead associated with getting things set up
@@ -536,30 +591,27 @@ class Pipeline:
             # clear out any data that may be leftover from processing a previous
             # contig and get all ORFs in this contig
             contig_id, contig_len, contig_path = self._setup_run(record)
+            if incremental_output:
+                self._write_checkpoint_file(contig_id)
             if self._all_orfs is None:
                 # No ORFs were identified in the contig (probably because it's small),
                 # so we just continue on to the next contig if it exists
                 self._all_hits[contig_id] = {}
                 self._results[contig_id] = {}
+                if incremental_output and record_all_hits:
+                    self._record_all_hits({contig_id: {}})
                 continue
             for step in self._steps:
                 if isinstance(step, SeedStep):
                     #print("Begin seed step: {}".format(step.name))
                     step.execute(self._all_orfs, self.span, contig_len)
-                    if len(step.hits) != 0:
-                        self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
-                                                        contig_path,
-                                                        contig_id)
-                        self._results_init(step.neighborhood_ranges)
-                        self._results_update(step.hits, min_prot_count=0)
-                        neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                        self._neighborhood_orfs.values())
-                        #print("Seed step complete")
-                    
-                    else:
-                        #print("No hits for seed gene - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    self._get_orfs_in_neighborhood(step.neighborhood_ranges, 
+                                                    contig_path,
+                                                    contig_id)
+                    self._results_init(step.neighborhood_ranges)
+                    self._results_update(step.hits, min_prot_count=0)
+                    neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                    self._neighborhood_orfs.values())
 
                 elif isinstance(step, SeedWithCoordinatesStep):
                     if step.start is None:
@@ -577,51 +629,48 @@ class Pipeline:
 
                 elif isinstance(step, FilterStep):
                     #print("Begin filter step: {}".format(step.name))
-                    
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(neighborhood_orfs)
-                        self._results_update(step.hits, min_prot_count=step.min_prot_count)
-                        neighborhood_orfs = concatenate(self._working_dir.name, 
-                                                        self._neighborhood_orfs.values())
-                        #print("Filtering for {} genes complete".format(step.name))
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits, min_prot_count=step.min_prot_count)
+                    neighborhood_orfs = concatenate(self._working_dir.name, 
+                                                    self._neighborhood_orfs.values())
+                    #print("Filtering for {} genes complete".format(step.name))
                 
                 elif isinstance(step, CrisprStep):
                     #print("Begin CRISPR array search")
-                    
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(contig_path)
-                        self._results_update_crispr(step.hits)
-                        #print("CRISPR array search complete")
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
+                    step.execute(contig_path)
+                    self._results_update_crispr(step.hits)
+                    #print("CRISPR array search complete")
                         
                 else:
                     #print("Begin blast step: {}".format(step.name))
-                    if len(self._neighborhood_orfs) != 0:
-                        step.execute(neighborhood_orfs)
-                        self._results_update(step.hits, min_prot_count=0)
-                        #print("Blast step complete")
-                    
-                    else:
-                        #print("No putative neighborhoods remain - terminating run")
-                        self._results[contig_id] = {}
-                        break
-
-                self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+                    step.execute(neighborhood_orfs)
+                    self._results_update(step.hits, min_prot_count=0)
+                    #print("Blast step complete")
+                
+                if len(step.hits) != 0:
+                    self._all_hits[contig_id][step.search_tool.step_id] = step.hits
+                # check if all candidates have been eliminated (if so, no need to
+                # continue searching)
+                if len(self._neighborhood_orfs) == 0:
+                    #print("No putative neighborhoods remain - terminating run")
+                    self._results[contig_id] = {}
+                    break
                 self._update_output_sequences()
                 self._results[contig_id] = self._working_results
+
+            # The current contig is finished processing; if outputing results incrementally,
+            # we'll dump data about this contig to disk now 
+            if incremental_output:
+                self._format_results({contig_id: self._results[contig_id]}, True)
+                if record_all_hits:
+                    self._record_all_hits({contig_id: self._all_hits[contig_id]})
+
+        # all contigs have finished processing; dump all data to disk if we haven't already
+        if not incremental_output:
+            self._format_results(self._results, False)
+            if record_all_hits:
+                self._record_all_hits(self._all_hits)
         
-        self._format_results(outfrmt, outfile)
-        if record_all_hits:
-            self._record_all_hits(all_hits_outfile)
-        
+        self._remove_checkpoint_file(incremental_output)
         data_handle.close() # make sure to close the input data file object
         return self._results

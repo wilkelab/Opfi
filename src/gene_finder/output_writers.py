@@ -90,9 +90,9 @@ class CSVWriter:
         
         return rows
 
-    def to_csv(self, project_id):
+    def to_csv(self, project_id, mode):
 
-        with open(self.outfile, 'w', newline='') as csvfile:
+        with open(self.outfile, mode, newline='') as csvfile:
             writer = csv.writer(csvfile)
             
             self.project_id = project_id
