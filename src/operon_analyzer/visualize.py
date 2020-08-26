@@ -1,4 +1,5 @@
 from collections import defaultdict
+import itertools
 import math
 import os
 import re
@@ -57,12 +58,14 @@ def _get_feature_color(feature_name: str, feature_colors: Dict[str, Any]) -> Any
     return default_color
 
 
-def _find_colormap_bounds(operons: List[Operon], color_by_blast_statistic) -> Tuple[float, float]:
+def _find_colormap_bounds(operons: List[Operon], color_by_blast_statistic, other_operons: Optional[List[Operon]] = None) -> Tuple[float, float]:
+    if other_operons is None:
+        other_operons = []
     lower, upper = None, None
     if color_by_blast_statistic is not None:
         lower = sys.maxsize
         upper = -sys.maxsize
-        for operon in operons:
+        for operon in itertools.chain(operons, other_operons):
             for feature in operon:
                 if feature.strand is None:
                     # This is a CRISPR array
@@ -106,7 +109,7 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
-    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
+    lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic, other_operons=other_operons)
     for operon, other in _make_operon_pairs(operons, other_operons):
 
         # Calculate the figure size and the range of coordinates in the contig that we will plot
