@@ -205,7 +205,7 @@ class SeedStep(SearchStep):
         if len(self.hits) != 0:
             self.neighborhood_ranges = get_neighborhood_ranges(self.hits, contig_len, span)
         else:
-            self.neighborhood_ranges = None
+            self.neighborhood_ranges = []
 
 class SeedWithCoordinatesStep():
 
