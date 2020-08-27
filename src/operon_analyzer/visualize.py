@@ -218,7 +218,7 @@ def create_operon_figure(operon: Operon,
         return None
 
     if colormin is not None and colormax is not None:
-        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.epsilon, vmax=colormax)
+        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.min, vmax=colormax)
         cmap = matplotlib.cm.get_cmap('viridis_r')
 
     if not bounds:
