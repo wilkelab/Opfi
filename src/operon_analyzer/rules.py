@@ -1,6 +1,7 @@
 import re
 from typing import Callable, Optional, List
 from operon_analyzer.genes import Feature, Operon
+import more_itertools
 
 
 class SerializableFunction(object):
@@ -375,3 +376,24 @@ def _feature_distance(f1: Feature, f2: Feature) -> int:
     distance2 = f1.start - f2.end
     # In the case of overlapping features, the distance is defined as 0
     return max(distance1, distance2, 0)
+
+
+def _contains_group(operon: Operon, feature_names: List[str], max_gap_distance_bp: int, require_same_orientation: bool) -> bool:
+    """ Determines whether Features with exactly the names in feature_names occur in any order without interruption by other Features, with gaps between each Feature no larger than max_gap_distance_bp. Optionally, every Feature can be required to be in the same orientation. """
+    assert len(feature_names) > 1
+    if len(operon) < len(feature_names):
+        return False
+
+    sorted_feature_names = tuple(sorted(feature_names))
+    for operon_chunk in more_itertools.windowed(operon, len(feature_names)):
+        sorted_chunk_names = tuple(sorted([feature.name for feature in operon_chunk]))
+        if sorted_chunk_names == sorted_feature_names:
+            for feature1, feature2 in zip(operon_chunk, operon_chunk[1:]):
+                if _feature_distance(feature1, feature2) > max_gap_distance_bp:
+                    return False
+            if require_same_orientation:
+                strands = set((feature.strand for feature in operon_chunk if feature.strand is not None))
+                if len(strands) != 1:
+                    return False
+            return True
+    return False
