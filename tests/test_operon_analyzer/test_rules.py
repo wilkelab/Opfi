@@ -1,4 +1,5 @@
 import random
+import itertools
 import pytest
 import string
 from hypothesis.strategies import composite, text, integers, sampled_from, floats, lists
@@ -28,6 +29,54 @@ def _get_standard_operon():
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
     return operon
+
+
+def _get_group_operon():
+    genes = [
+            Feature('gwrN', (0, 99), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('transposase', (100, 200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas1', (210, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('mrtK', (1300, 1500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    return Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
+
+
+def test_rule_group():
+    operon = _get_group_operon()
+    for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
+        assert rules._contains_group(operon, feature_names, 20, False)
+
+
+def test_rule_group_missing():
+    operon = _get_group_operon()
+    for feature_names in itertools.permutations(['transposase', 'cas9000', 'cas2', 'cas4']):
+        assert not rules._contains_group(operon, feature_names, 20, False)
+
+
+def test_rule_group_distance():
+    operon = _get_group_operon()
+    for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
+        assert not rules._contains_group(operon, feature_names, 5, False)
+
+
+def test_rule_group_same_orientation():
+    operon = _get_group_operon()
+    # all features have the same orientation in this operon to begin with
+    for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
+        assert rules._contains_group(operon, feature_names, 20, True)
+
+    # ensure strands of unrelated Features aren't tested for orientation
+    operon._features[0].strand = -1
+    for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
+        assert rules._contains_group(operon, feature_names, 20, True)
+
+    # revert the strand of the unrelated Feature and then flip one that does matter
+    operon._features[0].strand = 1
+    operon._features[3].strand = -1
+    for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
+        assert not rules._contains_group(operon, feature_names, 20, True)
 
 
 def test_case_insensitivity():

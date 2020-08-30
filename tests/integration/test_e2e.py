@@ -46,10 +46,10 @@ def test_end_to_end(requirement, pass_count, fail_count):
         p.add_filter_step(db="tests/integration/integration_data/end-to-end/transposase.prot", name="transposases", e_val=0.000001, blast_type="PROT")
         p.add_crispr_step()
 
-        outfile = f"/tmp/e2e{n}.csv"
-        results = p.run(filename, outfrmt="CSV", outfile=outfile, min_prot_len=30, span=10000)
+        outfile_id = f"e2e{n}"
+        results = p.run(filename, outfile_id, "/tmp", min_prot_len=30, span=10000)
 
-        with open(outfile) as f:
+        with open(os.path.join("/tmp", outfile_id + "_results.csv")) as f:
             for line in f.readlines():
                 pipeline_output.append(line)
 

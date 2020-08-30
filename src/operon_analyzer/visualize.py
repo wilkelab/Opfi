@@ -218,7 +218,7 @@ def create_operon_figure(operon: Operon,
         return None
 
     if colormin is not None and colormax is not None:
-        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.epsilon, vmax=colormax)
+        norm = matplotlib.colors.LogNorm(vmin=colormin + sys.float_info.min, vmax=colormax)
         cmap = matplotlib.cm.get_cmap('viridis_r')
 
     if not bounds:
@@ -390,8 +390,8 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
     for motif_items, ops in clustered_operons.items():
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
-        if not os.path.exists(image_directory):
-            os.makedirs(image_directory)
+        if not os.path.exists(motif_directory):
+            os.makedirs(motif_directory)
         plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
