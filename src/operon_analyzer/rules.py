@@ -247,6 +247,16 @@ class RuleSet(object):
                                 custom_repr=custom_repr))
         return self
 
+    def contains_group(self, feature_names: List[str], max_gap_distance_bp: int, require_same_orientation: bool):
+        """ The operon must contain a contiguous set of features (in any order) separated by no more than max_gap_distance_bp.
+        Optionally, the user may require that the features must all have the same orientation. """
+        self._rules.append(Rule('contains_group',
+                                _contains_group,
+                                feature_names,
+                                max_gap_distance_bp,
+                                require_same_orientation))
+        return self
+
     def custom(self, rule: 'Rule'):
         """ Add a rule with a user-defined function. """
         self._rules.append(rule)
