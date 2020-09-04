@@ -97,7 +97,7 @@ def _a_good_group_of_cas1_cas2_and_cas3_genes():
     return genes
 
 
-def test_rule_group_premature_return():
+def test_contains_group_premature_return():
     # tests an edge case where the operon has two groups that contain all required features,
     # but only the second group has a passing combination of features, distances, and orientations
     # Previously, the first (non-valid) group would have caused the rule to return False prematurely
