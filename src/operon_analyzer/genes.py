@@ -1,3 +1,4 @@
+import itertools
 import re
 from typing import List, Tuple, Optional
 
@@ -28,6 +29,14 @@ class Feature(object):
         self.description = description
         self.sequence = sequence
         self.ignored_reasons = []
+
+    def __hash__(self):
+        return hash(f"{self.name}{self.coordinates[0]}{self.coordinates[1]}{self.sequence}")
+
+    def __eq__(self, other: 'Feature'):
+        return self.name == other.name and \
+               self.coordinates == other.coordinates and \
+               self.sequence == other.sequence
 
     def ignore(self, reason: str):
         self.ignored_reasons.append(reason)
@@ -77,6 +86,16 @@ class Operon(object):
         self.start = start
         self.end = end
         self._features = features
+
+    def __hash__(self):
+        feature_data = "".join([f"{feature.name}{feature.coordinates}{feature.sequence}" for feature in self._features])
+        return hash(f"{self.contig}{self.start}{self.end}{feature_data}")
+
+    def __eq__(self, other):
+        return self.contig == other.contig and \
+               self.start == other.start and \
+               self.end == other.end and \
+               len(set(tuple(itertools.chain(self._features, other._features)))) == len(self._features)
 
     @property
     def all_genes(self):
