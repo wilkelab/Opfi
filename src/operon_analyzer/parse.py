@@ -19,7 +19,12 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     """
     Takes the output from the CRISPR-transposon pipeline, loads all features,
     and assembles them into putative Operons.
+
+    To keep things memory efficient while not allowing redundant operons from being loaded,
+    we keep track of the hash of each operon, which is just an integer. Even for very
+    large metagenomic databases this should use less than a gigabyte of memory.
     """
+    hashes = set()
     first = next(lines)
     contig, contig_filename, coordinates, feature = _parse_feature(first)
     current_contig = (contig, contig_filename, coordinates)
@@ -29,13 +34,21 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
         contig, contig_filename, coordinates, feature = _parse_feature(line)
         if (contig, contig_filename, coordinates) != current_contig:
             (current_contig, current_contig_filename, (current_start, current_end)) = current_contig
-            yield Operon(current_contig, current_contig_filename, current_start, current_end, features)
+            operon = Operon(current_contig, current_contig_filename, current_start, current_end, features)
+            h = hash(operon)
+            if h not in hashes:
+                hashes.add(h)
+                yield operon
             features = [feature]
             current_contig = (contig, contig_filename, coordinates)
         else:
             features.append(feature)
     (current_contig, current_contig_filename, (current_start, current_end)) = current_contig
-    yield Operon(current_contig, current_contig_filename, current_start, current_end, features)
+    operon = Operon(current_contig, current_contig_filename, current_start, current_end, features)
+    h = hash(operon)
+    if h not in hashes:
+        hashes.add(h)
+        yield operon
 
 
 def parse_coordinates(coordinates: str) -> Coordinates:
