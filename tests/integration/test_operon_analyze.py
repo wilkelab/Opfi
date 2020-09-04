@@ -2,9 +2,19 @@ import tempfile
 import os
 import shutil
 from operon_analyzer.analyze import analyze, load_analyzed_operons
+from operon_analyzer.parse import load_operons
 from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import build_operon_dictionary, plot_operons
 import pytest
+
+
+def test_load_operons_nonredundant():
+    # There are 3 pairs of identical Operons defined in this file that vary only by filename
+    # We should therefore only be able to load 3 total
+    csv = 'tests/integration/integration_data/operon_analyzer/redundant.csv'
+    with open(csv) as f:
+        operons = list(load_operons(f))
+    assert len(operons) == 3
 
 
 def test_reads_file_correctly():
