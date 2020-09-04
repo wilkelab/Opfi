@@ -398,12 +398,14 @@ def _contains_group(operon: Operon, feature_names: List[str], max_gap_distance_b
     for operon_chunk in more_itertools.windowed(operon, len(feature_names)):
         sorted_chunk_names = tuple(sorted([feature.name for feature in operon_chunk]))
         if sorted_chunk_names == sorted_feature_names:
+            max_gap_distance_in_group = 0
             for feature1, feature2 in zip(operon_chunk, operon_chunk[1:]):
-                if _feature_distance(feature1, feature2) > max_gap_distance_bp:
-                    return False
+                max_gap_distance_in_group = max(_feature_distance(feature1, feature2), max_gap_distance_in_group)
+            if max_gap_distance_in_group > max_gap_distance_bp:
+                continue
             if require_same_orientation:
                 strands = set((feature.strand for feature in operon_chunk if feature.strand is not None))
                 if len(strands) != 1:
-                    return False
+                    continue
             return True
     return False
