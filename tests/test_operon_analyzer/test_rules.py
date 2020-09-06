@@ -79,6 +79,45 @@ def test_rule_group_same_orientation():
         assert not rules._contains_group(operon, feature_names, 20, True)
 
 
+def _not_a_good_group_of_cas1_cas2_and_cas3_genes():
+    genes = [
+            Feature('cas1', (0, 70), 'lcl|0|70|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (100, 200), 'lcl|100|200|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas3', (280, 240), 'lcl|280|240|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            ]
+    return genes
+
+
+def _a_good_group_of_cas1_cas2_and_cas3_genes():
+    genes = [
+            Feature('cas1', (1410, 1610), 'lcl|1410|1610|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas2', (1620, 2200), 'lcl|1620|2200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas3', (2210, 2500), 'lcl|2210|2500|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE')
+            ]
+    return genes
+
+
+def test_contains_group_premature_return():
+    # tests an edge case where the operon has two groups that contain all required features,
+    # but only the second group has a passing combination of features, distances, and orientations
+    # Previously, the first (non-valid) group would have caused the rule to return False prematurely
+
+    # first, assert that the non-valid group really doesn't pass, even though it has the Features we want
+    bad_operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, _not_a_good_group_of_cas1_cas2_and_cas3_genes())
+    for feature_names in itertools.permutations(['cas1', 'cas2', 'cas3']):
+        assert not rules._contains_group(bad_operon, feature_names, 20, False)
+        assert not rules._contains_group(bad_operon, feature_names, 50, True)
+    
+    # now, append a "passing" group of features. The same rules should pass now
+    genes = _not_a_good_group_of_cas1_cas2_and_cas3_genes() + \
+            [Feature('cas4', (1200, 1300), 'lcl|1200|1300|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')] + \
+            _a_good_group_of_cas1_cas2_and_cas3_genes()
+    good_operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
+    for feature_names in itertools.permutations(['cas1', 'cas2', 'cas3']):
+        assert rules._contains_group(good_operon, feature_names, 20, False)
+        assert rules._contains_group(good_operon, feature_names, 50, True)
+
+
 def test_case_insensitivity():
     genes = [
             Feature('Cas1', (12, 400), 'lcl|12|400|1|1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
