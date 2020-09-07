@@ -80,16 +80,16 @@ def plot_operons(operons: List[Operon],
                  output_directory: str,
                  plot_ignored: bool = True,
                  color_by_blast_statistic: Optional[str] = None,
-                 feature_colors: Optional[dict] = {}):
+                 feature_colors: Optional[dict] = {},
+                 nucl_per_line: Optional[int] = None):
     """ Takes Operons and saves plots of them to disk. """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        fig, ax1 = plt.subplots()
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
-        if ax is None:
+        fig = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, nucl_per_line=nucl_per_line)
+        if fig is None:
             continue
-        save_operon_figure(ax, out_filename)
+        save_operon_figure(fig, out_filename)
 
 
 def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_length: int, plot_ignored: bool):
@@ -212,7 +212,8 @@ def create_operon_figure(operon: Operon,
                          color_by_blast_statistic: Optional[str] = None,
                          colormin: Optional[float] = None,
                          colormax: Optional[float] = None,
-                         figure_height: Optional[int] = None):
+                         figure_height: Optional[int] = None,
+                         nucl_per_line: Optional[int] = None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
@@ -262,14 +263,18 @@ def create_operon_figure(operon: Operon,
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
 
-    figure_width = max(int(operon_length/900), 5)
-    ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
-    return ax
+    if nucl_per_line is not None:
+        fig, _ = record.plot_on_multiple_lines(nucl_per_line=nucl_per_line, max_label_length=64)
+    else:
+        figure_width = max(int(operon_length/900), 5)
+        ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
+        fig = ax.figure
+    return fig
 
 
-def save_operon_figure(ax: Axes, out_filename: str):
+def save_operon_figure(fig, out_filename: str):
     """ Writes the operon figure to disk. """
-    ax.figure.savefig(out_filename, bbox_inches='tight')
+    fig.savefig(out_filename, bbox_inches='tight')
     plt.close()
 
 
