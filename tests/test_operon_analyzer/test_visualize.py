@@ -5,8 +5,11 @@ from operon_analyzer.visualize import calculate_adjusted_operon_bounds, \
                                       create_operon_figure, \
                                       build_image_filename, \
                                       _get_feature_color, \
-                                      _make_operon_pairs
+                                      _make_operon_pairs, \
+                                      _plot_clustered_operons
+from operon_analyzer.analyze import cluster_operons_by_feature_order
 from common import get_standard_operon
+import tempfile, os
 import pytest
 
 
@@ -201,3 +204,25 @@ def test_get_feature_color_real_regex_default():
     assert _get_feature_color("Acidaminococcus sp. BV3L6 Cas12a, CRISPR endonuclease of legend", feature_colors) == "red"
     assert _get_feature_color("Human Rad51", feature_colors) == "green"
     assert _get_feature_color("nonexistent", feature_colors) == "cornflour blue"
+
+
+@pytest.fixture()
+def temporary_directory():
+    tmp = tempfile.TemporaryDirectory()
+    yield tmp
+    tmp.cleanup()
+
+
+def test_plot_clustered_operons_motif_name_longer_than_sys_limit(temporary_directory):
+    # create a dummy operon that has a really long (>255 characters) motif name
+    genes = []
+    for i in range(100):
+        genes.append(Feature('cas1', (i, i+100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'))
+    operons = [Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)]
+    clustered_operons = cluster_operons_by_feature_order(operons)
+    _plot_clustered_operons(clustered_operons, image_dir=temporary_directory.name, plot_ignored=True, feature_colors={"cas1": "blue"})
+    gene_names = ["cas1"] * 100
+    motif_name = "1-" + "-".join(gene_names)
+    truncated_motif_name = motif_name[:os.statvfs(temporary_directory.name).f_namemax]
+    assert truncated_motif_name in os.listdir(temporary_directory.name)
+    
