@@ -394,9 +394,9 @@ def _contains_group(operon: Operon, feature_names: List[str], max_gap_distance_b
     if len(operon) < len(feature_names):
         return False
 
-    sorted_feature_names = tuple(sorted(feature_names))
+    sorted_feature_names = tuple(sorted(map(str.lower, feature_names)))
     for operon_chunk in more_itertools.windowed(operon, len(feature_names)):
-        sorted_chunk_names = tuple(sorted([feature.name for feature in operon_chunk]))
+        sorted_chunk_names = tuple(sorted([feature.name.lower() for feature in operon_chunk]))
         if sorted_chunk_names == sorted_feature_names:
             max_gap_distance_in_group = 0
             for feature1, feature2 in zip(operon_chunk, operon_chunk[1:]):
