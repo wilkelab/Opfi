@@ -375,9 +375,9 @@ class Pipeline:
                 Currently only supported for blastp/psiblast; if blast_type
                 is set to mmseqs or diamond, kwargs will be silently ignored.
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(FilterStep(Blastp(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
             self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
@@ -422,9 +422,9 @@ class Pipeline:
                 Currently only supported for blastp/psiblast; if blast_type
                 is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(SearchStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
