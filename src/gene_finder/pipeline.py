@@ -284,9 +284,9 @@ class Pipeline:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(SeedStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
