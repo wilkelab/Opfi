@@ -5,6 +5,7 @@ from gene_finder.steps import (SearchStep,
                                 SeedStep,
                                 SeedWithCoordinatesStep, 
                                 CrisprStep, 
+                                BlastnStep,
                                 Blastp, 
                                 Blastpsi, 
                                 MMseqs, 
@@ -211,6 +212,29 @@ class Pipeline:
                     self._working_results[neighborhood]["Hits"][hit] = hits[hit]
 
     
+    def _results_update_nucl(self, hits):
+        """Add hits for nucleotide BLAST."""
+
+        for hit in hits:
+            for neighborhood in self._working_results:
+
+                # note that the begining and end of the hit is denoted by 
+                # the begining and end of the orf used as the query
+                h_start = min(int(hits[hit]["Query_start-pos"]), 
+                                int(hits[hit]["Query_end-pos"]))
+                h_stop = max(int(hits[hit]["Query_start-pos"]), 
+                                int(hits[hit]["Query_end-pos"]))
+                
+                # check whether this hit is contained within the neighborhood
+                if (h_start >= self._working_results[neighborhood]["Loc_start-pos"] 
+                    and h_stop <= self._working_results[neighborhood]["Loc_end-pos"]):
+                    self._working_results[neighborhood]["Hits"][hit] = hits[hit]
+                    self._working_results[neighborhood]["new_hit_count"] += 1
+        
+        for neighborhood in self._working_results:
+            self._working_results[neighborhood]["new_hit_count"] = 0
+
+
     def _get_all_orfs(self, data, id):
         """Get all of the (translated) open reading frames in this genome."""
 
@@ -444,6 +468,11 @@ class Pipeline:
 
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
+    def add_blastn_step(self, db, name, e_val, parse_descriptions=True, **kwargs):
+        """ Add a step to do nucleotide BLAST. """
+        
+        self._steps.append(BlastnStep(db, e_val, parse_descriptions, kwargs))
+
 
     def _update_output_sequences(self):
         for neighborhood, path in self._neighborhood_orfs.items():
@@ -641,6 +670,10 @@ class Pipeline:
                     self._results_update_crispr(step.hits)
                     #print("CRISPR array search complete")
                         
+                elif isinstance(step, BlastnStep):
+                    step.execute(contig_path)
+                    self._results_update_nucl(step.hits)
+
                 else:
                     #print("Begin blast step: {}".format(step.name))
                     step.execute(neighborhood_orfs)

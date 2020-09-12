@@ -4,6 +4,7 @@ from Bio.Blast.Applications import (NcbiblastpCommandline,
 from gene_finder.utils import get_neighborhood_ranges
 from gene_finder.parsers import parse_search_output, parse_pilercr_summary
 from gene_finder.option_handling import (build_blastp_command,
+                                        build_blastn_command,
                                         build_psiblast_command)
 
 import os, subprocess, tempfile, multiprocessing
@@ -178,6 +179,33 @@ class Pilercr():
         subprocess.run(cmd, check=True)
         
         hits = parse_pilercr_summary(pilercr_out)
+        return hits
+        
+
+class BlastnStep():
+    """ Wrapper for NCBI blastn command line util. """
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovhsp qseq"
+
+    def __init__(self, db, e_val, parse_descriptions, kwargs):
+
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.db = db
+        self.e_val = e_val
+        self.parse_descriptions = parse_descriptions
+        self.kwargs = kwargs
+    
+    def construct_cmd(self, query, out):
+        return build_blastn_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
+
+    def run(self, genome):
+
+        blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
+        cmd = self.construct_cmd(genome, blast_out)
+        subprocess.run(cmd, check=True)
+        hits = parse_search_output(blast_out, self.step_id, "blast", self.parse_descriptions)
         return hits
         
 
