@@ -5,6 +5,7 @@ from gene_finder.steps import (SearchStep,
                                 SeedStep,
                                 SeedWithCoordinatesStep, 
                                 CrisprStep, 
+                                Blastn,
                                 BlastnStep,
                                 Blastp, 
                                 Blastpsi, 
@@ -468,10 +469,10 @@ class Pipeline:
 
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
-    def add_blastn_step(self, db, name, e_val, parse_descriptions=True, **kwargs):
+    def add_blastn_step(self, db, name, e_val, parse_descriptions=False, **kwargs):
         """ Add a step to do nucleotide BLAST. """
         
-        self._steps.append(BlastnStep(db, e_val, parse_descriptions, kwargs))
+        self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, kwargs)))
 
 
     def _update_output_sequences(self):

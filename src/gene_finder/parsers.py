@@ -1,5 +1,68 @@
 import os, json, csv
 
+
+def parse_blastn_output(tsv, step_id, parse_descriptions=True):
+    """Parse output from a search step (in blast tabular format).
+
+    Expects a tsv file with the following format fields: 
+        qseqid sseqid stitle evalue \
+        bitscore score length pident \
+        nident mismatch positive gapopen \
+        gaps ppos qcovhsp qseq qstart qend
+
+    Returns a dictionary of best hits for each query that had a 
+    hit, where "best" means the lowest e-value score.
+    """
+
+    try:
+        hits = {}
+        with open(tsv, newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter="\t")
+
+            for row in reader:
+                if _keep_row(row, hits):
+                    hit_dic = {}
+                    hit_dic['type'] = 'nucleotide'
+
+                    # get query start/stop pos (nt) 
+                    hit_dic["Query_start-pos"] = row[16]
+                    hit_dic["Query_end-pos"] = row[17]
+
+                    # information about the reference protein
+                    hit_acc = row[1].strip()
+                    hit_dic["Hit_accession"] = hit_acc if len(hit_acc) > 0 else "No accession/ID found for reference"
+                    hit_def = row[2].split()
+                    if parse_descriptions and len(hit_def) >= 2:
+                        hit_dic["Hit_name"] = hit_def[1]
+                        hit_dic["Hit_description"] = " ".join(hit_def)
+                    else:
+                        hit_def = " ".join(hit_def)
+                        hit_dic["Hit_name"] = hit_def if len(hit_def) > 0 else "No gene name found for reference"
+                        hit_dic["Hit_description"] = hit_def if len(hit_def) > 0 else "No gene description found for reference"
+                    
+                    # alignment statistics
+                    hit_dic["Hit_e-val"] = row[3]
+                    hit_dic["Bitscore"] = row[4]
+                    hit_dic["Raw_score"] = row[5]
+                    hit_dic["Alignment_length"] = row[6]
+                    hit_dic["Alignment_percent-identical"] = row[7]
+                    hit_dic["Alignment_num-identical"] = row[8]
+                    hit_dic["Alignment_mismatches"] = row[9]
+                    hit_dic["Alignment_num-positive"] = row[10]
+                    hit_dic["Alignment_num-gapopenings"] = row[11]
+                    hit_dic["Alignment_num-gaps"] = row[12]
+                    hit_dic["Alignment_percent-pos"] = row[13]
+                    hit_dic["Alignment_query-cov"] = row[14]
+                    hit_dic["Query_seq"] = row[15]
+                    hit_name = row[0]
+                    hits[hit_name] = hit_dic
+
+        hits = _reformat_hit_ids(hits, step_id)
+        return hits
+    
+    except csv.Error:
+        return {}
+
 def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
     """Parse output from a search step (in blast tabular format).
 
@@ -23,6 +86,7 @@ def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
                 if _keep_row(row, hits):
                     hit_dic = {}
                     local_query_id = row[0].split()[0]
+                    hit_dic['type'] = 'protein'
                     hit_dic["Query_ORFID"] = local_query_id
 
                     # get query start/stop pos (nt) from ORF id

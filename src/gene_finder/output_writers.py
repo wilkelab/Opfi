@@ -23,6 +23,36 @@ class CSVWriter:
 
         return FIELDNAMES
     
+    def _get_nucleotide_row(self, neighborhood, hit):
+        
+        row = [""] * 22
+        row[0] = self.id
+        row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
+                                neighborhood["Loc_end-pos"])
+        row[2] = hit["Hit_name"]
+        row[3] = "{}..{}".format(hit["Query_start-pos"],
+                                hit["Query_end-pos"])
+        row[4] = ''
+        row[5] = ''
+        row[6] = hit["Hit_accession"]
+        row[7] = hit["Hit_e-val"]
+        row[8] = hit["Hit_description"]
+        row[9] = hit["Query_seq"]
+        row[10] = hit["Bitscore"]
+        row[11] = hit["Raw_score"]
+        row[12] = hit["Alignment_length"]
+        row[13] = hit["Alignment_percent-identical"]
+        row[14] = hit["Alignment_num-identical"]
+        row[15] = hit["Alignment_mismatches"]
+        row[16] = hit["Alignment_num-positive"] if hit["Alignment_num-positive"] is not None else ""
+        row[17] = hit["Alignment_num-gapopenings"] 
+        row[18] = hit["Alignment_num-gaps"] if hit["Alignment_num-gaps"] is not None else ""
+        row[19] = hit["Alignment_percent-pos"] if hit["Alignment_percent-pos"] is not None else ""
+        row[20] = hit["Alignment_query-cov"]
+        row[21] = self.project_id
+
+        return row
+    
     def _get_row(self, neighborhood, hit):
         
         row = [""] * 22
@@ -82,8 +112,11 @@ class CSVWriter:
 
         rows = []
         for hit in neighborhood["Hits"]:
-            if "Query_ORFID" in neighborhood["Hits"][hit]:
+            hit_type = neighborhood["Hits"][hit].get('type')
+            if hit_type == 'protein':
                 rows.append(self._get_row(neighborhood, neighborhood["Hits"][hit]))
+            elif hit_type == 'nucleotide':
+                rows.append(self._get_nucleotide_row(neighborhood, neighborhood["Hits"][hit]))
             else:
                 rows.append(self._get_crispr_array_row(neighborhood, 
                                                         neighborhood["Hits"][hit]))
