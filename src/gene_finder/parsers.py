@@ -8,7 +8,7 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
         qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq qstart qend
+        gaps ppos qcovhsp qseq qstart qend sstrand
 
     Returns a dictionary of best hits for each query that had a 
     hit, where "best" means the lowest e-value score.
@@ -23,10 +23,6 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
                 if _keep_row(row, hits):
                     hit_dic = {}
                     hit_dic['type'] = 'nucleotide'
-
-                    # get query start/stop pos (nt) 
-                    hit_dic["Query_start-pos"] = row[16]
-                    hit_dic["Query_end-pos"] = row[17]
 
                     # information about the reference protein
                     hit_acc = row[1].strip()
@@ -54,6 +50,9 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
                     hit_dic["Alignment_percent-pos"] = row[13]
                     hit_dic["Alignment_query-cov"] = row[14]
                     hit_dic["Query_seq"] = row[15]
+                    hit_dic["Query_start-pos"] = row[16]
+                    hit_dic["Query_end-pos"] = row[17]
+                    hit_dic["Strand"] = row[18]
                     hit_name = row[0]
                     hits[hit_name] = hit_dic
 

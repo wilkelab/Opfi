@@ -187,7 +187,7 @@ class Blastn():
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq qstart qend"
+        gaps ppos qcovhsp qseq qstart qend sstrand"
 
     def __init__(self, db, step_id, e_val, parse_descriptions, kwargs):
         self.tmp_dir = tempfile.TemporaryDirectory()

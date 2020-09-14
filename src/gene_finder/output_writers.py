@@ -33,7 +33,7 @@ class CSVWriter:
         row[3] = "{}..{}".format(hit["Query_start-pos"],
                                 hit["Query_end-pos"])
         row[4] = ''
-        row[5] = ''
+        row[5] = hit["Strand"]
         row[6] = hit["Hit_accession"]
         row[7] = hit["Hit_e-val"]
         row[8] = hit["Hit_description"]
