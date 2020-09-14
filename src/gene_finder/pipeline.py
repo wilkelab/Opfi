@@ -5,6 +5,8 @@ from gene_finder.steps import (SearchStep,
                                 SeedStep,
                                 SeedWithCoordinatesStep, 
                                 CrisprStep, 
+                                Blastn,
+                                BlastnStep,
                                 Blastp, 
                                 Blastpsi, 
                                 MMseqs, 
@@ -211,6 +213,29 @@ class Pipeline:
                     self._working_results[neighborhood]["Hits"][hit] = hits[hit]
 
     
+    def _results_update_nucl(self, hits):
+        """Add hits for nucleotide BLAST."""
+
+        for hit in hits:
+            for neighborhood in self._working_results:
+
+                # note that the begining and end of the hit is denoted by 
+                # the begining and end of the orf used as the query
+                h_start = min(int(hits[hit]["Query_start-pos"]), 
+                                int(hits[hit]["Query_end-pos"]))
+                h_stop = max(int(hits[hit]["Query_start-pos"]), 
+                                int(hits[hit]["Query_end-pos"]))
+                
+                # check whether this hit is contained within the neighborhood
+                if (h_start >= self._working_results[neighborhood]["Loc_start-pos"] 
+                    and h_stop <= self._working_results[neighborhood]["Loc_end-pos"]):
+                    self._working_results[neighborhood]["Hits"][hit] = hits[hit]
+                    self._working_results[neighborhood]["new_hit_count"] += 1
+        
+        for neighborhood in self._working_results:
+            self._working_results[neighborhood]["new_hit_count"] = 0
+
+
     def _get_all_orfs(self, data, id):
         """Get all of the (translated) open reading frames in this genome."""
 
@@ -284,9 +309,9 @@ class Pipeline:
             Only one seed step should be added to the pipeline, and it should
             be first. Additional steps can occur in any order.
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(SeedStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
@@ -375,9 +400,9 @@ class Pipeline:
                 Currently only supported for blastp/psiblast; if blast_type
                 is set to mmseqs or diamond, kwargs will be silently ignored.
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(FilterStep(Blastp(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
             self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
@@ -422,9 +447,9 @@ class Pipeline:
                 Currently only supported for blastp/psiblast; if blast_type
                 is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
-        if blast_type == "PROT" or "blastp":
+        if blast_type in ("PROT", "blastp"):
             self._steps.append(SearchStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
-        elif blast_type == "PSI" or "psiblast":
+        elif blast_type in ("PSI", "psiblast"):
             self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
@@ -444,6 +469,11 @@ class Pipeline:
 
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
+    def add_blastn_step(self, db, name, e_val, parse_descriptions=False, **kwargs):
+        """ Add a step to do nucleotide BLAST. """
+        
+        self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, kwargs)))
+
 
     def _update_output_sequences(self):
         for neighborhood, path in self._neighborhood_orfs.items():
@@ -641,6 +671,10 @@ class Pipeline:
                     self._results_update_crispr(step.hits)
                     #print("CRISPR array search complete")
                         
+                elif isinstance(step, BlastnStep):
+                    step.execute(contig_path)
+                    self._results_update_nucl(step.hits)
+
                 else:
                     #print("Begin blast step: {}".format(step.name))
                     step.execute(neighborhood_orfs)
