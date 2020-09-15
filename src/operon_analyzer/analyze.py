@@ -4,6 +4,7 @@ from typing import Iterator, IO, Tuple, Optional, List, Dict, Set
 from operon_analyzer.genes import Operon
 from operon_analyzer.rules import RuleSet, Result, FilterSet
 from operon_analyzer.parse import assemble_operons, read_pipeline_output, load_operons
+from operon_analyzer import load
 import sys
 
 
@@ -48,6 +49,60 @@ def _evaluate_operons(operons: Iterator[Operon], ruleset: RuleSet, filterset: Op
         if filterset is not None:
             filterset.evaluate(operon)
         yield ruleset.evaluate(operon)
+
+
+def group_similar_operons(operons: List[Operon],
+                          load_sequences: bool = True):
+    """ Groups operons together if the nucleotide sequences bounded by their
+    outermost Features are identical. If load_sequences is True, the nucleotide
+    sequence of each operon will be loaded from disk as it is encountered.
+
+    Returns a list of one arbitrary operon per group.
+    """
+    # Since Operons with different motifs are guaranteed to have different
+    # nucleotide sequences, we cluster them first to reduce the number of
+    # comparisons we need to make.
+    clustered_operons = cluster_operons_by_feature_order(operons)
+    truly_nonredundant_operons = []
+
+    for label, cloperons in clustered_operons.items():
+        # If the cluster only has one member, no need to go any further
+        if len(cloperons) == 1:
+            truly_nonredundant_operons.append(cloperons[0])
+            continue
+
+        groups = []
+        for operon in cloperons:
+            if load_sequences:
+                load.load_sequence(operon)
+
+            for group in groups:
+                # Compare each operon to the first operon in each group.
+                # Since every group member is by definition identical,
+                # we don't need to check the rest.
+                leader = group[0]
+                leader_seq = leader.feature_region_sequence
+                forward_seq = operon.feature_region_sequence
+
+                if forward_seq == leader_seq:
+                    group.append(operon)
+                    break
+
+                rc_seq = operon.feature_region_sequence.reverse_complement()
+                if rc_seq == leader_seq:
+                    group.append(operon)
+                    break
+            else:
+                # No matches were found with existing groups, so we make this
+                # Operon the leader of a new group.
+                groups.append([operon])
+
+            # sort groups to prioritize searching the most popular ones first
+            groups = sorted(groups, key=lambda x: -len(x))
+
+        for group in groups:
+            truly_nonredundant_operons.append(group[0])
+    return truly_nonredundant_operons
 
 
 def cluster_operons_by_feature_order(operons: Iterator[Operon]):
