@@ -1,6 +1,7 @@
 import itertools
 import re
 from typing import List, Tuple, Optional
+from Bio.Seq import Seq
 
 
 class Feature(object):
@@ -86,6 +87,7 @@ class Operon(object):
         self.start = start
         self.end = end
         self._features = features
+        self._sequence = None
 
     def __hash__(self):
         feature_data = "".join([f"{feature.name}{feature.coordinates}{feature.sequence}" for feature in self._features])
@@ -96,6 +98,23 @@ class Operon(object):
                self.start == other.start and \
                self.end == other.end and \
                len(set(tuple(itertools.chain(self._features, other._features)))) == len(self._features)
+
+    def set_sequence(self, sequence: Seq):
+        """ Stores the nucleotide sequence of the operon. """
+        self._sequence = sequence
+
+    @property
+    def feature_region_sequence(self) -> str:
+        """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
+        lower_bound, upper_bound = self.end, self.start
+        for feature in self:
+            lower_bound = min(feature.start - 1, lower_bound)
+            upper_bound = max(feature.end, upper_bound)
+        return self._sequence[lower_bound:upper_bound]
+
+    @property
+    def sequence(self) -> str:
+        return self._sequence
 
     @property
     def all_genes(self):
