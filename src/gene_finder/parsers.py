@@ -52,7 +52,7 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
                     hit_dic["Query_seq"] = row[15]
                     hit_dic["Query_start-pos"] = row[16]
                     hit_dic["Query_end-pos"] = row[17]
-                    hit_dic["Strand"] = row[18]
+                    hit_dic["Strand"] = 1 if row[18] == 'plus' else -1
                     hit_name = row[0]
                     hits[hit_name] = hit_dic
 
