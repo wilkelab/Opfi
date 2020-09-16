@@ -395,7 +395,6 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
         plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
-
 def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None):
     """ Plots contigs, placing them in directories named by the count and motif of the operons.
     For example, if there are 527 operons with Cas9, glmS, a CRISPR array, and Cas1 (in that order or exactly reversed),
