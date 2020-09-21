@@ -223,6 +223,6 @@ def test_plot_clustered_operons_motif_name_longer_than_sys_limit(temporary_direc
     _plot_clustered_operons(clustered_operons, image_dir=temporary_directory.name, plot_ignored=True, feature_colors={"cas1": "blue"})
     gene_names = ["cas1"] * 100
     motif_name = "1-" + "-".join(gene_names)
-    truncated_motif_name = motif_name[:os.statvfs(temporary_directory.name).f_namemax]
-    assert truncated_motif_name in os.listdir(temporary_directory.name)
+    truncated_motif_name = motif_name[:os.statvfs(temporary_directory.name).f_namemax - 10]
+    assert len(os.listdir(temporary_directory.name)) == 1 and os.listdir(temporary_directory.name)[0][:-7] == truncated_motif_name
     
