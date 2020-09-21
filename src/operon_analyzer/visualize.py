@@ -339,7 +339,8 @@ def make_clustered_operon_plots(analysis_csv: str,
                                 diff_against_csv: Optional[str] = None,
                                 plot_ignored: bool = False,
                                 color_by_blast_statistic: Optional[str] = None,
-                                feature_colors: Optional[dict] = None
+                                feature_colors: Optional[dict] = None,
+                                nucl_per_line: Optional[int] = None
                                 ):
     """ Clusters operons by the order of their features and plots them in separate directories,
     adding the number of systems to the directory name. Only systems that passed the Ruleset will
@@ -383,7 +384,7 @@ def make_clustered_operon_plots(analysis_csv: str,
     diff_clustered_operon_motifs = set(analyze.cluster_operons_by_feature_order(diff_operons).keys())
     plottable_operons = {k: ops for k, ops in all_clustered_operons.items()
                          if k not in diff_clustered_operon_motifs and len(ops) >= min_count}
-    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
+    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors, nucl_per_line=nucl_per_line)
 
 
 def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
@@ -401,7 +402,7 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
 
 
 
-def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None):
+def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None, nucl_per_line: Optional[int] = None):
     """ Plots contigs, placing them in directories named by the count and motif of the operons.
     For example, if there are 527 operons with Cas9, glmS, a CRISPR array, and Cas1 (in that order or exactly reversed),
     the directory name will be 527-cas9-glms-array-cas1. """
@@ -409,7 +410,7 @@ def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_di
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(operons), image_dir)
         os.mkdir(motif_directory)
-        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
+        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors, nucl_per_line=nucl_per_line)
 
 
 def _make_motif_directory_name(motif_name: str, num_operons: int, image_dir: str) -> str:
