@@ -49,6 +49,18 @@ def test_rule_group():
         assert rules._contains_group(operon, feature_names, 20, False)
 
 
+def test_rule_group_case_insensitive():
+    operon = _get_group_operon()
+    for feature_names in itertools.permutations(['Transposase', 'Cas1', 'Cas2', 'CAS4']):
+        assert rules._contains_group(operon, feature_names, 20, False)
+
+
+def test_rule_group_case_insensitive2():
+    operon = _get_group_operon()
+    for feature_names in itertools.permutations(['Cas2', 'CAS4', 'mrtk']):
+        assert rules._contains_group(operon, feature_names, 120, False)
+
+
 def test_rule_group_missing():
     operon = _get_group_operon()
     for feature_names in itertools.permutations(['transposase', 'cas9000', 'cas2', 'cas4']):
