@@ -128,8 +128,8 @@ def test_create_operon_figure_with_CRISPR_array():
     fs.evaluate(operon)
     result = rs.evaluate(operon)
     assert result.is_passing
-    ax = create_operon_figure(operon, True)
-    features = _find_plotted_features(ax)
+    fig = create_operon_figure(operon, True)
+    features = _find_plotted_features(fig.axes[0]) # axes() returns a list of axes contained in the figure, and there is only one in this case
     assert features == set(['cas1', 'cas2', 'cas4', 'CRISPR array (2)'])
 
 
@@ -137,8 +137,8 @@ def test_create_operon_figure_with_ignored():
     operon = get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, True)
-    features = _find_plotted_features(ax)
+    fig = create_operon_figure(operon, True)
+    features = _find_plotted_features(fig.axes[0]) # axes() returns a list of axes contained in the figure, and there is only one in this case
     assert features == set(['cas1', 'cas2', 'cas4 (ignored)'])
 
 
@@ -147,8 +147,8 @@ def test_create_operon_figure_with_colors():
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
     gene_colors = {'cas1': 'purple', 'cas2': 'green'}
-    ax = create_operon_figure(operon, False, gene_colors)
-    features = _find_plotted_features(ax)
+    fig = create_operon_figure(operon, False, gene_colors)
+    features = _find_plotted_features(fig.axes[0]) # axes() returns a list of axes contained in the figure, and there is only one in this case
     assert features == set(['cas1', 'cas2'])
 
 
@@ -156,8 +156,8 @@ def test_create_operon_figure():
     operon = get_standard_operon()
     fs = FilterSet().must_be_within_n_bp_of_feature('cas2', 10)
     fs.evaluate(operon)
-    ax = create_operon_figure(operon, False)
-    features = _find_plotted_features(ax)
+    fig = create_operon_figure(operon, False)
+    features = _find_plotted_features(fig.axes[0]) # axes() returns a list of axes contained in the figure, and there is only one in this case
     assert features == set(['cas1', 'cas2'])
 
 
