@@ -1,9 +1,27 @@
 from operon_analyzer.genes import Feature, Operon
+from Bio.Seq import Seq
 
 
 def test_feature_length():
     f = Feature('gene', (1, 100), '', 1, '', 4e-12, '', 'MGWRN', 1234.9)
     assert len(f) == 100
+
+
+def test_operon_feature_region_sequence():
+    f1 = Feature('gene1', (5, 10), '', 1, '', 4e-12, '', 'MG', 1234.9)
+    f2 = Feature('gene2', (12, 20), '', 1, '', 4e-12, '', 'MTE', 1234.9)
+    f3 = Feature('gene3', (25, 30), '', 1, '', 4e-12, '', 'MR', 1234.9)
+    op = Operon('asdf', '/tmp/dna.fasta', 0, 999, [f1, f2, f3])
+    # Pipeline coordinates can be converted to Python indexes by
+    # subtracting 1 from the start coordinate and leaving the end coordinate
+    # unmodified. The coordinate bounds from the three Features above are
+    # 5..30, so the sequence slice [4:30] is the feature region sequence.
+    # 01234567890123456789012345678901
+    # AAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT
+    #     ++++++ +++++++++    ++++++
+    op.set_sequence(Seq("AAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT"))
+    expected = "AAAACCCCCCCCGGGGGGGGTTTTTT"
+    assert op.feature_region_sequence == expected
 
 
 def test_get_unique():

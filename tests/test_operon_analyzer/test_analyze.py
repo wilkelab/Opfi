@@ -1,5 +1,48 @@
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer import analyze
+from Bio.Seq import Seq
+
+
+def test_group_redundant_operons():
+    operons = []
+
+    # The first three operons should all group together
+    genes = [Feature('cas1', (10, 20), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (50, 60), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    operon = Operon('A', '/tmp/dna.fasta', 0, 13400, genes)
+    operon.set_sequence(Seq("A" * 16 + "C" * 16 + "C" * 16 + "G" * 16))
+    operons.append(operon)
+
+    genes = [Feature('cas1', (12, 22), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (52, 62), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    operon = Operon('B', '/tmp/dna.fasta', 0, 13400, genes)
+    operon.set_sequence(Seq("GG" + "A" * 16 + "C" * 16 + "C" * 16 + "G" * 16))
+    operons.append(operon)
+
+    genes = [Feature('cas1', (55, 45), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (15, 5), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    operon = Operon('C', '/tmp/dna.fasta', 0, 13400, genes)
+    operon.set_sequence(Seq("C" * 16 + "G" * 16 + "G" * 16 + "T" * 16))
+    operons.append(operon)
+
+    # This operon has Features in the exact same location as Operon A, but a different nucleotide sequence
+    genes = [Feature('cas1', (10, 20), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (50, 60), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    operon = Operon('D', '/tmp/dna.fasta', 0, 13400, genes)
+    operon.set_sequence(Seq("T" * 16 + "T" * 16 + "T" * 16 + "T" * 16))
+    operons.append(operon)
+
+    # This operon has the same nucleotide sequence as Operon A, but Features in a different location
+    genes = [Feature('cas1', (5, 15), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (45, 55), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    operon = Operon('E', '/tmp/dna.fasta', 0, 13400, genes)
+    operon.set_sequence(Seq("A" * 16 + "C" * 16 + "C" * 16 + "G" * 16))
+    operons.append(operon)
+
+    unique = analyze.group_similar_operons(operons, load_sequences=False)
+    actual_ids = [operon.contig for operon in unique]
+    expected_ids = ["A", "D", "E"]
+    assert actual_ids == expected_ids
 
 
 def test_sort_feature_names():
