@@ -82,16 +82,16 @@ def plot_operons(operons: List[Operon],
                  output_directory: str,
                  plot_ignored: bool = True,
                  color_by_blast_statistic: Optional[str] = None,
-                 feature_colors: Optional[dict] = {}):
+                 feature_colors: Optional[dict] = {},
+                 nucl_per_line: Optional[int] = None):
     """ Takes Operons and saves plots of them to disk. """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        fig, ax1 = plt.subplots()
-        ax = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, existing_ax=ax1)
-        if ax is None:
+        fig = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, nucl_per_line=nucl_per_line)
+        if fig is None:
             continue
-        save_operon_figure(ax, out_filename)
+        save_operon_figure(fig, out_filename)
 
 
 def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_length: int, plot_ignored: bool):
@@ -214,7 +214,8 @@ def create_operon_figure(operon: Operon,
                          color_by_blast_statistic: Optional[str] = None,
                          colormin: Optional[float] = None,
                          colormax: Optional[float] = None,
-                         figure_height: Optional[int] = None):
+                         figure_height: Optional[int] = None,
+                         nucl_per_line: Optional[int] = None):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
@@ -264,14 +265,18 @@ def create_operon_figure(operon: Operon,
     record = GraphicRecord(sequence_length=operon_length,
                            features=graphic_features)
 
-    figure_width = max(int(operon_length/900), 5)
-    ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
-    return ax
+    if nucl_per_line is not None:
+        fig, _ = record.plot_on_multiple_lines(nucl_per_line=nucl_per_line, max_label_length=64)
+    else:
+        figure_width = max(int(operon_length/900), 5)
+        ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
+        fig = ax.figure
+    return fig
 
 
-def save_operon_figure(ax: Axes, out_filename: str):
+def save_operon_figure(fig, out_filename: str):
     """ Writes the operon figure to disk. """
-    ax.figure.savefig(out_filename, bbox_inches='tight')
+    fig.savefig(out_filename, bbox_inches='tight')
     plt.close()
 
 
@@ -336,7 +341,8 @@ def make_clustered_operon_plots(analysis_csv: str,
                                 diff_against_csv: Optional[str] = None,
                                 plot_ignored: bool = False,
                                 color_by_blast_statistic: Optional[str] = None,
-                                feature_colors: Optional[dict] = None
+                                feature_colors: Optional[dict] = None,
+                                nucl_per_line: Optional[int] = None
                                 ):
     """ Clusters operons by the order of their features and plots them in separate directories,
     adding the number of systems to the directory name. Only systems that passed the Ruleset will
@@ -380,7 +386,7 @@ def make_clustered_operon_plots(analysis_csv: str,
     diff_clustered_operon_motifs = set(analyze.cluster_operons_by_feature_order(diff_operons).keys())
     plottable_operons = {k: ops for k, ops in all_clustered_operons.items()
                          if k not in diff_clustered_operon_motifs and len(ops) >= min_count}
-    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
+    _plot_clustered_operons(plottable_operons, image_directory, plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors, nucl_per_line=nucl_per_line)
 
 
 def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
@@ -396,15 +402,15 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
         plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
-def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None):
+def _plot_clustered_operons(clustered_operons: Dict[str, List[Operon]], image_dir: str, plot_ignored: bool, color_by_blast_statistic: Optional[str] = None, feature_colors: Optional[dict] = None, nucl_per_line: Optional[int] = None):
     """ Plots contigs, placing them in directories named by the count and motif of the operons.
     For example, if there are 527 operons with Cas9, glmS, a CRISPR array, and Cas1 (in that order or exactly reversed),
     the directory name will be 527-cas9-glms-array-cas1. """
     for motif_items, operons in clustered_operons.items():
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(operons), image_dir)
-        os.makedirs(motif_directory)
-        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
+        os.mkdir(motif_directory)
+        plot_operons(operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors, nucl_per_line=nucl_per_line)
 
 
 def _make_motif_directory_name(motif_name: str, num_operons: int, image_dir: str) -> str:
