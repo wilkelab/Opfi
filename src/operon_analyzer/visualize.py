@@ -4,6 +4,8 @@ import math
 import os
 import re
 import sys
+import random
+import string
 from typing import Tuple, Dict, IO, List, Optional, Iterable, Any
 import matplotlib
 import matplotlib.pyplot as plt
@@ -396,8 +398,7 @@ def _plot_clustered_stacked_operons(clustered_operons: Dict[str, List[Operon]],
     for motif_items, ops in clustered_operons.items():
         motif_name = '-'.join(motif_items)
         motif_directory = _make_motif_directory_name(motif_name, len(ops), image_directory)
-        if not os.path.exists(motif_directory):
-            os.makedirs(motif_directory)
+        os.makedirs(motif_directory)
         plot_operon_pairs(ops, other_operons, motif_directory, plot_ignored=plot_ignored, color_by_blast_statistic=color_by_blast_statistic, feature_colors=feature_colors)
 
 
@@ -416,4 +417,8 @@ def _make_motif_directory_name(motif_name: str, num_operons: int, image_dir: str
     """ Makes a string to use as a directory name for some set of operons with the same motif """
     motif_name = motif_name.replace("CRISPR array", "array").replace(" ", "_")
     motif_name = f"{num_operons}-{motif_name}"
+    # get the filename character limit for the file system we are trying to write to
+    max_allowed_chars = os.statvfs(image_dir).f_namemax
+    if len(motif_name) > max_allowed_chars:
+        motif_name = motif_name[:max_allowed_chars - 10] + "-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     return os.path.join(image_dir, motif_name)
