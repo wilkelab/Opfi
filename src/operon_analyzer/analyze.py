@@ -105,6 +105,82 @@ def group_similar_operons(operons: List[Operon],
     return truly_nonredundant_operons
 
 
+def deduplicate_operons_approximate(operons: Iterator[Operon]) -> List[Operon]:
+    """
+    Deduplicates Operons by examining the names and sequences of the
+    Features and the sizes of the gaps between them. This is an approximate
+    algorithm: false positives are possible when the nucleotide sequence varies
+    between the Features (without changing the total number of base pairs) or
+    if there are silent mutations in the Feature CDS. However, it is much
+    faster than the exact method.
+
+    """
+
+    clustered_operons = cluster_operons_by_feature_order(operons)
+    truly_nonredundant_operons = []
+
+    for cloperons in clustered_operons.values():
+        # If the cluster only has one member, no need to go any further
+        if len(cloperons) == 1:
+            truly_nonredundant_operons.append(cloperons[0])
+            continue
+
+        groups = []
+        for operon in cloperons:
+            for group in groups:
+                # Compare each Operon to the first Operon in each group.
+                # Since every group member is by definition identical,
+                # we don't need to check the rest.
+                leader = group[0]
+                if _operons_are_approximately_equal(leader, operon):
+                    group.append(operon)
+                    break
+            else:
+                # No matches were found with existing groups, so we make this
+                # Operon the leader of a new group.
+                groups.append([operon])
+
+            # sort groups to prioritize searching the most popular ones first
+            groups = sorted(groups, key=lambda x: -len(x))
+
+        for group in groups:
+            truly_nonredundant_operons.append(group[0])
+    return truly_nonredundant_operons
+
+
+def _operons_are_approximately_equal(leader: Operon, operon: Operon) -> bool:
+    """
+    Determines if two operons have the same protein coding genes in the
+    same order and the same relative positions. CRISPR arrays are only taken
+    into account when looking at the order of Features, but not the exact
+    positions, since their position and sequence cannot be determined as
+    robustly as proteins.
+    """
+    leader_features = sorted(leader, key=lambda x: x.start)
+    operon_features = sorted(operon, key=lambda x: x.start)
+    leader_names = tuple(feature.name for feature in leader_features)
+    operon_names = tuple(feature.name for feature in operon_features)
+
+    # exclude CRISPR arrays during position/sequence comparisons
+    leader_features = [f for f in leader_features if f.name != 'CRISPR array']
+    operon_features = [f for f in operon_features if f.name != 'CRISPR array']
+
+    # Look at the distance between each protein-coding gene
+    leader_gaps = tuple([f2.start-f1.end for f1, f2 in zip(leader_features, leader_features[1:])])
+    operon_gaps = tuple([f2.start-f1.end for f1, f2 in zip(operon_features, operon_features[1:])])
+
+    if leader_names == operon_names and leader_gaps == operon_gaps:
+        # Both operons are in the same orientation.
+        # Now we look at the sequence of each protein-coding gene
+        return all([l.sequence == o.sequence for l, o in zip(leader_features, operon_features)])
+
+    elif leader_names == tuple(reversed(operon_names)) and leader_gaps == tuple(reversed(operon_gaps)):
+        # The operons are in opposing orientations.
+        # Now we look at the sequence of each protein-coding gene
+        return all([l.sequence == o.sequence for l, o in zip(leader_features, tuple(reversed(operon_features)))])
+    return False
+
+
 def cluster_operons_by_feature_order(operons: Iterator[Operon]):
     """ Organizes all operons into a dictionary based on the order/identity of the features.
     Cases where the overall order is inverted are considered to be the same. The keys of the dictionary
