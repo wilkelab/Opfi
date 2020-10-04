@@ -134,8 +134,10 @@ def _build_censored_contig(spacer: piler_parse.RepeatSpacer, contig: Seq) -> str
     the local alignment doesn't just find the spacer itself.
     """
     spacer_start = spacer.position + spacer.repeat_len
-    spacer_end = spacer.position + spacer.repeat_len + spacer.spacer_len + 1
-    return str(contig[:spacer_start]) + "N"*len(spacer) + str(contig[spacer_end:])
+    spacer_end = spacer.position + spacer.repeat_len + spacer.spacer_len
+    censored = str(contig[:spacer_start]) + "N"*spacer.spacer_len + str(contig[spacer_end:])
+    assert len(censored) == len(contig), f"{len(contig)} {len(censored)}"
+    return censored
 
 
 def _align(spacer: str, contig: str):
@@ -212,7 +214,7 @@ def _fix_arrays(arrays: List[Array], contig: Seq) -> List[Array]:
         median_length = _find_median_spacer_length(array)
         if not median_length:
             continue
-        fixed_array = _fix_broken_spacers(array, median_length, contig)
+        fixed_array = _fix_array(array, median_length, contig)
         fixed_arrays.append(fixed_array)
     return fixed_arrays
 
@@ -224,7 +226,7 @@ def _find_median_spacer_length(array: List[Spacer]) -> Optional[int]:
     return int(statistics.median(good_spacers))
 
 
-def _fix_broken_spacers(array: List[Spacer], median_length: int, sequence: Seq) -> List[piler_parse.RepeatSpacer]:
+def _fix_array(array: List[Spacer], median_length: int, sequence: Seq) -> List[piler_parse.RepeatSpacer]:
     """
     Pilercr sometimes reports that the last spacer in an array is much shorter than the rest.
     We assume that it should at least have the median length of the rest of the spacers and extend
@@ -234,12 +236,19 @@ def _fix_broken_spacers(array: List[Spacer], median_length: int, sequence: Seq) 
     for rs in array:
         # Figure out what the spacer sequence is
         if type(rs) is piler_parse.BrokenSpacer:
-            spacer = str(sequence)[rs.position + rs.repeat_len - 1:rs.position + rs.repeat_len + median_length - 1]
-            if len(spacer) <= MAX_SPACER_LENGTH_BP:
-                fixed_array.append(piler_parse.RepeatSpacer(rs.position, rs.repeat_len, len(spacer), Seq(spacer)))
+            fixed_rs = _fix_broken_spacer(rs, median_length, sequence)
+            if fixed_rs:
+                fixed_array.append(fixed_rs)
         else:
             fixed_array.append(rs)
     return fixed_array
+
+
+def _fix_broken_spacer(rs: piler_parse.BrokenSpacer, median_length: int, sequence: Seq) -> Optional[piler_parse.RepeatSpacer]:
+    spacer = str(sequence)[rs.position + rs.repeat_len: rs.position + rs.repeat_len + median_length]
+    if len(spacer) > MAX_SPACER_LENGTH_BP:
+        return None
+    return piler_parse.RepeatSpacer(rs.position, rs.repeat_len, len(spacer), Seq(spacer))
 
 
 def _load_sequence(operon: genes.Operon):
