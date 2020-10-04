@@ -1,10 +1,23 @@
 from Bio.Seq import Seq
+import pytest
 from operon_analyzer.piler_parse import RepeatSpacer, BrokenSpacer
 from operon_analyzer.spacers import _count_cigar_matches, _align, _build_censored_contig, _fix_broken_spacer
-import pytest
 
 
-def test_fix_broken_spacers():
+def test_align():
+    spacer = "CTGGCCC"
+    #         01234567890123456789012
+    contig = "AAAAAAAAAAAAAAAACTGCCCAAAAAAAAAAAAAAA"
+    _, match_count, contig_target_sequence, contig_start, contig_end, contig_alignment, spacer_alignment, comp_string = _align(spacer, contig)
+    assert match_count == 6
+    assert contig_alignment == "CT-GCCC"
+    assert contig_start == 16
+    assert contig_end == 21
+    assert spacer_alignment == "CTGGCCC"
+    assert comp_string == "|| ||||"
+
+
+def test_fix_broken_spacer():
     #                 01234567890123456789012345678
     contig_seq = Seq("GGGGGTTTAAAACCCCCCCCCCAAAAAAA")
     # 3 bp repeat ("TTT") followed by 4 bp broken spacer ("AAAA") at position 5

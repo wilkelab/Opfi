@@ -1,5 +1,5 @@
 import gzip
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 from collections import namedtuple
 import tempfile
 import subprocess
@@ -140,7 +140,7 @@ def _build_censored_contig(spacer: piler_parse.RepeatSpacer, contig: Seq) -> str
     return censored
 
 
-def _align(spacer: str, contig: str):
+def _align(spacer: str, contig: str) -> Tuple[float, int, str, int, int, str, str, str]:
     """ Run the local pairwise alignment of two strings and return alignment data. """
     # perform the alignment
     result = parasail.sw_trace(spacer, contig, GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY, parasail.blosum62)
@@ -149,8 +149,8 @@ def _align(spacer: str, contig: str):
     cigar_text = result.cigar.decode.decode("utf8")
     match_count = _count_cigar_matches(cigar_text)
     contig_target_sequence = result.traceback.ref.replace("-", "")
-    contig_end = result.end_ref + 1
-    contig_start = contig_end - len(contig_target_sequence)
+    contig_end = result.end_ref
+    contig_start = contig_end - len(contig_target_sequence) + 1
     return result.score, match_count, contig_target_sequence, contig_start, contig_end, result.traceback.ref, result.traceback.query, result.traceback.comp
 
 
