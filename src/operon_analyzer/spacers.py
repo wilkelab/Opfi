@@ -1,5 +1,5 @@
 import gzip
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional
 from collections import namedtuple
 import tempfile
 import subprocess
@@ -25,17 +25,10 @@ cigar_regex = re.compile(r"(\d+)=")
 start_regex = re.compile(r'^(\d+)D')
 
 
-def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fraction: float, num_processes: int = 32) -> List[genes.Feature]:
+def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fraction: float, num_processes: int = 32):
     """
-    Finds all self-targeting spacers in an Operon's CRISPR arrays,
-    and returns Feature objects for each of those (with the name "CRISPR target")
-
-    Steps:
-      - Loads the sequence of the contig that the operon came from
-      - Runs pilercr again and extracts the spacer sequences
-      - Performs a pairwise local alignment of each spacer and the contig
-      - For spacers above the match threshold, creates a Feature object
-      - Returns the Features
+    For each given Operon, this will determine if CRISPR spacers target a location in the operon's parent contig.
+    Matches with more than min_matching_fraction homology will be added to the Operon as a Feature named "CRISPR target".
     """
     pool = multiprocessing.Pool(min(num_processes, len(operons)))
     results = []
@@ -49,13 +42,18 @@ def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fracti
 
 
 def _align_operon_spacers(operon: genes.Operon, min_matching_fraction: float):
+    """
+    Aligns every spacer in an Operon to its parent contig. Any spacers with a target that has
+    at least min_matching_fraction homology will be converted to Features with the name
+    "CRISPR target" and added to the Operon object.
+    """
     contig_sequence = _load_sequence(operon)
     assert contig_sequence is not None, f"Operon's sequence file cannot be found: {operon.contig_filename}."
     spacers = _get_operon_spacers(operon.start, operon.end, contig_sequence)
     if not spacers:
         return []
     for spacer, spacer_position, array_length in spacers:
-        ar = _align_spacer_to_contig(spacer, spacer_position, array_length, str(contig_sequence))
+        ar = _perform_local_pairwise_alignment(spacer, spacer_position, array_length, str(contig_sequence))
         if not ar:
             continue
         matching_fraction = ar.match_count / len(ar.spacer_sequence)
@@ -66,6 +64,10 @@ def _align_operon_spacers(operon: genes.Operon, min_matching_fraction: float):
 
 
 def _get_operon_spacers(operon_start: int, operon_end: int, contig_sequence: Seq):
+    """
+    Runs pilercr and extracts all the spacer sequences found within the operon.
+    Also adds the position of the spacer in the array, and the total array length.
+    """
     piler_data = _run_piler(contig_sequence)
     arrays = piler_parse.parse_pilercr_output(piler_data, operon_start, operon_end)
     fixed_arrays = _fix_arrays(arrays, contig_sequence)
@@ -76,30 +78,22 @@ def _get_operon_spacers(operon_start: int, operon_end: int, contig_sequence: Seq
     return spacers
 
 
-def _align_spacer_to_contig(spacer: piler_parse.RepeatSpacer,
-                            spacer_position: int,
-                            array_length: int,
-                            contig: str) -> Optional[AlignmentResult]:
-    alignment_result = _perform_local_pairwise_alignment(spacer, spacer_position, array_length, contig)
-
-    # We shouldn't have more matching base pairs than base pairs
-    assert alignment_result.match_count <= len(alignment_result.spacer_sequence), str(alignment_result)
-    assert alignment_result.match_count <= len(alignment_result.contig_sequence), str(alignment_result)
-
-    if "N" in alignment_result.contig_sequence:
-        # don't permit contigs with any uncertainty
-        return None
-    return alignment_result
-
-
 def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
                                       spacer_position: int,
                                       array_length: int,
-                                      contig: Seq) -> Tuple[int, int, str, str, int, int]:
+                                      contig: Seq) -> Optional[AlignmentResult]:
+    """
+    Aligns a spacer and its reverse complement to the given contig and returns the better of the two matches.
+    The spacer sequence itself is removed from the contig so that we don't just return the spacer itself.
+    """
     best_score = 0
     best_strand = None
+    assert str(spacer.sequence) in contig
     censored_contig = _build_censored_contig(spacer, contig)
+
     spacer_seqs = spacer.sequence, spacer.sequence.reverse_complement()
+    for seq in spacer_seqs:
+        assert str(seq) not in censored_contig
 
     for n, spacer_seq in enumerate(spacer_seqs):
         results = _align(str(spacer_seq), censored_contig)
@@ -112,7 +106,7 @@ def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
     _, match_count, contig_target, contig_start, contig_end, contig_alignment, spacer_alignment, comp_string = best_results
     strand = [1, -1][best_strand]
 
-    return AlignmentResult(match_count,
+    alignment_result = AlignmentResult(match_count,
                            str(spacer_seqs[best_strand]),
                            contig_target,
                            contig_start,
@@ -124,31 +118,42 @@ def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
                            spacer_position,
                            array_length)
 
+    # We shouldn't have more matching base pairs than base pairs
+    assert alignment_result.match_count <= len(alignment_result.spacer_sequence), str(alignment_result)
+    assert alignment_result.match_count <= len(alignment_result.contig_sequence), str(alignment_result)
+
+    if "N" in alignment_result.contig_sequence:
+        # don't permit contigs with any uncertainty
+        return None
+    return alignment_result
+
 
 def _build_censored_contig(spacer: piler_parse.RepeatSpacer, contig: Seq) -> str:
-    """ Replace the spacer sequence itself in the contig with repeating "N"s so that
-    the local alignment doesn't just find the spacer itself. """
+    """
+    Replace the spacer sequence itself in the contig with repeating "N"s so that
+    the local alignment doesn't just find the spacer itself.
+    """
     spacer_start = spacer.position + spacer.repeat_len
     spacer_end = spacer.position + spacer.repeat_len + spacer.spacer_len + 1
     return str(contig[:spacer_start]) + "N"*len(spacer) + str(contig[spacer_end:])
 
 
-def _align(spacer, contig):
+def _align(spacer: str, contig: str):
+    """ Run the local pairwise alignment of two strings and return alignment data. """
+    # perform the alignment
     result = parasail.sw_trace(spacer, contig, GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY, parasail.blosum62)
+
+    # extract pertinent data from the alignment result
     cigar_text = result.cigar.decode.decode("utf8")
     match_count = _count_cigar_matches(cigar_text)
-
-    # There is a bug that misreports the CIGAR string for some sequences, so we have
-    # to manually determine where the alignment occurs in the contig
-    fixed_contig_align = result.traceback.ref.replace("-", "")
-    contig_start = contig.index(fixed_contig_align)
+    contig_target_sequence = result.traceback.ref.replace("-", "")
     contig_end = result.end_ref + 1
-    contig_target_sequence = contig[contig_start: contig_end]
-    assert contig_target_sequence == fixed_contig_align
+    contig_start = contig_end - len(contig_target_sequence)
     return result.score, match_count, contig_target_sequence, contig_start, contig_end, result.traceback.ref, result.traceback.query, result.traceback.comp
 
 
 def _build_feature_from_alignment(ar: AlignmentResult) -> genes.Feature:
+    """ Alignment results are converted to Features so that we can plot them easily. """
     description = json.dumps({"match_count": ar.match_count,
                               "matching_fraction": (ar.match_count / len(str(ar.spacer_sequence))),
                               "spacer_alignment": ar.spacer_alignment,
@@ -180,14 +185,17 @@ def _count_cigar_matches(string: str) -> int:
 
 def _run_piler(sequence: str) -> str:
     """ Runs pilercr on the given Seq sequence and returns the raw file output """
-    with tempfile.NamedTemporaryFile('w') as contig_file, tempfile.NamedTemporaryFile('w') as pilercr_file:
+    with tempfile.NamedTemporaryFile('w', dir='/tmp') as contig_file, tempfile.NamedTemporaryFile('w', dir='/tmp') as pilercr_file:
         contig_file.write(f">sequence\n{sequence}")
         command = ["pilercr", "-in", contig_file.name,
                               "-out", pilercr_file.name,
                               "-minarray", "2",
                               "-quiet",
                               "-noinfo"]
-        result = subprocess.call(command)
+        # Piler crashes on some inputs. We pipe stderr to suppress the error messages.
+        # We may be losing results when this occurs, but it's pretty rare and there's
+        # nothing we can do about it either way.
+        result = subprocess.call(command, stderr=subprocess.DEVNULL)
         if result != 0:
             return None
         with open(pilercr_file.name) as f:
@@ -195,6 +203,10 @@ def _run_piler(sequence: str) -> str:
 
 
 def _fix_arrays(arrays: List[Array], contig: Seq) -> List[Array]:
+    """
+    Ensures that the final spacer in each array is a reasonable length. For some reason, they
+    are occasionally substantially shorter than all preceeding spacers in the array.
+    """
     fixed_arrays = []
     for array in arrays:
         median_length = _find_median_spacer_length(array)
@@ -213,7 +225,8 @@ def _find_median_spacer_length(array: List[Spacer]) -> Optional[int]:
 
 
 def _fix_broken_spacers(array: List[Spacer], median_length: int, sequence: Seq) -> List[piler_parse.RepeatSpacer]:
-    """ Pilercr sometimes reports that the last spacer in an array is much shorter than the rest.
+    """
+    Pilercr sometimes reports that the last spacer in an array is much shorter than the rest.
     We assume that it should at least have the median length of the rest of the spacers and extend
     it to that length.
     """
@@ -230,6 +243,7 @@ def _fix_broken_spacers(array: List[Spacer], median_length: int, sequence: Seq) 
 
 
 def _load_sequence(operon: genes.Operon):
+    """ Loads the DNA sequence for a given operon's contig. """
     with gzip.open(operon.contig_filename, 'rt') as f:
         records = SeqIO.parse(f, 'fasta')
         for record in records:
