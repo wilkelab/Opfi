@@ -1,3 +1,5 @@
+""" Parses piler-cr output to extract the sequences of every spacer. """
+
 from typing import List
 from collections import namedtuple
 from Bio.Seq import Seq
@@ -8,30 +10,32 @@ BrokenSpacer = namedtuple('BrokenSpacer', ['position', 'repeat_len', 'sequence']
 
 
 def parse_pilercr_output(text: str, start: int, end: int):
+    """ Takes the text of piler-cr raw output, and a start and end coordinate for an operon's
+    neighborhood, and extracts all spacers in that region. """
     if text is None:
         # There were no spacers in this contig
         return []
     text = text.split("\n")
-    text = find_first_entry(text)
+    text = _find_first_entry(text)
     if text is None:
         # There were no spacers in this contig
         return []
     results = []
     while True:
-        repeat_spacers, text = parse_entry(text)
+        repeat_spacers, text = _parse_entry(text)
         valid_spacers = []
         for rs in repeat_spacers:
             if start <= rs.position <= end:
                 valid_spacers.append(rs)
         if valid_spacers:
             results.append(valid_spacers)
-        text = find_next_entry(text)
+        text = _find_next_entry(text)
         if not text:
             break
     return results
 
 
-def find_next_entry(text: List[str]):
+def _find_next_entry(text: List[str]):
     for n, line in enumerate(text):
         if line.startswith(">"):
             return text[n:]
@@ -40,13 +44,13 @@ def find_next_entry(text: List[str]):
     return False
 
 
-def find_first_entry(text: List[str]):
+def _find_first_entry(text: List[str]):
     for n, line in enumerate(text):
         if line.startswith(">"):
             return text[n:]
 
 
-def parse_entry(text: List[str]):
+def _parse_entry(text: List[str]):
     repeat_spacers = []
     assert text[0].startswith(">")
     for n, line in enumerate(text[4:]):

@@ -32,12 +32,14 @@ def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fracti
     """
     pool = multiprocessing.Pool(min(num_processes, len(operons)))
     results = []
-    for operon in operons:
+    for n, operon in enumerate(operons):
+        print(f"starting operon {n}")
         result = pool.apply_async(_align_operon_spacers, args=(operon, min_matching_fraction))
         results.append(result)
     pool.close()
     pool.join()
-    for result in results:
+    for m, result in enumerate(results):
+        print(f"result {m}")
         yield result.get()
 
 
@@ -92,8 +94,6 @@ def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
     censored_contig = _build_censored_contig(spacer, contig)
 
     spacer_seqs = spacer.sequence, spacer.sequence.reverse_complement()
-    for seq in spacer_seqs:
-        assert str(seq) not in censored_contig
 
     for n, spacer_seq in enumerate(spacer_seqs):
         results = _align(str(spacer_seq), censored_contig)
@@ -107,16 +107,16 @@ def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
     strand = [1, -1][best_strand]
 
     alignment_result = AlignmentResult(match_count,
-                           str(spacer_seqs[best_strand]),
-                           contig_target,
-                           contig_start,
-                           contig_end,
-                           spacer_alignment,
-                           contig_alignment,
-                           comp_string,
-                           strand,
-                           spacer_position,
-                           array_length)
+                                       str(spacer_seqs[best_strand]),
+                                       contig_target,
+                                       contig_start,
+                                       contig_end,
+                                       spacer_alignment,
+                                       contig_alignment,
+                                       comp_string,
+                                       strand,
+                                       spacer_position,
+                                       array_length)
 
     # We shouldn't have more matching base pairs than base pairs
     assert alignment_result.match_count <= len(alignment_result.spacer_sequence), str(alignment_result)
