@@ -76,6 +76,8 @@ def _get_operon_spacers(operon_start: int, operon_end: int, contig_sequence: Seq
     spacers = []
     for array in fixed_arrays:
         for n, spacer in enumerate(array):
+            if len(spacer.sequence) > MAX_SPACER_LENGTH_BP:
+                continue
             spacers.append((spacer, n, len(array)))
     return spacers
 
