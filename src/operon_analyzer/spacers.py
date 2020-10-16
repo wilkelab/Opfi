@@ -251,12 +251,3 @@ def _fix_broken_spacer(rs: piler_parse.BrokenSpacer, median_length: int, sequenc
     if len(spacer) > MAX_SPACER_LENGTH_BP:
         return None
     return piler_parse.RepeatSpacer(rs.position, rs.repeat_len, len(spacer), Seq(spacer))
-
-
-def _load_sequence(operon: genes.Operon):
-    """ Loads the DNA sequence for a given operon's contig. """
-    with gzip.open(operon.contig_filename, 'rt') as f:
-        records = SeqIO.parse(f, 'fasta')
-        for record in records:
-            if record.id == operon.contig:
-                return Seq(str(record.seq))
