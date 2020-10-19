@@ -104,12 +104,17 @@ class Operon(object):
         self._sequence = sequence
 
     @property
-    def feature_region_sequence(self) -> str:
-        """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
+    def feature_region(self) -> Tuple[int, int]:
         lower_bound, upper_bound = self.end, self.start
         for feature in self:
             lower_bound = min(feature.start - 1, lower_bound)
             upper_bound = max(feature.end, upper_bound)
+        return lower_bound, upper_bound
+
+    @property
+    def feature_region_sequence(self) -> str:
+        """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
+        lower_bound, upper_bound = self.feature_region
         return self._sequence[lower_bound:upper_bound]
 
     @property
