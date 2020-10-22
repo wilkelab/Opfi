@@ -159,8 +159,8 @@ def test_group_redundant_operons():
     operon.set_sequence(Seq("GG" + "A" * 16 + "C" * 16 + "C" * 16 + "G" * 16))
     operons.append(operon)
 
-    genes = [Feature('cas1', (55, 45), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-             Feature('cas2', (15, 5), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
+    genes = [Feature('cas1', (45, 55), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+             Feature('cas2', (5, 15), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR')]
     operon = Operon('C', '/tmp/dna.fasta', 0, 13400, genes)
     operon.set_sequence(Seq("C" * 16 + "G" * 16 + "G" * 16 + "T" * 16))
     operons.append(operon)
@@ -199,9 +199,9 @@ def test_sort_feature_names():
 
 def test_sort_feature_names2():
     genes = [
-            Feature('cas1', (4000, 1200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 2200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas1', (1200, 4000), 'lcl|4000|1200|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 2200), 'lcl|620|2200|1|1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 13400, genes)
     actual = analyze._get_sorted_feature_names(operon)
@@ -211,9 +211,9 @@ def test_sort_feature_names2():
 
 def test_sort_feature_names3():
     genes = [
-            Feature('cas2', (4000, 1200), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas1', (410, 600), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('cas4', (620, 2200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas2', (1200, 4000), 'lcl|4000|1200|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas1', (410, 600), 'lcl|410|600|1|1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (620, 2200), 'lcl|620|2200|1|1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 13400, genes)
     actual = analyze._get_sorted_feature_names(operon)

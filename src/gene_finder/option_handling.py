@@ -30,7 +30,7 @@ def build_blastp_command(query, db, evalue, kwargs, output_fields, out):
     at this time, only certain options are allowed.
     """
 
-    cmd = ["blastp", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
+    cmd = ["blastp-2.10", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
     for key, value in kwargs.items():
         if key in (BLAST_OPTIONS_COMMON + BLASTP_OPTIONS):
             cmd.append("-{}".format(key))
@@ -71,7 +71,7 @@ def build_blastn_command(query, db, evalue, kwargs, output_fields, out):
     kwargs should be valid blastn options. 
     """
 
-    cmd = ["blastn", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
+    cmd = ["blastn-2.10", "-query", query, "-db", db, "-evalue", str(evalue), "-out", out]
     for key, value in kwargs.items():
         if key in BLASTN_OPTIONS:
             cmd.append("-{}".format(key))
