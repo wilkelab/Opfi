@@ -73,7 +73,6 @@ def group_similar_operons(operons: List[Operon],
 
         groups = []
         for operon in cloperons:
-            print(operon.feature_region_sequence)
             if load_sequences:
                 load.load_sequence(operon)
 
