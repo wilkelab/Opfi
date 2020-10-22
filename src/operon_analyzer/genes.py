@@ -94,7 +94,7 @@ class Operon(object):
         """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
         lower_bound, upper_bound = self.end, self.start
         for feature in self:
-            lower_bound = min(feature.start - 1, lower_bound)
+            lower_bound = min(feature.start, lower_bound)
             upper_bound = max(feature.end, upper_bound)
         return self._sequence[lower_bound:upper_bound]
 
