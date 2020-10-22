@@ -11,11 +11,13 @@ def test_parse_repeats():
                                                  ])
     buffer_size = 37
     start, end, alignment = next(repeat_finder._parse_grf_results(result))
-    up_feature, down_feature = repeat_finder._parse_repeats(start, end, alignment, sequence, buffer_size, operon.start, 'perfect')
-    assert up_feature.start == 23
-    assert up_feature.end == 39
-    assert down_feature.start == 79
-    assert down_feature.end == 95
+    up_feature, down_feature = repeat_finder._parse_repeats(start, end, alignment, sequence, sequence, buffer_size, operon.start, operon.end, 77)
+    assert up_feature.start == 13
+    assert up_feature.end == 29
+    assert '77' in up_feature.name
+    assert down_feature.start == 69
+    assert down_feature.end == 86
+    assert '77' in down_feature.name
 
 
 @pytest.mark.parametrize('size, expected', [
