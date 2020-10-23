@@ -16,7 +16,17 @@ class Feature(object):
                  e_val: Optional[float],
                  description: str,
                  sequence: str,
-                 bit_score: Optional[float] = None):
+                 bit_score: Optional[float] = None,
+                 raw_score: Optional[float] = None,
+                 aln_len: Optional[int] = None,
+                 pident: Optional[float] = None,
+                 nident: Optional[float] = None,
+                 mismatch: Optional[float] = None,
+                 positive: Optional[float] = None,
+                 gapopen: Optional[float] = None,
+                 gaps: Optional[float] = None,
+                 ppos: Optional[float] = None,
+                 qcovhsp: Optional[float] = None):
         # Note: for CRISPR repeats, the pipeline does not identify the strand, and
         # since BLAST was not used, there is no e-value, so these values are set to
         # None.
@@ -30,6 +40,16 @@ class Feature(object):
         self.bit_score = bit_score
         self.description = description
         self.sequence = sequence
+        self.raw_score = raw_score
+        self.aln_len = aln_len
+        self.pident = pident
+        self.nident = nident
+        self.mismatch = mismatch
+        self.positive = positive
+        self.gapopen = gapopen
+        self.gaps = gaps
+        self.ppos = ppos
+        self.qcovhsp = qcovhsp
         self.ignored_reasons = []
 
     def __hash__(self):
@@ -143,3 +163,11 @@ class Operon(object):
         if len(features) != 1:
             return None
         return features[0]
+
+    def as_str(self) -> str:
+        def optional(value) -> str:
+            return value if value else ""
+
+        for feature in self.all_features:
+            feature_coords = f"{feature.start}..{feature.end}" if feature.strand == 1 else f"{feature.end}..{feature.start}"
+            yield f"{self.contig},{self.start}..{self.end},{feature.name},{feature_coords},{feature.orfid},{optional(feature.strand)},{feature.accession},{optional(feature.e_val)},{feature.description},{feature.sequence},{optional(feature.bit_score)},{optional(feature.raw_score)},{optional(feature.aln_len)},{optional(feature.pident)},{optional(feature.nident)},{optional(feature.mismatch)},{optional(feature.positive)},{optional(feature.gapopen)},{optional(feature.gaps)},{optional(feature.ppos)},{optional(feature.qcovhsp)}"

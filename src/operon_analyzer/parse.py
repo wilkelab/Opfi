@@ -88,13 +88,7 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     hit_eval = float(line[7]) if line[7] else None
     description = line[8]
     sequence = line[9]
-    bit_score = None
-    # A newer version of the pipeline writes output with
-    # an additonal 12 columns.
-    # We'll grab these values too if they're present, but only
-    # the bitscore (column 10) is actually used for now
-    if len(line) == 22:
-        # additional blast alignment stats
+    if len(line) > 10:
         bit_score = float(line[10]) if line[10] else None
         raw_score = float(line[11]) if line[11] else None
         aln_len = int(line[12]) if line[12] else None
@@ -106,11 +100,21 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         gaps = int(line[18]) if line[18] else None
         ppos = float(line[19]) if line[19] else None
         qcovhsp = int(line[20]) if line[20] else None
-
-        # fasta file name
         contig_filename = line[21] if line[21] else ''
     else:
-        contig_filename = ''
+        bit_score = None
+        raw_score = None
+        aln_len = None
+        pident = None
+        nident = None
+        mismatch = None
+        positive = None
+        gapopen = None
+        gaps = None
+        ppos = None
+        qcovhsp = None
+        contig_filename = None
+
 
     return contig, contig_filename, coordinates, Feature(
         feature,
@@ -121,4 +125,15 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         hit_eval,
         description,
         sequence,
-        bit_score)
+        bit_score,
+        raw_score,
+        aln_len,
+        pident,
+        nident,
+        mismatch,
+        positive,
+        gapopen,
+        gaps,
+        ppos,
+        qcovhsp)
+

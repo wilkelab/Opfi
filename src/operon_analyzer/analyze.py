@@ -32,6 +32,21 @@ def analyze(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None,
         writer.writerow(line)
 
 
+def evaluate_rules_and_reserialize(input_lines: IO[str], ruleset: RuleSet, filterset: FilterSet = None, output: IO = None):
+    """
+    Takes a handle to the CSV from gene_finder and user-provided rules,
+    and writes passing operons back to stdout.
+    """
+    output = sys.stdout if output is None else output
+    lines = read_pipeline_output(input_lines)
+    operons = assemble_operons(lines)
+    results = _evaluate_operons(operons, ruleset, filterset)
+    for result in results:
+        if not result.is_passing:
+            continue
+        output.write(result.operon.as_str())
+
+
 def load_analyzed_operons(f: IO[str]) -> Iterator[Tuple[str, int, int, str]]:
     """ Loads and parses the data from the output of analyze(). This is
     typically used for analyzing or visualizing candidate operons. """
