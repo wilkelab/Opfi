@@ -11,10 +11,10 @@ from typing import List
 
 def _get_repositionable_operon(s1, e1, s2, e2, s3, e3, s4, e4, arraystart, arrayend):
     genes = [
-            Feature('cas1', (s1, e1), 'lcl|12|400|1|-1', 1 if e1 > s1 else -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (s2, e2), 'lcl|410|600|1|-1', 1 if e2 > s2 else -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
-            Feature('transposase', (s3, e3), 'lcl|620|1200|1|-1', 1 if e3 > s3 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
-            Feature('tnsA', (s4, e4), 'lcl|620|1200|1|-1', 1 if e4 > s4 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
+            Feature('cas1', (min(s1, e1), max(s1, e1)), 'lcl|12|400|1|-1', 1 if e1 > s1 else -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (min(s2, e2), max(s2, e2)), 'lcl|410|600|1|-1', 1 if e2 > s2 else -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (min(s3, e3), max(s3, e3)), 'lcl|620|1200|1|-1', 1 if e3 > s3 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('tnsA', (min(s4, e4), max(s4, e4)), 'lcl|620|1200|1|-1', 1 if e4 > s4 else -1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MTNSA'),
             Feature('CRISPR array', (arraystart, arrayend), '', None, '', None, 'CRISPR array with some repeats', 'ACGTTGATATTTATAGCGCA'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, max(s1, s2, s3, s4, arraystart, e1, e2, e3, e4, arrayend), genes)
@@ -95,7 +95,7 @@ def _not_a_good_group_of_cas1_cas2_and_cas3_genes():
     genes = [
             Feature('cas1', (0, 70), 'lcl|0|70|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             Feature('cas2', (100, 200), 'lcl|100|200|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas3', (280, 240), 'lcl|280|240|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas3', (240, 280), 'lcl|280|240|1|-1', -1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
             ]
     return genes
 
@@ -571,7 +571,7 @@ def test_random_operon_same_orientation(ls):
 def test_not_same_orientation():
     genes = [
             Feature('cas1', (12, 400), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
-            Feature('cas2', (600, 410), 'lcl|410|600|1|-1', -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas2', (410, 600), 'lcl|410|600|1|-1', -1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
             Feature('cas4', (620, 1200), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
             ]
     operon = Operon('QCDRTU', '/tmp/dna.fasta', 0, 3400, genes)
@@ -702,9 +702,6 @@ def test_at_most_n_bp_from_anything(distance: int, expected: bool):
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end', [
     (12, 400, 410, 600),
     (410, 600, 12, 400),
-    (400, 12, 410, 600),
-    (12, 400, 600, 410),
-    (410, 600, 400, 12),
     ])
 def test_feature_distance(gene1_start, gene1_end, gene2_start, gene2_end):
     f1 = Feature('cas1', (gene1_start, gene1_end), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER')
@@ -747,14 +744,8 @@ def test_max_distance_missing(f1name, f2name, expected):
 @pytest.mark.parametrize('gene1_start,gene1_end,gene2_start,gene2_end,distance_bp,expected', [
     (12, 400, 410, 600, 20, True),
     (410, 600, 12, 400, 20, True),
-    (400, 12, 410, 600, 20, True),
-    (12, 400, 600, 410, 20, True),
-    (410, 600, 400, 12, 20, True),
     (12, 400, 410, 600, 5, False),
     (410, 600, 12, 400, 5, False),
-    (400, 12, 410, 600, 5, False),
-    (12, 400, 600, 410, 5, False),
-    (410, 600, 400, 12, 5, False),
     ])
 def test_max_distance(gene1_start, gene1_end, gene2_start, gene2_end, distance_bp, expected):
     genes = [
