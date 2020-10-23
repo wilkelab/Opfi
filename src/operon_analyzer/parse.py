@@ -56,7 +56,7 @@ def parse_coordinates(coordinates: str) -> Coordinates:
     Since BLAST and piler-cr both use 1-based indices, we subtract 1
     from the start coordinate since Opfi internally uses 0-based indices. """
     start, end = coordinates.split("..")
-    return int(start) - 1, int(end)
+    return int(start), int(end)
 
 
 def read_pipeline_output(handle: IO[str]) -> Iterator[PipelineRecord]:
@@ -78,41 +78,44 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     # To make both coordinate systems consistent, we subtract 1 from the start
     # since feature coordinates come directly from those tools.
     # If features are on the reverse strand, the second coordinate will be larger
-    # than the first, but operon_analyzer assumes the start is always less than the 
+    # than the first, but operon_analyzer assumes the start is always less than the
     # end
     first_coord, second_coord = parse_coordinates(line[3])
     feature_start = min(first_coord, second_coord) - 1
     feature_end = max(first_coord, second_coord)
 
     query_orfid = line[4]
-    strand = int(line[5]) if line[5] else None
+    strand = int(line[5]) if line[5] else (1 if feature_start < feature_end else -1)
     hit_accession = line[6]
     hit_eval = float(line[7]) if line[7] else None
     description = line[8]
     sequence = line[9]
-    bit_score = None
-    # A newer version of the pipeline writes output with
-    # an additonal 12 columns.
-    # We'll grab these values too if they're present, but only
-    # the bitscore (column 10) is actually used for now
-    if len(line) == 22:
-        # additional blast alignment stats
-        bit_score = float(line[10]) if line[10] else None
-        raw_score = float(line[11]) if line[11] else None
-        aln_len = int(line[12]) if line[12] else None
-        pident = float(line[13]) if line[13] else None
-        nident = int(line[14]) if line[14] else None
-        mismatch = int(line[15]) if line[15] else None
-        positive = int(line[16]) if line[16] else None
-        gapopen = int(line[17]) if line[17] else None
-        gaps = int(line[18]) if line[18] else None
-        ppos = float(line[19]) if line[19] else None
-        qcovhsp = int(line[20]) if line[20] else None
-
-        # fasta file name
+    if len(line) > 10:
+        bit_score = float(line[10]) if line[10] != '' else None
+        raw_score = int(line[11]) if line[11] != '' else None
+        aln_len = int(line[12]) if line[12] != '' else None
+        pident = float(line[13]) if line[13] != '' else None
+        nident = int(line[14]) if line[14] != '' else None
+        mismatch = int(line[15]) if line[15] != '' else None
+        positive = int(line[16]) if line[16] != '' else None
+        gapopen = int(line[17]) if line[17] != '' else None
+        gaps = int(line[18]) if line[18] != '' else None
+        ppos = float(line[19]) if line[19] != '' else None
+        qcovhsp = int(line[20]) if line[20] != '' else None
         contig_filename = line[21] if line[21] else ''
     else:
-        contig_filename = ''
+        bit_score = None
+        raw_score = None
+        aln_len = None
+        pident = None
+        nident = None
+        mismatch = None
+        positive = None
+        gapopen = None
+        gaps = None
+        ppos = None
+        qcovhsp = None
+        contig_filename = None
 
     return contig, contig_filename, coordinates, Feature(
         feature,
@@ -123,4 +126,14 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         hit_eval,
         description,
         sequence,
-        bit_score)
+        bit_score,
+        raw_score,
+        aln_len,
+        pident,
+        nident,
+        mismatch,
+        positive,
+        gapopen,
+        gaps,
+        ppos,
+        qcovhsp)
