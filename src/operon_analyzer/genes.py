@@ -33,7 +33,7 @@ class Feature(object):
         # since BLAST was not used, there is no e-value, so these values are set to
         # None.
         self.name = name
-        self.start, self.end = coordinates
+        self.coordinates = coordinates
         assert self.start < self.end
         self.orfid = orfid
         self.strand = strand
@@ -53,6 +53,14 @@ class Feature(object):
         self.ppos = ppos
         self.qcovhsp = qcovhsp
         self.ignored_reasons = []
+
+    @property
+    def start(self) -> int:
+        return self.coordinates[0]
+
+    @property
+    def end(self) -> int:
+        return self.coordinates[1]
 
     def __hash__(self):
         return hash(f"{self.name}{self.start}{self.end}{self.sequence}")

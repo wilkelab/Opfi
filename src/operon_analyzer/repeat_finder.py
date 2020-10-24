@@ -74,8 +74,7 @@ def _find_inverted_repeats(operon: genes.Operon, contig_sequence: Seq, buffer_si
     # We are looking for systems where the inverted repeats are outside of the operon we're interested in, so we set a
     # spacer length that precludes finding both inside of the bounds of the operon's features. It's still possible for
     # one to be inside and one to be outside though.
-
-    perfects, imperfects = _run_grf(buffered_sequence, buffered_sequence.operon_length, min_repeat_size)
+    perfects, imperfects = _run_grf(buffered_sequence, min_repeat_size)
 
     # Go through each result, convert it to a pair of Features, and add the Features to the Operon
     n = 0  # must set in case we don't have any perfect results
@@ -85,22 +84,22 @@ def _find_inverted_repeats(operon: genes.Operon, contig_sequence: Seq, buffer_si
         operon._features.append(downstream_feature)
 
     count = n
-    for n, (start, end, alignment) in enumerate(_parse_grf_results(imperfects)):
+    for n, result in enumerate(_parse_grf_results(imperfects)):
         upstream_feature, downstream_feature = _parse_repeats(result, buffered_sequence, n + count + 1)
         operon._features.append(upstream_feature)
         operon._features.append(downstream_feature)
 
 
-def _parse_repeats(start, end, alignment, buffered_sequence, number: int):
+def _parse_repeats(result: GRFResult, buffered_sequence, number: int):
     # Extract the raw sequences of the inverted repeats and convert them to an alignment string (i.e. add gaps for deletions/insertions)
-    upstream_size, downstream_size = _parse_alignment_size(alignment)
-    raw_upstream_seq = buffered_sequence[start:start + upstream_size]
-    raw_downstream_seq = str(Seq(buffered_sequence[end - downstream_size: end]).reverse_complement())
-    upstream_alignment, downstream_alignment = _format_aligned_sequences(raw_upstream_seq, raw_downstream_seq, alignment)
+    upstream_size, downstream_size = _parse_alignment_size(result.alignment)
+    raw_upstream_seq = str(buffered_sequence[result.start: result.start + upstream_size])
+    raw_downstream_seq = str(buffered_sequence[result.end - downstream_size: result.end].reverse_complement())
+    upstream_alignment, downstream_alignment = _format_aligned_sequences(raw_upstream_seq, raw_downstream_seq, result.alignment)
 
     # Figure out where the repeats are using the original coordinate system and create Feautre objects for each repeat
-    upstream_feature = _make_tir_feature(buffered_sequence.start + start, upstream_size, raw_upstream_seq, upstream_alignment, 1, number)
-    downstream_feature = _make_tir_feature(buffered_sequence.start + end - downstream_size, downstream_size, raw_downstream_seq, downstream_alignment, -1, number)
+    upstream_feature = _make_tir_feature(buffered_sequence.start + result.start, upstream_size, raw_upstream_seq, upstream_alignment, 1, number)
+    downstream_feature = _make_tir_feature(buffered_sequence.start + result.end - downstream_size, downstream_size, raw_downstream_seq, downstream_alignment, -1, number)
     return upstream_feature, downstream_feature
 
 
@@ -153,7 +152,7 @@ def _run_grf(buffered_sequence: BufferedSequence, min_repeat_size: int) -> Optio
         return perfect, imperfect
 
 
-def _parse_grf_results(raw_text: str) -> Iterator[Tuple[int, int, str]]:
+def _parse_grf_results(raw_text: str) -> Iterator[GRFResult]:
     """ Parses the raw text of GenericRepeatFinder output. Assumes that only
     IDs are written to the file, sequences should be omitted. If no results
     were found, the text will be empty. """
