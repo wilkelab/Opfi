@@ -44,7 +44,12 @@ class BufferedSequence(object):
         """ Get slices of the contig sequence using coordinates that define the 0 position as the
         beginning of the buffered sequence, NOT the contig sequence. Used to get the sequence of
         the inverted repeats. """
-        return self.sequence[key.start: key.end]
+        return self.sequence[key.start: key.stop]
+
+    @property
+    def operon_length(self) -> int:
+        """ Gives the length of the putative operon. """
+        return self._operon_end - self._operon_start + 1
 
 
 def find_inverted_repeats(operon: genes.Operon, buffer_around_operon: int, min_repeat_size: int):
@@ -69,8 +74,8 @@ def _find_inverted_repeats(operon: genes.Operon, contig_sequence: Seq, buffer_si
     # We are looking for systems where the inverted repeats are outside of the operon we're interested in, so we set a
     # spacer length that precludes finding both inside of the bounds of the operon's features. It's still possible for
     # one to be inside and one to be outside though.
-    min_spacer_size = upper - lower
-    perfects, imperfects = _run_grf(buffered_sequence, min_spacer_size, min_repeat_size)
+
+    perfects, imperfects = _run_grf(buffered_sequence, buffered_sequence.operon_length, min_repeat_size)
 
     # Go through each result, convert it to a pair of Features, and add the Features to the Operon
     n = 0  # must set in case we don't have any perfect results
@@ -86,30 +91,16 @@ def _find_inverted_repeats(operon: genes.Operon, contig_sequence: Seq, buffer_si
         operon._features.append(downstream_feature)
 
 
-def _calculate_corrected_coordinates(start, end, buffer_size, operon_start, operon_end):
-    """
-    When setting the Feature coordinates, we need to account for all the adjustments we've made to the sequence.
-    We also convert from GRF's 1-based indexes to 0-based.
-    """
-    corrected_start = max(0, start - operon_start - 1)
-    corrected_end = min(operon_end, end - operon_start - 1)
-    assert corrected_start >= 0, f'{corrected_start} {corrected_end} {start} {end} {buffer_size} {operon_start}'
-    return corrected_start, corrected_end
-
-
-def _parse_repeats(start, end, alignment, contig_sequence, buffered_sequence, buffer_size: int, operon_start: int, operon_end: int, number: int):
+def _parse_repeats(start, end, alignment, buffered_sequence, number: int):
     # Extract the raw sequences of the inverted repeats and convert them to an alignment string (i.e. add gaps for deletions/insertions)
     upstream_size, downstream_size = _parse_alignment_size(alignment)
-    raw_upstream_seq = buffered_sequence[start - 1:start + upstream_size - 1]
+    raw_upstream_seq = buffered_sequence[start:start + upstream_size]
     raw_downstream_seq = str(Seq(buffered_sequence[end - downstream_size: end]).reverse_complement())
     upstream_alignment, downstream_alignment = _format_aligned_sequences(raw_upstream_seq, raw_downstream_seq, alignment)
 
     # Figure out where the repeats are using the original coordinate system and create Feautre objects for each repeat
-    # corrected_start, corrected_end = _calculate_corrected_coordinates(start, end, buffer_size, operon_start, operon_end)
-    corrected_start = contig_sequence.index(raw_upstream_seq)
-    corrected_end = contig_sequence.index(str(Seq(raw_downstream_seq).reverse_complement()))
-    upstream_feature = _make_tir_feature(corrected_start, upstream_size, raw_upstream_seq, upstream_alignment, 1, number)
-    downstream_feature = _make_tir_feature(corrected_end - downstream_size + 1, downstream_size, raw_downstream_seq, downstream_alignment, -1, number)
+    upstream_feature = _make_tir_feature(buffered_sequence.start + start, upstream_size, raw_upstream_seq, upstream_alignment, 1, number)
+    downstream_feature = _make_tir_feature(buffered_sequence.start + end - downstream_size, downstream_size, raw_downstream_seq, downstream_alignment, -1, number)
     return upstream_feature, downstream_feature
 
 
@@ -119,7 +110,7 @@ def _make_tir_feature(start: int, size: int, seq: str, alignment: str, strand: i
     assert start >= 0
     assert size > 0
     assert strand in (-1, 1)
-    return genes.Feature(f"TIR #{number} ({len(alignment)} bp)",
+    return genes.Feature(f"IR #{number} ({len(alignment)} bp)",
                          (start, start + size),
                          '',
                          strand,
@@ -130,7 +121,7 @@ def _make_tir_feature(start: int, size: int, seq: str, alignment: str, strand: i
                          None)
 
 
-def _run_grf(buffered_sequence: BufferedSequence, min_spacer_size: int, min_repeat_size: int) -> Optional[Tuple[str, str]]:
+def _run_grf(buffered_sequence: BufferedSequence, min_repeat_size: int) -> Optional[Tuple[str, str]]:
     """
     Runs GenericRepeatFinder and returns the raw text of the perfect and imperfect spacers that are found.
 
@@ -150,8 +141,8 @@ def _run_grf(buffered_sequence: BufferedSequence, min_spacer_size: int, min_repe
                    "-f", "1",
                    "-s", str(min_repeat_size),
                    "--min_tr", str(min_repeat_size),
-                   "--min_space", str(min_spacer_size),
-                   "--max_space", str(len(buffered_sequence))]
+                   "--min_space", str(buffered_sequence.operon_length),
+                   "--max_space", str(len(buffered_sequence.sequence))]
         result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if result.returncode != 0:
             return None

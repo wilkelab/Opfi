@@ -2,42 +2,55 @@ from operon_analyzer import genes, repeat_finder
 import pytest
 
 
+def test_buffered_sequence():
+    #                            10        20        30        40        50        60        70        80        90
+    #                  01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+    #                          0         10        20        30        40        50        60        70        80        90
+    contig_sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
+    #                               ++++++++++++++++        oooooooooooooooooooooooo        ----------------
+    operon = genes.Operon('Operon', '', 37, 61, [genes.Feature("protein1", (48, 51), '', 1, '', 1e-30, '', 'M', 1230),
+                                                 genes.Feature("protein2", (54, 61), '', 1, '', 2e-30, '', 'MG', 2401),
+                                                 ])
+    bufseq = repeat_finder.BufferedSequence(operon, contig_sequence, 40)
+    expected_seq = "TTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
+    assert bufseq.start == 8
+    assert bufseq.end == 98
+    assert bufseq.sequence == expected_seq
+    assert bufseq[13:29] == "CGGTATGCTTTTTTTT"
+    assert bufseq[69:85] == "ATATTCCCTTCCCCCC"
+
+
 def test_parse_repeats():
     result = '>sequence:14:85:16m\n'
-    sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
-    #                        ++++++++++++++++        oooooooooooooooooooooooo        ----------------
-    operon = genes.Operon('Operon', '', 47, 70, [genes.Feature("protein1", (48, 51), '', 1, '', 1e-30, '', 'MQRT', 1230),
-                                                 genes.Feature("protein2", (60, 68), '', 1, '', 2e-30, '', 'MGGG', 2401),
+    #                            10        20        30        40        50        60        70        80        90
+    #                  01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+    contig_sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
+    #                               ++++++++++++++++        oooooooooooooooooooooooo        ----------------
+    operon = genes.Operon('Operon', '', 37, 61, [genes.Feature("protein1", (48, 51), '', 1, '', 1e-30, '', 'M', 1230),
+                                                 genes.Feature("protein2", (54, 61), '', 1, '', 2e-30, '', 'MG', 2401),
                                                  ])
-    buffer_size = 37
+    buffer_size = 60
+    bufseq = repeat_finder.BufferedSequence(operon, contig_sequence, buffer_size)
     start, end, alignment = next(repeat_finder._parse_grf_results(result))
-    up_feature, down_feature = repeat_finder._parse_repeats(start, end, alignment, sequence, sequence, buffer_size, operon.start, operon.end, 77)
+    up_feature, down_feature = repeat_finder._parse_repeats(start, end, alignment, bufseq, 77)
     assert up_feature.start == 13
     assert up_feature.end == 29
     assert '77' in up_feature.name
     assert down_feature.start == 69
-    assert down_feature.end == 86
+    assert down_feature.end == 85
     assert '77' in down_feature.name
-
-
-@pytest.mark.parametrize('size, expected', [
-    (0,   'GGGGGGGGGG'),
-    (1,  'AGGGGGGGGGGA'),
-    (2, 'TAGGGGGGGGGGAC')
-    ])
-def test_get_buffered_operon_sequence(size, expected):
-    operon = genes.Operon('Operon', '', 11, 20, [genes.Feature("protein", (12, 16), '', 1, '', 1e-30, '', 'MQRT', 1230)])
-    sequence = 'AAAAAAAATAGGGGGGGGGGACAAAAAAAA'
-    actual = repeat_finder._get_buffered_operon_sequence(operon, sequence, size)
-    assert actual == expected
 
 
 def test_run_grf():
     # The inverted repeats are marked by + and -
     # the operon is marked by o
-    sequence = "GGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCC"
-    #           ++++++++++++++++        oooooooooooooooooooooooo        ----------------
-    perfect, imperfect = repeat_finder._run_grf(sequence, 20, 12)
+    operon = genes.Operon('Operon', '', 24, 48, [genes.Feature("protein1", (24, 27), '', 1, '', 1e-30, '', 'M', 1230),
+                                                 genes.Feature("protein2", (39, 48), '', 1, '', 2e-30, '', 'MG', 2401),
+                                                 ])
+    #                                                0         10        20        30        40        50        60        70
+    bufseq = repeat_finder.BufferedSequence(operon, "GGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCC", 30)
+    #                                                ++++++++++++++++        oooooooooooooooooooooooo        ----------------
+    perfect, imperfect = repeat_finder._run_grf(bufseq, 12)
     assert not imperfect
     assert perfect == '>sequence:1:72:16m'
 
@@ -45,17 +58,33 @@ def test_run_grf():
 def test_run_grf_with_surrounding_random_dna():
     # The inverted repeats are marked by + and -
     # the operon is marked by o
-    sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
-    #                        ++++++++++++++++        oooooooooooooooooooooooo        ----------------
-    perfect, imperfect = repeat_finder._run_grf(sequence, 20, 12)
+    #                  0         10        20        30        40        50        60        70        80        90     
+    contig_sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
+    #                               ++++++++++++++++        oooooooooooooooooooooooo        ----------------
+    operon = genes.Operon('op123', '/path/to/fa.gz', 37, 61, [genes.Feature('gene', (37, 61), '', 1, '', 1e-30, '', 'MC', 123)])
+    buffered_sequence = repeat_finder.BufferedSequence(operon, contig_sequence, 37)
+    perfect, imperfect = repeat_finder._run_grf(buffered_sequence, 12)
     assert not imperfect
     assert perfect == '>sequence:14:85:16m'
+
+
+def test_run_grf_with_surrounding_random_dna_shortened_buffer():
+    # The inverted repeats are marked by + and -
+    # the operon is marked by o
+    #                  0         10        20        30        40        50        60        70        80        90     
+    contig_sequence = "TTCCCCCCTTTTTGGGAATATCGGTATGCTTTTTTTTGATCCCAGAGAGCCCTTTACATAGTTTTTTTTGCATACCGATATTCCCTTCCCCCCTTTTT"
+    #                               ++++++++++++++++        oooooooooooooooooooooooo        ----------------
+    operon = genes.Operon('op123', '/path/to/fa.gz', 37, 61, [genes.Feature('gene', (37, 61), '', 1, '', 1e-30, '', 'MC', 123)])
+    buffered_sequence = repeat_finder.BufferedSequence(operon, contig_sequence, 35)
+    perfect, imperfect = repeat_finder._run_grf(buffered_sequence, 12)
+    assert not imperfect
+    assert perfect == '>sequence:12:83:16m'
 
 
 def test_parse_repeat_id():
     repeat_id = ">sequence:13:133:54m2D3I"
     start, end, alignment = repeat_finder._parse_repeat_id(repeat_id)
-    assert start == 13
+    assert start == 12
     assert end == 133
     assert alignment == "54m2D3I"
 
