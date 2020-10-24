@@ -21,7 +21,7 @@ class BufferedSequence(object):
     but we report the 1-based indexes to stay compatible with the rest of the library.
     """
 
-    def __init__(self, operon: genes.Operon, contig_sequence: str, buffer_size: int):
+    def __init__(self, operon: genes.Operon, contig_sequence: Seq, buffer_size: int):
         self._operon_start, self._operon_end = operon.feature_region
         self._contig_sequence = contig_sequence
         self._buffer_size = buffer_size
@@ -90,7 +90,7 @@ def _find_inverted_repeats(operon: genes.Operon, contig_sequence: Seq, buffer_si
         operon._features.append(downstream_feature)
 
 
-def _parse_repeats(result: GRFResult, buffered_sequence, number: int):
+def _parse_repeats(result: GRFResult, buffered_sequence: BufferedSequence, number: int):
     # Extract the raw sequences of the inverted repeats and convert them to an alignment string (i.e. add gaps for deletions/insertions)
     upstream_size, downstream_size = _parse_alignment_size(result.alignment)
     raw_upstream_seq = str(buffered_sequence[result.start: result.start + upstream_size])
