@@ -5,7 +5,47 @@ from operon_analyzer.analyze import analyze, load_analyzed_operons, deduplicate_
 from operon_analyzer.parse import load_operons
 from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import build_operon_dictionary, plot_operons
+from operon_analyzer.piler_parse import parse_pilercr_output, RepeatSpacer, BrokenSpacer
+from Bio.Seq import Seq
 import pytest
+
+
+def test_parse_pilercr_output():
+    with open('tests/integration/integration_data/operon_analyzer/pilertest.txt') as f:
+        text = f.read()
+    arrays = parse_pilercr_output(text, 0, 1000000000)
+
+    # test that we found the right number of arrays at all
+    assert len(arrays) == 11
+
+    # test that each array has the right number of spacers that we expect (including broken ones)
+    expected_lengths = [2, 2, 2, 9, 2, 2, 3, 6, 2, 2]
+    for array, expected_length in zip(arrays, expected_lengths):
+        assert len(array) == expected_length
+
+    # test a few arrays for their exact sequences
+    expected_first_seqs = Seq("AACACAAGCGGACTATGTTACAACATTATTGCCCT"), Seq("CACCAAAAAG")
+    for rs, expected_seq in zip(arrays[0], expected_first_seqs):
+        assert rs.sequence == expected_seq
+
+    expected_fourth_array = [Seq("ACTAAAATGCGGCACAAAATGCCCCACAAC"),
+                             Seq("TTCTGCTTCCCCATTCCTTTCAACGAATCA"),
+                             Seq("CAGTTGCTGATGATTCAGCAGCCGAATTAA"),
+                             Seq("AATTTTACAATCGCATGCAGGAACTTGGCT"),
+                             Seq("CACATCATTATTAAATTTATCGCCGTTAAT"),
+                             Seq("ATCTCGGGGTACAGTTGGATTATCTCGACC"),
+                             Seq("ACAGTGGTGCGGTTATCGGCAAGCATAACG"),
+                             Seq("CGTCCACATTGACATAAGCTGCGGTGTCCT"),
+                             Seq("CGCTTGATACC")]
+    for rs, expected_seq in zip(arrays[3], expected_fourth_array):
+        assert rs.sequence == expected_seq
+
+    # make sure we have exactly one broken spacer per array and it's always in the last position
+    # this won't always be true in practice but it is true for our test dataset
+    for array in arrays:
+        for rs in array[:-1]:
+            assert type(rs) == RepeatSpacer
+        assert type(array[-1]) == BrokenSpacer
 
 
 def test_deduplicate_operons_approximate():
