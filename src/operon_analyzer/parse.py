@@ -71,7 +71,17 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
     contig = line[0]
     coordinates = parse_coordinates(line[1])
     feature = line[2]
-    feature_coordinates = parse_coordinates(line[3])
+
+    # Piler-cr and BLAST both use 1-based indices, but Opfi uses 0-based indices.
+    # To make both coordinate systems consistent, we subtract 1 from the start
+    # since feature coordinates come directly from those tools.
+    # If features are on the reverse strand, the second coordinate will be larger
+    # than the first, but operon_analyzer assumes the start is always less than the 
+    # end
+    first_coord, second_coord = parse_coordinates(line[3])
+    feature_start = min(first_coord, second_coord) - 1
+    feature_end = max(first_coord, second_coord)
+
     query_orfid = line[4]
     strand = int(line[5]) if line[5] else None
     hit_accession = line[6]
@@ -100,12 +110,11 @@ def _parse_feature(line: PipelineRecord) -> Tuple[str, Coordinates, Feature]:
         # fasta file name
         contig_filename = line[21] if line[21] else ''
     else:
-        print(len(line), 'LINELEN')
         contig_filename = ''
 
     return contig, contig_filename, coordinates, Feature(
         feature,
-        feature_coordinates,
+        (feature_start, feature_end),
         query_orfid,
         strand,
         hit_accession,

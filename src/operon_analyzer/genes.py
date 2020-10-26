@@ -21,7 +21,8 @@ class Feature(object):
         # since BLAST was not used, there is no e-value, so these values are set to
         # None.
         self.name = name
-        self.coordinates = coordinates
+        self.start, self.end = coordinates
+        assert self.start < self.end
         self.orfid = orfid
         self.strand = strand
         self.accession = accession
@@ -32,31 +33,16 @@ class Feature(object):
         self.ignored_reasons = []
 
     def __hash__(self):
-        return hash(f"{self.name}{self.coordinates[0]}{self.coordinates[1]}{self.sequence}")
+        return hash(f"{self.name}{self.start}{self.end}{self.sequence}")
 
     def __eq__(self, other: 'Feature'):
         return self.name == other.name and \
-               self.coordinates == other.coordinates and \
+               self.start == other.start and \
+               self.end == other.end and \
                self.sequence == other.sequence
 
     def ignore(self, reason: str):
         self.ignored_reasons.append(reason)
-
-    @property
-    def start(self) -> int:
-        """
-        The leftmost position of the Feature, relative to the
-        orientation of the Operon.
-        """
-        return min(self.coordinates)
-
-    @property
-    def end(self) -> int:
-        """
-        The rightmost position of the Feature, relative to the
-        orientation of the Operon.
-        """
-        return max(self.coordinates)
 
     def __len__(self):
         """ Length of feature in nucleotides """
@@ -90,7 +76,7 @@ class Operon(object):
         self._sequence = None
 
     def __hash__(self):
-        feature_data = "".join([f"{feature.name}{feature.coordinates}{feature.sequence}" for feature in self._features])
+        feature_data = "".join([f"{feature.name}{feature.start}{feature.end}{feature.sequence}" for feature in self._features])
         return hash(f"{self.contig}{self.start}{self.end}{feature_data}")
 
     def __eq__(self, other):
@@ -108,7 +94,7 @@ class Operon(object):
         """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
         lower_bound, upper_bound = self.end, self.start
         for feature in self:
-            lower_bound = min(feature.start - 1, lower_bound)
+            lower_bound = min(feature.start, lower_bound)
             upper_bound = max(feature.end, upper_bound)
         return self._sequence[lower_bound:upper_bound]
 

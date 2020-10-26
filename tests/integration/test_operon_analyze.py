@@ -49,7 +49,7 @@ def test_parse_pilercr_output():
 
 
 def test_deduplicate_operons_approximate():
-    # similar.csv has gene_finder results from the same contig in forward and
+    # thrice-redundant.csv has gene_finder results from the same contig in forward and
     # reverse orientations, as well as offset by 1 nucleotide. Deduplication
     # should eliminate 2/3rds of the operons since the underlying nucleotide
     # data is effectively identical
