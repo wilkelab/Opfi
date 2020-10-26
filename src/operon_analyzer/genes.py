@@ -220,4 +220,4 @@ class Operon(object):
             feature_coords = f"{feature.start + 1}..{feature.end}" if feature.strand == 1 else f"{feature.end}..{feature.start + 1}"
             strand = feature.strand if feature.name != 'CRISPR array' else ''
             writer.writerow([f"{self.contig}",f"{self.start}..{self.end}",f"{feature.name}",f"{feature_coords}",f"{feature.orfid}",f"{strand}",f"{feature.accession}",f"{optional_evalue(feature.e_val)}",f"{feature.description}",f"{feature.sequence}",f"{optional_float_or_int(feature.bit_score)}",f"{optional(feature.raw_score)}",f"{optional(feature.aln_len)}",f"{optional_float(feature.pident, 3)}",f"{optional(feature.nident)}",f"{optional(feature.mismatch)}",f"{optional(feature.positive)}",f"{optional(feature.gapopen)}",f"{optional(feature.gaps)}",f"{optional_float(feature.ppos, 2)}",f"{optional(feature.qcovhsp)}",f"{self.contig_filename}"])
-        return output.getvalue().strip().replace("\r", "")
+        return "%s\n" % output.getvalue().strip().replace("\r", "")
