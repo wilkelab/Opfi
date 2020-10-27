@@ -31,6 +31,8 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     features = [feature]
 
     for line in lines:
+        if not line:
+            continue
         contig, contig_filename, coordinates, feature = _parse_feature(line)
         if (contig, contig_filename, coordinates) != current_contig:
             (current_contig, current_contig_filename, (current_start, current_end)) = current_contig
