@@ -1,0 +1,198 @@
+pilercr v1.06
+By Robert C. Edgar
+
+pilertest.fna: 11 putative CRISPR arrays found.
+
+
+
+DETAIL REPORT
+
+
+
+Array 1
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                             Spacer
+==========  ======  ======  ======  ==========    ===============================    ======
+    211750      31    96.8      35  TTATGTCGTC    ..............................G    AACACAAGCGGACTATGTTACAACATTATTGCCCT
+    211816      31   100.0          TTATTGCCCT    ...............................    CACCAAAAAG
+==========  ======  ======  ======  ==========    ===============================
+         2      31              35                GCTTTCTTGGCAACCGTGCCGAAACGAGTTA
+
+
+Array 2
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                      Spacer
+==========  ======  ======  ======  ==========    ========================    ======
+    685317      24   100.0      39  TATCCTCCTG    ........................    AAGTACAAATGCTATAATACTCGTTAGAAACTAAAAGTC
+    685380      24    95.8          ACTAAAAGTC    .......................T    TTAGAAAGAA
+==========  ======  ======  ======  ==========    ========================
+         2      24              39                AATAAGAAACTTTAAGTATCTTAA
+
+
+Array 3
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat               Spacer
+==========  ======  ======  ======  ==========    =================    ======
+   1330352      17   100.0      48  ACAATAGAAA    .................    GTTTAAGGGGCTACTGGAACACGTTCCGGCGTGGCGGCCAAGAAAGTC
+   1330417      17   100.0          CAAGAAAGTC    .................    TCCGCCCTCT
+==========  ======  ======  ======  ==========    =================
+         2      17              48                AGAGTGTGGAAGAAGGC
+
+
+Array 4
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                                  Spacer
+==========  ======  ======  ======  ==========    ====================================    ======
+   1499936      36   100.0      30  CACTTAGCTG    ....................................    ACTAAAATGCGGCACAAAATGCCCCACAAC
+   1500002      36   100.0      30  GCCCCACAAC    ....................................    TTCTGCTTCCCCATTCCTTTCAACGAATCA
+   1500068      36   100.0      30  CAACGAATCA    ....................................    CAGTTGCTGATGATTCAGCAGCCGAATTAA
+   1500134      36   100.0      30  GCCGAATTAA    ....................................    AATTTTACAATCGCATGCAGGAACTTGGCT
+   1500200      36   100.0      30  GAACTTGGCT    ....................................    CACATCATTATTAAATTTATCGCCGTTAAT
+   1500266      36   100.0      30  CGCCGTTAAT    ....................................    ATCTCGGGGTACAGTTGGATTATCTCGACC
+   1500332      36   100.0      30  TATCTCGACC    ....................................    ACAGTGGTGCGGTTATCGGCAAGCATAACG
+   1500398      36   100.0      30  AAGCATAACG    ....................................    CGTCCACATTGACATAAGCTGCGGTGTCCT
+   1500464      36   100.0          GCGGTGTCCT    ....................................    CGCTTGATACC
+==========  ======  ======  ======  ==========    ====================================
+         9      36              30                GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGC
+
+
+Array 5
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                                   Spacer
+==========  ======  ======  ======  ==========    =====================================    ======
+   1500530      37    97.3      29  CTCCTGCTCG    ....................................G    GTGCCCGCCGGCTCTTCTTGCAAGTGCTA
+   1500596      37   100.0          GCAAGTGCTA    .....................................    AGCGCCAGTT
+==========  ======  ======  ======  ==========    =====================================
+         2      37              29                GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCC
+
+
+Array 6
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                                      Spacer
+==========  ======  ======  ======  ==========    ========================================    ======
+   1500659      40   100.0      26  TGTGGTTGAG    ........................................    CAAACACCGTGAAGTGAGTACCGTTC
+   1500725      40   100.0          AGTACCGTTC    ........................................    TTATTTTAT
+==========  ======  ======  ======  ==========    ========================================
+         2      40              26                TTTGTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCA
+
+
+Array 7
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                          Spacer
+==========  ======  ======  ======  ==========    ============================    ======
+   1644738      28   100.0      33  TTTGTTTAGT    ............................    CACCACGGGCAATGCGGGCAACGAATACGGTAG
+   1644799      28   100.0      33  AATACGGTAG    ............................    CGGTGAGCGTCGTGGAAAAATTCAAATCAAAGA
+   1644860      28   100.0          AAATCAAAGA    ............................    TAAAGCAAAGTACGCTGTCTTAACTCGTAAGATT
+==========  ======  ======  ======  ==========    ============================
+         3      28              33                GTATTCCCCACGCATGTGGGGGTGATCC
+
+
+Array 8
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                          Spacer
+==========  ======  ======  ======  ==========    ============================    ======
+   1653176      28   100.0      33  TTTGTTTAGT    ............................    TTCACGGGCCCTTGAAAGTGCGCAAACCCTCCG
+   1653237      28   100.0      33  AAACCCTCCG    ............................    TATGACCACAGGACCCAGTTGTCATTATCGGCT
+   1653298      28    78.6      40  ATTATCGGCT    ......................------    GTGATCCCTTGAACGTCAAGTCTTTCCACGCGTCCATGTC
+   1653366      28   100.0      33  CGTCCATGTC    ............................    TAAGTCGAATTCCCCACGAAAAGACTCAATTGT
+   1653427      28    96.4      33  ACTCAATTGT    ....................T.......    CTTGCCGTTTGACCGTTCAGCCTCGTCACCGGT
+   1653488      28   100.0          CGTCACCGGT    ............................    TCACTATCTCTTTCAGCAGTTCTCATCGGCTTGA
+==========  ======  ======  ======  ==========    ============================
+         6      28              34                GTATTCCCCACGCATGTGGGGGTGATCC
+
+
+Array 9
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                                    Spacer
+==========  ======  ======  ======  ==========    ======================================    ======
+   2732175      38    97.4      29  GTAGCCCTCA    ..................G...................    GTAGAGAGTCCGTTACACGTTAGCCCCGT
+   2732242      38   100.0          TTAGCCCCGT    ......................................    TCCTAACT
+==========  ======  ======  ======  ==========    ======================================
+         2      38              29                GCCTTGCGGAGCACGTTTAGTCTCGAGGACAGTAGAAA
+
+
+Array 10
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                  Spacer
+==========  ======  ======  ======  ==========    ====================    ======
+   2752256      20   100.0      49  ATACCGTTTG    ....................    TTCCTGTATATCCGGCAAGAACTGGATGTCTAAATTTATCTGGCCGGTC
+   2752325      20    90.0          CTGGCCGGTC    ...........T......G.    ACCCGCGGT
+==========  ======  ======  ======  ==========    ====================
+         2      20              49                CCGCCACAGGTGGGACAAAC
+
+
+Array 11
+>NZ_CP014914.1 Lactobacillus paracollinoides strain TMW 1.1979 plasmid pL11979-2, complete sequence
+
+       Pos  Repeat     %id  Spacer  Left flank    Repeat                                    Spacer
+==========  ======  ======  ======  ==========    ======================================    ======
+      8412      38   100.0      28  GAGACCGTTG    ......................................    CCGCATAAGTTCGTTGACAACAGCTCTC
+      8478      38    97.4          AACAGCTCTC    .................................G....    AATCTATATA
+==========  ======  ======  ======  ==========    ======================================
+         2      38              28                AAACCCTTGCTACGAGCGGAAGTTCAAAAAATGAACTT
+
+
+SUMMARY BY SIMILARITY
+
+
+
+Array          Sequence    Position      Length  # Copies  Repeat  Spacer  +  Consensus
+=====  ================  ==========  ==========  ========  ======  ======  =  =========
+    4  NZ_CP014912.1 La     1499936         564         9      36      30  +  ---GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGC-
+    5  NZ_CP014912.1 La     1500530         103         2      37      29  +  ---GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCC
+    6  NZ_CP014912.1 La     1500659         106         2      40      26  +  TTTGTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCA
+                                                                                 ************************************ 
+
+    7  NZ_CP014912.1 La     1644738         150         3      28      33  +  GTATTCCCCACGCATGTGGGGGTGATCC
+    8  NZ_CP014912.1 La     1653176         334         6      28      34  +  GTATTCCCCACGCATGTGGGGGTGATCC
+                                                                              ****************************
+
+    1  NZ_CP014912.1 La      211750          97         2      31      35  +  GCTTTCTTGGCAACCGTGCCGAAACGAGTTA
+
+    2  NZ_CP014912.1 La      685317          87         2      24      39  +  AATAAGAAACTTTAAGTATCTTAA
+
+    3  NZ_CP014912.1 La     1330352          82         2      17      48  +  AGAGTGTGGAAGAAGGC
+
+    9  NZ_CP014912.1 La     2732175         105         2      38      29  +  GCCTTGCGGAGCACGTTTAGTCTCGAGGACAGTAGAAA
+
+   10  NZ_CP014912.1 La     2752256          89         2      20      49  +  CCGCCACAGGTGGGACAAAC
+
+   11  NZ_CP014914.1 La        8412         104         2      38      28  +  AAACCCTTGCTACGAGCGGAAGTTCAAAAAATGAACTT
+
+
+
+SUMMARY BY POSITION
+
+
+
+>NZ_CP014912.1 Lactobacillus paracollinoides strain TMW 1.1979 chromosome, complete genome
+
+Array          Sequence    Position      Length  # Copies  Repeat  Spacer    Distance  Consensus
+=====  ================  ==========  ==========  ========  ======  ======  ==========  =========
+    1  NZ_CP014912.1 La      211750          97         2      31      35              GCTTTCTTGGCAACCGTGCCGAAACGAGTTA
+    2  NZ_CP014912.1 La      685317          87         2      24      39      473435  AATAAGAAACTTTAAGTATCTTAA
+    3  NZ_CP014912.1 La     1330352          82         2      17      48      644909  AGAGTGTGGAAGAAGGC
+    4  NZ_CP014912.1 La     1499936         564         9      36      30      169454  GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGC
+    5  NZ_CP014912.1 La     1500530         103         2      37      29           0  GTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCC
+    6  NZ_CP014912.1 La     1500659         106         2      40      26          -3  TTTGTTTTAGATGAATATCAAATCAATGAGGTTCAAAGCA
+    7  NZ_CP014912.1 La     1644738         150         3      28      33      143947  GTATTCCCCACGCATGTGGGGGTGATCC
+    8  NZ_CP014912.1 La     1653176         334         6      28      34        8255  GTATTCCCCACGCATGTGGGGGTGATCC
+    9  NZ_CP014912.1 La     2732175         105         2      38      29     1078631  GCCTTGCGGAGCACGTTTAGTCTCGAGGACAGTAGAAA
+   10  NZ_CP014912.1 La     2752256          89         2      20      49       19947  CCGCCACAGGTGGGACAAAC
+
+
+>NZ_CP014914.1 Lactobacillus paracollinoides strain TMW 1.1979 plasmid pL11979-2, complete sequence
+
+Array          Sequence    Position      Length  # Copies  Repeat  Spacer    Distance  Consensus
+=====  ================  ==========  ==========  ========  ======  ======  ==========  =========
+   11  NZ_CP014914.1 La        8412         104         2      38      28              AAACCCTTGCTACGAGCGGAAGTTCAAAAAATGAACTT
