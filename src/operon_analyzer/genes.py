@@ -183,6 +183,11 @@ class Operon(object):
         return features[0]
 
     def as_str(self) -> str:
+        """
+        Writes an Operon back out in the same CSV format that gene_finder produces. The text won't be
+        completely identical in the case where floats have trailing decimals, or zero values in
+        scientific format are recast as a simple float.
+        """
         def optional_float(value, decimals: int) -> str:
             return f"{value:.{decimals}f}" if value else ""
 
