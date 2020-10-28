@@ -264,6 +264,7 @@ class RuleSet(object):
                                 _minimum_size,
                                 feature_name,
                                 min_bp,
+                                all_matching_features_must_pass,
                                 regex))
         return self
 
