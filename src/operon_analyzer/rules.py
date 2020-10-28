@@ -257,6 +257,16 @@ class RuleSet(object):
                                 require_same_orientation))
         return self
 
+    def minimum_size(self, feature_name: str, min_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False):
+        """ The operon must contain at least one feature with feature_name with a size (in base pairs) of min_bp or larger.
+        If all_matching_features_must_pass is True, every matching Feature must be at least min_bp long. """
+        self._rules.append(Rule('minimum_size',
+                                _minimum_size,
+                                feature_name,
+                                min_bp,
+                                regex))
+        return self
+
     def custom(self, rule: 'Rule'):
         """ Add a rule with a user-defined function. """
         self._rules.append(rule)
@@ -409,3 +419,10 @@ def _contains_group(operon: Operon, feature_names: List[str], max_gap_distance_b
                     continue
             return True
     return False
+
+
+def _minimum_size(operon: Operon, feature_name: str, min_bp: int, all_matching_features_must_pass: bool, regex: bool) -> bool:
+    results = [len(feature) >= min_bp for feature in operon.get(feature_name, regex)]
+    if all_matching_features_must_pass:
+        return all(results)
+    return any(results)

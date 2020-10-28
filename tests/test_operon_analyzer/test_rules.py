@@ -67,6 +67,21 @@ def test_rule_group_missing():
         assert not rules._contains_group(operon, feature_names, 20, False)
 
 
+def test_rule_minimum_size():
+    operon = _get_standard_operon()
+    assert rules._minimum_size(operon, 'cas1', 350, False, False)
+    assert not rules._minimum_size(operon, 'cas1', 400, False, False)
+
+
+def test_rule_minimum_size_regex():
+    operon = _get_standard_operon()
+    assert rules._minimum_size(operon, r'cas\d', 100, False, True)
+    assert rules._minimum_size(operon, r'cas\d', 100, True, True)
+    assert rules._minimum_size(operon, r'cas\d', 300, False, True)
+    assert not rules._minimum_size(operon, r'cas\d', 300, True, True)
+    assert not rules._minimum_size(operon, r'cas\d', 700, False, True)
+
+
 def test_rule_group_distance():
     operon = _get_group_operon()
     for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
