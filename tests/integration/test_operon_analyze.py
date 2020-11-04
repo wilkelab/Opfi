@@ -1,5 +1,7 @@
 import tempfile
+import itertools
 import os
+import io
 import shutil
 from operon_analyzer.analyze import analyze, load_analyzed_operons, deduplicate_operons_approximate
 from operon_analyzer.parse import load_operons
@@ -8,6 +10,21 @@ from operon_analyzer.visualize import build_operon_dictionary, plot_operons
 from operon_analyzer.piler_parse import parse_pilercr_output, RepeatSpacer, BrokenSpacer
 from Bio.Seq import Seq
 import pytest
+
+
+def test_roundtrip_serialization():
+    """ Load some operons from raw text, re-serialize them, load them again, and compare the two operons. """
+    csv = 'tests/integration/integration_data/operon_analyzer/ten-arbitrary-gene-finder-results.csv'
+    with open(csv) as f:
+        original_operons = list(load_operons(f))
+    reserialized = []
+    for operon in original_operons:
+        entry = operon.as_str()
+        reserialized.append(entry)
+    reserialized = "".join(reserialized)
+    reserialized_operons = list(load_operons(io.StringIO(reserialized)))
+    for original_operon, reserialized_operon in itertools.zip_longest(original_operons, reserialized_operons, fillvalue=None):
+        assert original_operon == reserialized_operon
 
 
 def test_parse_pilercr_output():
