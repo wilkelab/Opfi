@@ -84,7 +84,7 @@ class Feature(object):
 
     def __len__(self):
         """ Length of feature in nucleotides """
-        return self.end - self.start + 1
+        return self.end - self.start
 
     def __repr__(self) -> str:
         return f"<Feature {self.name} {self.start}..{self.end}>"

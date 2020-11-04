@@ -11,8 +11,8 @@ def test_serialize_operon_roundtrip():
 
 
 def test_feature_length():
-    f = Feature('gene', (1, 100), '', 1, '', 4e-12, '', 'MGWRN', 1234.9)
-    assert len(f) == 100
+    f = Feature('gene', (0, 99), '', 1, '', 4e-12, '', 'MGWRN', 1234.9)
+    assert len(f) == 99
 
 
 def test_operon_feature_region_sequence():
