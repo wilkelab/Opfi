@@ -251,13 +251,16 @@ def create_operon_figure(operon: Operon,
         # we alter the name of CRISPR arrays to add the number of repeats
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name
+        name = feature.name
+        strand = feature.strand
         if feature.name == "CRISPR array":
             copies, repeat, spacer = feature.description.split(",")
             _, count = copies.split()
-            feature.name = f"CRISPR array ({count})"
-        label = feature.name if not feature.ignored_reasons else f"{feature.name} (ignored)"
+            name = f"CRISPR array ({count})"
+            strand = None  # don't let array have a directional arrow
+        label = name if not feature.ignored_reasons else f"{name} (ignored)"
         graphic_feature = GraphicFeature(start=feature.start - offset,
-                                         strand=feature.strand,
+                                         strand=strand,
                                          end=feature.end - offset,
                                          label=label,
                                          color=color)
