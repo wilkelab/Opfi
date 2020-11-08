@@ -255,6 +255,7 @@ def create_operon_figure(operon: Operon,
             copies, repeat, spacer = feature.description.split(",")
             _, count = copies.split()
             feature.name = f"CRISPR array ({count})"
+            feature.strand = None  # don't let array have a directional arrow
         label = feature.name if not feature.ignored_reasons else f"{feature.name} (ignored)"
         graphic_feature = GraphicFeature(start=feature.start - offset,
                                          strand=feature.strand,
