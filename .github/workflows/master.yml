@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install GRF
       run: |
-        git clone https://github.com/bioinfolabmu/GenericRepeatFinder.git && sudo cp GenericRepeatFinder/bin/* /usr/local/bin/ && chmod 755 /usr/local/bin/grf* 
+        git clone https://github.com/bioinfolabmu/GenericRepeatFinder.git && sudo cp GenericRepeatFinder/bin/* /usr/local/bin/ && sudo chmod 755 /usr/local/bin/grf* ltr_finder
     - name: Install dependencies
       run: |
         cd lib/pilercr1.06 && sudo make install && cd ../..
