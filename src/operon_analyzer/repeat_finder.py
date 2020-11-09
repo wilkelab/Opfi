@@ -157,7 +157,7 @@ def _parse_grf_results(raw_text: str) -> Iterator[GRFResult]:
     IDs are written to the file, sequences should be omitted. If no results
     were found, the text will be empty. """
     if not raw_text:
-        raise StopIteration
+        return None
     for line in raw_text.split("\n"):
         yield _parse_repeat_id(line)
 
