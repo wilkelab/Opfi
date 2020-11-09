@@ -26,7 +26,8 @@ jobs:
     - name: Install dependencies
       run: |
         cd lib/pilercr1.06 && sudo make install && cd ../..
-        git clone git@github.com:bioinfolabmu/GenericRepeatFinder.git && cp GenericRepeatFinder/bin/* /usr/local/bin/
+        git clone git@github.com:bioinfolabmu/GenericRepeatFinder.git && sudo cp GenericRepeatFinder/bin/* /usr/local/bin/
+        ls /usr/local/bin
         sudo apt install -y ncbi-blast+
         python -m pip install --upgrade pip
         pip install flake8 pytest
