@@ -33,7 +33,7 @@ class Feature(object):
         # since BLAST was not used, there is no e-value, so these values are set to
         # None.
         self.name = name
-        self.start, self.end = coordinates
+        self.coordinates = coordinates
         assert self.start < self.end
         self.orfid = orfid
         self.strand = strand
@@ -53,6 +53,14 @@ class Feature(object):
         self.ppos = ppos
         self.qcovhsp = qcovhsp
         self.ignored_reasons = []
+
+    @property
+    def start(self) -> int:
+        return self.coordinates[0]
+
+    @property
+    def end(self) -> int:
+        return self.coordinates[1]
 
     def __hash__(self):
         return hash(f"{self.name}{self.start}{self.end}{self.sequence}")
@@ -128,12 +136,17 @@ class Operon(object):
         self._sequence = sequence
 
     @property
-    def feature_region_sequence(self) -> str:
-        """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
+    def feature_region(self) -> Tuple[int, int]:
         lower_bound, upper_bound = self.end, self.start
         for feature in self:
             lower_bound = min(feature.start, lower_bound)
             upper_bound = max(feature.end, upper_bound)
+        return lower_bound, upper_bound
+
+    @property
+    def feature_region_sequence(self) -> str:
+        """ Returns the nucleotide sequence of the operon, excluding the regions outside of the outermost Features. """
+        lower_bound, upper_bound = self.feature_region
         return self._sequence[lower_bound:upper_bound]
 
     @property

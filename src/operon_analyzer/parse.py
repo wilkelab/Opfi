@@ -54,7 +54,9 @@ def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
 
 
 def parse_coordinates(coordinates: str) -> Coordinates:
-    """ Parses base pair ranges denoting position in a contig. """
+    """ Parses base pair ranges denoting position in a contig.
+    Since BLAST and piler-cr both use 1-based indices, we subtract 1
+    from the start coordinate since Opfi internally uses 0-based indices. """
     start, end = coordinates.split("..")
     return int(start), int(end)
 

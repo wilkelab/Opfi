@@ -1,4 +1,3 @@
-import gzip
 from typing import List, Union, Optional, Tuple
 from collections import namedtuple
 import tempfile
@@ -6,9 +5,8 @@ import subprocess
 import statistics
 import json
 import multiprocessing
-from Bio import SeqIO
 from Bio.Seq import Seq
-from operon_analyzer import genes, piler_parse
+from operon_analyzer import genes, piler_parse, load
 import parasail
 import re
 
@@ -33,13 +31,11 @@ def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fracti
     pool = multiprocessing.Pool(min(num_processes, len(operons)))
     results = []
     for n, operon in enumerate(operons):
-        print(f"starting operon {n}")
         result = pool.apply_async(_align_operon_spacers, args=(operon, min_matching_fraction))
         results.append(result)
     pool.close()
     pool.join()
     for m, result in enumerate(results):
-        print(f"result {m}")
         yield result.get()
 
 
@@ -49,7 +45,7 @@ def _align_operon_spacers(operon: genes.Operon, min_matching_fraction: float):
     at least min_matching_fraction homology will be converted to Features with the name
     "CRISPR target" and added to the Operon object.
     """
-    contig_sequence = _load_sequence(operon)
+    contig_sequence = load.load_sequence(operon)
     assert contig_sequence is not None, f"Operon's sequence file cannot be found: {operon.contig_filename}."
     spacers = _get_operon_spacers(operon.start, operon.end, contig_sequence)
     if not spacers:
@@ -251,12 +247,3 @@ def _fix_broken_spacer(rs: piler_parse.BrokenSpacer, median_length: int, sequenc
     if len(spacer) > MAX_SPACER_LENGTH_BP:
         return None
     return piler_parse.RepeatSpacer(rs.position, rs.repeat_len, len(spacer), Seq(spacer))
-
-
-def _load_sequence(operon: genes.Operon):
-    """ Loads the DNA sequence for a given operon's contig. """
-    with gzip.open(operon.contig_filename, 'rt') as f:
-        records = SeqIO.parse(f, 'fasta')
-        for record in records:
-            if record.id == operon.contig:
-                return Seq(str(record.seq))
