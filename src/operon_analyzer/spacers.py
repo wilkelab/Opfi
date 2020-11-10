@@ -30,12 +30,12 @@ def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fracti
     """
     pool = multiprocessing.Pool(min(num_processes, len(operons)))
     results = []
-    for n, operon in enumerate(operons):
+    for operon in operons:
         result = pool.apply_async(_align_operon_spacers, args=(operon, min_matching_fraction))
         results.append(result)
     pool.close()
     pool.join()
-    for m, result in enumerate(results):
+    for result in results:
         yield result.get()
 
 
@@ -49,7 +49,7 @@ def _align_operon_spacers(operon: genes.Operon, min_matching_fraction: float):
     assert contig_sequence is not None, f"Operon's sequence file cannot be found: {operon.contig_filename}."
     spacers = _get_operon_spacers(operon.start, operon.end, contig_sequence)
     if not spacers:
-        return []
+        return operon
     for spacer, spacer_position, array_length in spacers:
         ar = _perform_local_pairwise_alignment(spacer, spacer_position, array_length, str(contig_sequence))
         if not ar:
