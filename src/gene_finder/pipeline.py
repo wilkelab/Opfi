@@ -262,7 +262,7 @@ class Pipeline:
             self._neighborhood_orfs[key] = path
 
     
-    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, parse_descriptions=True, **kwargs):
+    def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """Add a seed step to the pipeline. 
 
         Internally, this queues a series of sub-steps that
@@ -310,9 +310,11 @@ class Pipeline:
             be first. Additional steps can occur in any order.
         """
         if blast_type in ("PROT", "blastp"):
-            self._steps.append(SeedStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
+            path = 'blastp' if blast_path is None else blast_path
+            self._steps.append(SeedStep(Blastp(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type in ("PSI", "psiblast"):
-            self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
+            path = 'psiblast' if blast_path is None else blast_path
+            self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SeedStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         elif blast_type == "diamond":
@@ -323,7 +325,7 @@ class Pipeline:
 
     def add_seed_with_coordinates_step(self, db, name, e_val, blast_type, sensitivity=None, 
                                        parse_descriptions=True, start=None, end=None, 
-                                       contig_id=None, **kwargs):
+                                       contig_id=None, blast_path=None, **kwargs):
         """
         Define a genomic region to search with coordinates instead of a bait gene.
 
@@ -360,11 +362,11 @@ class Pipeline:
         """
         self._steps.append(SeedWithCoordinatesStep(start=start, end=end, contig_id=contig_id))
         self.add_blast_step(db=db, name=name, e_val=e_val, blast_type=blast_type, 
-                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, **kwargs)
+                            sensitivity=sensitivity, parse_descriptions=parse_descriptions, blast_path=blast_path, **kwargs)
 
 
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
-                        sensitivity=None, parse_descriptions=True, **kwargs):
+                        sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """Add a filter step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -401,9 +403,11 @@ class Pipeline:
                 is set to mmseqs or diamond, kwargs will be silently ignored.
         """
         if blast_type in ("PROT", "blastp"):
-            self._steps.append(FilterStep(Blastp(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
+            path = 'blastp' if blast_path is None else blast_path
+            self._steps.append(FilterStep(Blastp(db, e_val, name, parse_descriptions, path, kwargs), min_prot_count))
         elif blast_type in ("PSI", "psiblast"):
-            self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs), min_prot_count))
+            path = 'psiblast' if blast_path is None else blast_path
+            self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
             self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
         elif blast_type == "diamond":
@@ -413,7 +417,7 @@ class Pipeline:
     
     
     def add_blast_step(self, db, name, e_val, blast_type, 
-                        sensitivity=None, parse_descriptions=True, **kwargs):
+                        sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """Add a non-filtering blast step to the pipeline.
 
         Blast genomic neighborhoods against the target database. 
@@ -448,9 +452,11 @@ class Pipeline:
                 is set to mmseqs or diamond, kwargs will be silently ignored.     
         """
         if blast_type in ("PROT", "blastp"):
-            self._steps.append(SearchStep(Blastp(db, e_val, name, parse_descriptions, kwargs)))
+            path = 'blastp' if blast_path is None else blast_path
+            self._steps.append(SearchStep(Blastp(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type in ("PSI", "psiblast"):
-            self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, kwargs)))
+            path = 'psiblast' if blast_path is None else blast_path
+            self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type == "mmseqs":
             self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
         elif blast_type == "diamond":
@@ -469,10 +475,10 @@ class Pipeline:
 
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
-    def add_blastn_step(self, db, name, e_val, parse_descriptions=False, **kwargs):
+    def add_blastn_step(self, db, name, e_val, parse_descriptions=False, blastn_path='blastn', **kwargs):
         """ Add a step to do nucleotide BLAST. """
         
-        self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, kwargs)))
+        self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, blastn_path, kwargs)))
 
 
     def _update_output_sequences(self):

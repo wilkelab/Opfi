@@ -1,13 +1,18 @@
-from Bio.Blast.Applications import (NcbiblastpCommandline, 
+import multiprocessing
+import os
+import subprocess
+import tempfile
+
+from Bio.Blast.Applications import (NcbiblastpCommandline,
                                     NcbipsiblastCommandline)
 
+from gene_finder.option_handling import (build_blastn_command,
+                                         build_blastp_command,
+                                         build_psiblast_command)
+from gene_finder.parsers import (parse_blastn_output, parse_pilercr_summary,
+                                 parse_search_output)
 from gene_finder.utils import get_neighborhood_ranges
-from gene_finder.parsers import parse_search_output, parse_pilercr_summary, parse_blastn_output
-from gene_finder.option_handling import (build_blastp_command,
-                                        build_blastn_command,
-                                        build_psiblast_command)
 
-import os, subprocess, tempfile, multiprocessing
 
 class Blastp():
     """Wrapper for NCBI Blastp command line util.
@@ -20,17 +25,18 @@ class Blastp():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id, parse_descriptions, kwargs):
+    def __init__(self, db, e_val, step_id, parse_descriptions, blastp_path, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
         self.parse_descriptions = parse_descriptions
+        self.blastp_path = blastp_path
         self.kwargs = kwargs
     
     def construct_cmd(self, query, out):
-        return build_blastp_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
+        return build_blastp_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out, self.blastp_path)
 
     def run(self, orfs):
 
@@ -51,17 +57,18 @@ class Blastpsi():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
 
-    def __init__(self, db, e_val, step_id, parse_descriptions, kwargs):
+    def __init__(self, db, e_val, step_id, parse_descriptions, psiblast_path, kwargs):
 
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.e_val = e_val
         self.step_id = step_id
         self.parse_descriptions = parse_descriptions
+        self.psiblast_path = psiblast_path
         self.kwargs = kwargs
     
     def construct_cmd(self, query, out):
-        return build_psiblast_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
+        return build_psiblast_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out, self.psiblast_path)
 
     def run(self, orfs):
 
@@ -189,16 +196,17 @@ class Blastn():
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq qstart qend sstrand"
 
-    def __init__(self, db, step_id, e_val, parse_descriptions, kwargs):
+    def __init__(self, db, step_id, e_val, parse_descriptions, blastn_path, kwargs):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.db = db
         self.step_id = step_id
         self.e_val = e_val
         self.parse_descriptions = parse_descriptions
+        self.blastn_path = blastn_path
         self.kwargs = kwargs
     
     def construct_cmd(self, query, out):
-        return build_blastn_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out)
+        return build_blastn_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out, self.blastn_path)
 
     def run(self, genome):
 
