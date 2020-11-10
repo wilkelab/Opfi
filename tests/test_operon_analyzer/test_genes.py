@@ -4,7 +4,7 @@ from Bio.Seq import Seq
 
 
 def test_serialize_operon_roundtrip():
-    line = "forward,473846..494916,cas5,485260..488403,lcl|485260|488403|1|1,1,UniRef50_D3I2J9,7.28e-113,UniRef50_D3I2J9 cas5 Putative CRISPR-associated protein Csc1 n=138 RepID=D3I2J9_9BACT,MNLTLKTLLALNLTLI,374,959,1037,29.219,303,617,498,30,117,48.02,93,forward.fa\n"
+    line = "forward,473846..494916,cas5,485260..488403,lcl|485260|488403|1|1,1,UniRef50_D3I2J9,7.28e-113,UniRef50_D3I2J9 cas5 Putative CRISPR-associated protein Csc1 n=138 RepID=D3I2J9_9BACT,MNLTLKTLLALNLTLI,374,959,1037,29.219,303,617,498,30,117,48.02,93,forward.fa"
     operon = list(parse.load_operons([line]))[0]
     actual = operon.as_str()
     assert actual == line

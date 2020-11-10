@@ -21,7 +21,7 @@ def test_roundtrip_serialization():
     for operon in original_operons:
         entry = operon.as_str()
         reserialized.append(entry)
-    reserialized = "".join(reserialized)
+    reserialized = "\n".join(reserialized)
     reserialized_operons = list(load_operons(io.StringIO(reserialized)))
     for original_operon, reserialized_operon in itertools.zip_longest(original_operons, reserialized_operons, fillvalue=None):
         assert original_operon == reserialized_operon
