@@ -3,7 +3,8 @@ from collections import defaultdict
 from typing import Iterator, IO, Tuple, Optional, List, Dict, Set
 from operon_analyzer.genes import Operon
 from operon_analyzer.rules import RuleSet, Result, FilterSet
-from operon_analyzer.parse import assemble_operons, read_pipeline_output, load_operons
+from operon_analyzer.parse import assemble_operons, read_pipeline_output
+from operon_analyzer.load import load_operons  # for backwards compatibility
 from operon_analyzer import load
 import sys
 
