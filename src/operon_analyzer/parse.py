@@ -2,6 +2,7 @@ import csv
 from gene_finder.output_writers import FIELDNAMES
 from typing import Tuple, Iterator, IO
 from operon_analyzer.genes import Feature, Operon
+from operon_analyzer.load import load_operons  # for backwards compatibility
 import sys
 
 
@@ -9,10 +10,6 @@ csv.field_size_limit(sys.maxsize)
 
 PipelineRecord = Tuple[str, str, str, str, str, str, str, str, str, str]
 Coordinates = Tuple[int, int]
-
-
-def load_operons(handle: IO[str]) -> Iterator[Operon]:
-    yield from assemble_operons(read_pipeline_output(handle))
 
 
 def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
