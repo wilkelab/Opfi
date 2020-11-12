@@ -8,8 +8,21 @@ ReannotationCounts = Dict[Tuple[str, int], Dict[str, int]]
 ReannotationFractions = Dict[Tuple[str, int], Dict[str, float]]
 
 
-def count_cluster_reannotations(operons: List[genes.Operon],
-                                reannotated_operons: Dict[str, genes.Operon]) -> ReannotationCounts:
+def summarize(operons: List[genes.Operon], reannotated_operons: List[genes.Operon]):
+    """ For each protein in each operon, prints out how frequently it was reannotated to a particular protein.
+    For example, a putative Cas9 may be identified as a transposase when BLASTed with a more expansive database. """
+    clusters, reblasted_operons = _prepare_operons_for_counting(operons, reannotated_operons)
+    for label, cloperons in clusters.items():
+        counts = _count_cluster_reannotations(cloperons, reblasted_operons)
+        if not counts:
+            continue
+        fractions = _convert_reannotation_counts_to_fractions(counts)
+        for (feature, count), reannotations in fractions.items():
+            print(_format_reannotation_summary("-".join(label), len(cloperons), fractions))
+
+
+def _count_cluster_reannotations(operons: List[genes.Operon],
+                                 reannotated_operons: Dict[str, genes.Operon]) -> ReannotationCounts:
     """
     After clustering operons by motif, the next question we'd often like to ask is how good
     the annotations are. This function takes the operons from one cluster, and operons
@@ -50,7 +63,7 @@ def count_cluster_reannotations(operons: List[genes.Operon],
 
         # Count the reannotations for a single pair of operons and merge those counts into the 
         # running total for the entire cluster
-        update = count_reannotations(operon, reannotated_operon)
+        update = _count_reannotations(operon, reannotated_operon)
         for feature_name, reannotation_data in update.items():
             for reannotated_feature_name, count in reannotation_data.items():
                 current_count = cluster_reannotations[feature_name].get(reannotated_feature_name, 0)
@@ -63,7 +76,7 @@ def count_cluster_reannotations(operons: List[genes.Operon],
     return cluster_reannotations
 
 
-def count_reannotations(operon: genes.Operon,
+def _count_reannotations(operon: genes.Operon,
                         reannotated_operon: genes.Operon):
     # To disambiguate features that occur more than once in each operon, we keep track of how many we have
     # of each. This way, we can refer to "transposase" and "transposase-2" as separate entities that
@@ -96,7 +109,7 @@ def count_reannotations(operon: genes.Operon,
     return reannotations
 
 
-def convert_reannotation_counts_to_fractions(reannotations: ReannotationCounts) -> ReannotationFractions:
+def _convert_reannotation_counts_to_fractions(reannotations: ReannotationCounts) -> ReannotationFractions:
     """ Normalizes raw counts to fractions of all reannotations. """
     fractional_reannotations = {}
     for feature_name, count_data in reannotations.items():
@@ -111,10 +124,10 @@ def convert_reannotation_counts_to_fractions(reannotations: ReannotationCounts) 
     return fractional_reannotations
 
 
-def format_reannotation_summary(contig_label: str,
-                                num_operons: int,
-                                fractional_reannotations: ReannotationCounts,
-                                show_top: Optional[int] = 3) -> str:
+def _format_reannotation_summary(contig_label: str,
+                                 num_operons: int,
+                                 fractional_reannotations: ReannotationCounts,
+                                 show_top: Optional[int] = 3) -> str:
     """ Converts summary data into a formatted string that can be printed. """
     output = [f"{num_operons}-{contig_label}"]
     for (feature_name, feature_count), reannotated_feature_data in fractional_reannotations.items():
@@ -127,7 +140,7 @@ def format_reannotation_summary(contig_label: str,
     return "\n".join(output)
 
 
-def prepare_operons_for_counting(operons: List[genes.Operon], compare_to_operons: List[genes.Operon]) \
+def _prepare_operons_for_counting(operons: List[genes.Operon], compare_to_operons: List[genes.Operon]) \
         -> Tuple[DefaultDict[Tuple[str, ...], List[genes.Operon]], Dict[str, genes.Operon]]:
     """ Takes two lists of operons and reformats them so that we can perform our reannotation analysis. """
     clusters = analyze.cluster_operons_by_feature_order(operons)
@@ -135,7 +148,7 @@ def prepare_operons_for_counting(operons: List[genes.Operon], compare_to_operons
     return clusters, reannotated_operons
 
 
-def has_at_least_one_feature_with_fractional_matches(summary: ReannotationFractions,
+def _has_at_least_one_feature_with_fractional_matches(summary: ReannotationFractions,
                                                      feature_name: str,
                                                      regex_pattern: str,
                                                      min_matching_threshold: float):
