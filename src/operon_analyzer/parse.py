@@ -2,7 +2,6 @@ import csv
 from gene_finder.output_writers import FIELDNAMES
 from typing import Tuple, Iterator, IO
 from operon_analyzer.genes import Feature, Operon
-from operon_analyzer.load import load_operons  # for backwards compatibility
 import sys
 
 
