@@ -4,7 +4,7 @@ import os
 import io
 import shutil
 from operon_analyzer.analyze import analyze, load_analyzed_operons, deduplicate_operons_approximate
-from operon_analyzer.parse import load_operons
+from operon_analyzer.load import load_operons
 from operon_analyzer.rules import RuleSet, FilterSet
 from operon_analyzer.visualize import build_operon_dictionary, plot_operons
 from operon_analyzer.piler_parse import parse_pilercr_output, RepeatSpacer, BrokenSpacer
