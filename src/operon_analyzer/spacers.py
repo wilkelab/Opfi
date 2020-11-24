@@ -141,7 +141,7 @@ def _build_censored_contig(spacer: piler_parse.RepeatSpacer, contig: Seq) -> str
 def _align(spacer: str, contig: str) -> Tuple[float, int, str, int, int, str, str, str]:
     """ Run the local pairwise alignment of two strings and return alignment data. """
     # perform the alignment
-    result = parasail.sw_trace(spacer, contig, GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY, parasail.blosum62)
+    result = parasail.sw_trace(spacer, contig, GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY, parasail.nuc44)
 
     # extract pertinent data from the alignment result
     cigar_text = result.cigar.decode.decode("utf8")
