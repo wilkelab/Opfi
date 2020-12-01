@@ -82,6 +82,21 @@ def test_rule_minimum_size_regex():
     assert not rules._minimum_size(operon, r'cas\d', 700, False, True)
 
 
+def test_rule_maximum_size():
+    operon = _get_standard_operon()
+    assert rules._maximum_size(operon, 'cas1', 450, False, False)
+    assert not rules._maximum_size(operon, 'cas1', 380, False, False)
+
+
+def test_rule_maximum_size_regex():
+    operon = _get_standard_operon()
+    assert rules._maximum_size(operon, r'cas\d', 200, False, True)
+    assert rules._maximum_size(operon, r'cas\d', 700, True, True)
+    assert rules._maximum_size(operon, r'cas\d', 400, False, True)
+    assert not rules._maximum_size(operon, r'cas\d', 400, True, True)
+    assert not rules._maximum_size(operon, r'cas\d', 100, False, True)
+
+
 def test_rule_group_distance():
     operon = _get_group_operon()
     for feature_names in itertools.permutations(['transposase', 'cas1', 'cas2', 'cas4']):
