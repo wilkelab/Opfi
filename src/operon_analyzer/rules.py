@@ -257,6 +257,17 @@ class RuleSet(object):
                                 require_same_orientation))
         return self
 
+    def maximum_size(self, feature_name: str, max_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False):
+        """ The operon must contain at least one feature with feature_name with a size (in base pairs) of max_bp or smaller.
+        If all_matching_features_must_pass is True, every matching Feature must be at least max_bp long. """
+        self._rules.append(Rule('maximum_size',
+                                _maximum_size,
+                                feature_name,
+                                max_bp,
+                                all_matching_features_must_pass,
+                                regex))
+        return self
+
     def minimum_size(self, feature_name: str, min_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False):
         """ The operon must contain at least one feature with feature_name with a size (in base pairs) of min_bp or larger.
         If all_matching_features_must_pass is True, every matching Feature must be at least min_bp long. """
@@ -424,6 +435,13 @@ def _contains_group(operon: Operon, feature_names: List[str], max_gap_distance_b
 
 def _minimum_size(operon: Operon, feature_name: str, min_bp: int, all_matching_features_must_pass: bool, regex: bool) -> bool:
     results = [len(feature) >= min_bp for feature in operon.get(feature_name, regex)]
+    if all_matching_features_must_pass:
+        return all(results)
+    return any(results)
+
+
+def _maximum_size(operon: Operon, feature_name: str, max_bp: int, all_matching_features_must_pass: bool, regex: bool) -> bool:
+    results = [len(feature) <= max_bp for feature in operon.get(feature_name, regex)]
     if all_matching_features_must_pass:
         return all(results)
     return any(results)
