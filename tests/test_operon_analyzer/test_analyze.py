@@ -1,3 +1,4 @@
+import itertools
 from operon_analyzer.genes import Feature, Operon
 from operon_analyzer import analyze
 from Bio.Seq import Seq
@@ -164,3 +165,115 @@ def test_cluster_operons_by_feature_order():
     classified = {name: len(ops) for name, ops in analyze.cluster_operons_by_feature_order(operons).items()}
     expected = {('cas1', 'cas2', 'cas4'): 3, ('cas1', 'cas4'): 1, ('transposase', 'cas2', 'cas4'): 1}
     assert classified == expected
+
+
+def test_get_operon_supersets():
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon1 = Operon('A', '/tmp/dna1.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas9', (600, 700), 'lcl|12|400|1|-1', 1, 'MCHEFFFF', 4e-19, 'a good gene', 'MQPQPQPQPQP'),
+            ]
+    operon2 = Operon('A', '/tmp/dna2.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cpf1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (100, 200), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MQPPRMSSS'),
+            Feature('glmS', (200, 300), 'lcl|410|600|1|-1', 1, 'LULZ', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon3 = Operon('A', '/tmp/dna3.fasta', 0, 13400, genes)
+    operons = [operon1, operon2, operon3]
+    unique = analyze._get_operon_supersets(operons)
+    assert len(unique) == 2
+    for operon in unique:
+        assert operon.contig_filename in ('/tmp/dna2.fasta', '/tmp/dna3.fasta')
+
+
+def test_get_operon_supersets_all_identical():
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon1 = Operon('A', '/tmp/dna1.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon2 = Operon('A', '/tmp/dna2.fasta', 0, 13400, genes)
+    operons = [operon1, operon2]
+    unique = analyze._get_operon_supersets(operons)
+    assert len(unique) == 2
+    for operon in unique:
+        assert operon.contig_filename in ('/tmp/dna1.fasta', '/tmp/dna2.fasta')
+
+
+def test_get_operon_supersets_all_orders():
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon1 = Operon('A', '/tmp/dna1.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas9', (600, 700), 'lcl|12|400|1|-1', 1, 'MCHEFFFF', 4e-19, 'a good gene', 'MQPQPQPQPQP'),
+            ]
+    operon2 = Operon('A', '/tmp/dna2.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cpf1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (100, 200), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MQPPRMSSS'),
+            Feature('glmS', (200, 300), 'lcl|410|600|1|-1', 1, 'LULZ', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon3 = Operon('A', '/tmp/dna3.fasta', 0, 13400, genes)
+    operons = [operon1, operon2, operon3]
+    for permutation in itertools.permutations(operons, len(operons)):
+        unique = analyze._get_operon_supersets(permutation)
+        assert len(unique) == 2
+        for operon in unique:
+            assert operon.contig_filename in ('/tmp/dna2.fasta', '/tmp/dna3.fasta')
+
+
+def test_dedup_supersets():
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon1 = Operon('A', '/tmp/dna1.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cas1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (200, 300), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('cas4', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('cas9', (600, 700), 'lcl|12|400|1|-1', 1, 'MCHEFFFF', 4e-19, 'a good gene', 'MQPQPQPQPQP'),
+            ]
+    operon2 = Operon('A', '/tmp/dna2.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cpf1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (100, 200), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MQPPRMSSS'),
+            Feature('glmS', (200, 300), 'lcl|410|600|1|-1', 1, 'LULZ', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            Feature('transposase', (500, 600), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF2', 6e-13, 'a good gene', 'MGGGAGAGAG'),
+            ]
+    operon3 = Operon('B', '/tmp/dna3.fasta', 0, 13400, genes)
+    genes = [
+            Feature('cpf1', (1, 100), 'lcl|12|400|1|-1', 1, 'ACACEHFEF', 4e-19, 'a good gene', 'MCGYVER'),
+            Feature('cas2', (100, 200), 'lcl|410|600|1|-1', 1, 'FGEYFWCE', 2e-5, 'a good gene', 'MQPPRMSSS'),
+            Feature('glmS', (200, 300), 'lcl|410|600|1|-1', 1, 'LULZ', 2e-5, 'a good gene', 'MGFRERAR'),
+            Feature('transposase', (400, 500), 'lcl|620|1200|1|-1', 1, 'NFBEWFUWEF', 6e-13, 'a good gene', 'MLAWPVTLE'),
+            ]
+    operon4 = Operon('B', '/tmp/dna3.fasta', 0, 13400, genes)
+    operons = [operon1, operon2, operon3, operon4]
+    unique = analyze.dedup_supersets(operons)
+    assert len(unique) == 2
+    assert unique[0].contig, unique[1].contig in (('A', 'B'), ('B', 'A'))

@@ -164,6 +164,44 @@ def deduplicate_operons_approximate(operons: Iterator[Operon]) -> List[Operon]:
     return truly_nonredundant_operons
 
 
+def dedup_supersets(operons: List[Operon]) -> List[Operon]:
+    """ If the same inputs are run through gene_analyzer with an expanded database,
+    the new results will be either exactly identical to the previous results, or will
+    be supersets of the old results.
+
+    This function takes all operons, and removes ones with identical accession IDs and
+    contig coordinates, where the smaller operon's features are all contained in the larger
+    one.
+    """
+    grouped_operons = defaultdict(list)
+    for operon in operons:
+        grouped_operons[(operon.contig, operon.start, operon.end)].append(operon)
+
+    deduplicated = []
+    for key, ops in grouped_operons.items():
+        unique = _get_operon_supersets(ops)
+        deduplicated.extend(unique)
+    return deduplicated
+
+
+def _get_operon_supersets(operons: List[Operon]) -> List[Operon]:
+    if len(operons) == 1:
+        return operons
+    unique_operons = []
+    for operon in operons:
+        for other_operon in operons:
+            if operon == other_operon:
+                continue
+            operon_features = set(operon.all_features)
+            other_features = set(other_operon.all_features)
+            # if other_operon is a superset of operon, we break, and operon does not get added to unique_operons
+            if bool(other_features - operon_features) and not bool(operon_features - other_features):
+                break
+        else:
+            unique_operons.append(operon)
+    return unique_operons
+
+
 def _operons_are_approximately_equal(leader: Operon, operon: Operon) -> bool:
     """
     Determines if two operons have the same protein coding genes in the
