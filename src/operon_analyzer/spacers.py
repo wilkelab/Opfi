@@ -14,7 +14,7 @@ import re
 GAP_OPEN_PENALTY = 8
 GAP_EXTEND_PENALTY = 8
 
-AlignmentResult = namedtuple('AlignmentResult', ['match_count', 'spacer_sequence', 'contig_sequence', 'contig_start', 'contig_end', 'spacer_alignment', 'contig_alignment', 'comp_string', 'strand', 'spacer_position', 'array_length'])
+AlignmentResult = namedtuple('AlignmentResult', ['match_count', 'spacer_sequence', 'contig_sequence', 'contig_start', 'contig_end', 'spacer_alignment', 'contig_alignment', 'comp_string', 'strand', 'spacer_order', 'array_length'])
 MAX_SPACER_LENGTH_BP = 40  # Assume spacers longer than this were incorrectly parsed and should be ignored
 Spacer = Union[piler_parse.RepeatSpacer, piler_parse.BrokenSpacer]
 Array = List[Spacer]
@@ -50,14 +50,27 @@ def _align_operon_spacers(operon: genes.Operon, min_matching_fraction: float):
     spacers = _get_operon_spacers(operon.start, operon.end, contig_sequence)
     if not spacers:
         return operon
-    for spacer, spacer_position, array_length in spacers:
-        ar = _perform_local_pairwise_alignment(spacer, spacer_position, array_length, str(contig_sequence))
+
+    # Look up where the arrays are. If a spacer targets the array it comes from, we don't create a CRISPR target.
+    # It's either an assembly artifact or a duplication of the array.
+    arrays = [feature for feature in operon.all_features if feature.name == 'CRISPR array']
+
+    for spacer, spacer_order, array_length in spacers:
+        ar = _perform_local_pairwise_alignment(spacer, spacer_order, array_length, str(contig_sequence))
         if not ar:
             continue
         matching_fraction = ar.match_count / len(ar.spacer_sequence)
         if matching_fraction >= min_matching_fraction:
-            feature = _build_feature_from_alignment(ar)
-            operon._features.append(feature)
+            feature = _build_feature_from_alignment(ar, spacer)
+
+            # Make sure the spacer doesn't target its own array
+            for array in arrays:
+                if array.start <= feature.start <= array.end and array.start <= spacer.position <= array.end:
+                    # The spacer and target are both in the same array
+                    break
+            else:
+                # The target is somewhere outside of the array where its spacer is
+                operon._features.append(feature)
     return operon
 
 
@@ -79,7 +92,7 @@ def _get_operon_spacers(operon_start: int, operon_end: int, contig_sequence: Seq
 
 
 def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
-                                      spacer_position: int,
+                                      spacer_order: int,
                                       array_length: int,
                                       contig: Seq) -> Optional[AlignmentResult]:
     """
@@ -113,7 +126,7 @@ def _perform_local_pairwise_alignment(spacer: piler_parse.RepeatSpacer,
                                        contig_alignment,
                                        comp_string,
                                        strand,
-                                       spacer_position,
+                                       spacer_order,
                                        array_length)
 
     # We shouldn't have more matching base pairs than base pairs
@@ -152,7 +165,7 @@ def _align(spacer: str, contig: str) -> Tuple[float, int, str, int, int, str, st
     return result.score, match_count, contig_target_sequence, contig_start, contig_end, result.traceback.ref, result.traceback.query, result.traceback.comp
 
 
-def _build_feature_from_alignment(ar: AlignmentResult) -> genes.Feature:
+def _build_feature_from_alignment(ar: AlignmentResult, spacer: piler_parse.RepeatSpacer) -> genes.Feature:
     """ Alignment results are converted to Features so that we can plot them easily. """
     description = json.dumps({"match_count": ar.match_count,
                               "matching_fraction": (ar.match_count / len(str(ar.spacer_sequence))),
@@ -163,7 +176,8 @@ def _build_feature_from_alignment(ar: AlignmentResult) -> genes.Feature:
                               "spacer_sequence": str(ar.spacer_sequence),
                               "contig_sequence": str(ar.contig_sequence),
                               "comp_string": ar.comp_string,
-                              "spacer_position": ar.spacer_position,
+                              "spacer_order": ar.spacer_order,
+                              "spacer_position": spacer.position,
                               "array_length": ar.array_length})
     feature = genes.Feature('CRISPR target',
                             (ar.contig_start, ar.contig_end),
