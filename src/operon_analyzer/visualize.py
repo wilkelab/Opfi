@@ -112,48 +112,58 @@ def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
     """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic, other_operons=other_operons)
-    for operon, other in _make_operon_pairs(operons, other_operons):
-
-        # Calculate the figure size and the range of coordinates in the contig that we will plot
-        lower_coordinates_bound, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
-        upper_coordinates_bound = lower_coordinates_bound + operon_length
-        height_top, height_bottom, figure_width = _calculate_paired_figure_dimensions(operon, other, operon_length, plot_ignored)
-
-        # We create a Figure and two Axes and make DNA Features Viewer
-        # use them so that we can stay in control of the dimensions
-        fig, (ax1, ax2) = plt.subplots(nrows=2,
-                                       ncols=1,
-                                       figsize=(figure_width, height_top + height_bottom),
-                                       gridspec_kw={"height_ratios": (height_top, height_bottom)})
-
-        # Plot the top operon
-        create_operon_figure(operon,
-                             plot_ignored,
-                             feature_colors,
-                             color_by_blast_statistic=color_by_blast_statistic,
-                             colormin=lower,
-                             colormax=upper,
-                             existing_ax=ax1,
-                             figure_height=height_top)
-
-        # Plot the bottom operon. We set bounds here so that it exactly
-        # matches the location in the contig of the top operon
-        create_operon_figure(other,
-                             plot_ignored,
-                             feature_colors,
-                             color_by_blast_statistic=color_by_blast_statistic,
-                             colormin=lower,
-                             colormax=upper,
-                             bounds=(lower_coordinates_bound, upper_coordinates_bound),
-                             existing_ax=ax2,
-                             figure_height=height_bottom)
-
-        # Save the figure to disk
+    for operon, other in make_operon_pairs(operons, other_operons):
         out_filename = build_image_filename(operon, output_directory)
-        save_pair_figure(fig, out_filename)
+        plot_operon_pair(operon, other, lower, upper, out_filename, color_by_blast_statistic, plot_ignored, feature_colors)
 
 
-def _make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple[Operon, Operon]]:
+def plot_operon_pair(operon: Operon,
+                     other: Operon,
+                     lower: float,
+                     upper: float,
+                     out_filename: str,
+                     color_by_blast_statistic: Optional[str] = None,
+                     plot_ignored: bool = False,
+                     feature_colors: Optional[dict] = {}):
+    # Calculate the figure size and the range of coordinates in the contig that we will plot
+    lower_coordinates_bound, operon_length = calculate_adjusted_operon_bounds(operon, plot_ignored)
+    upper_coordinates_bound = lower_coordinates_bound + operon_length
+    height_top, height_bottom, figure_width = _calculate_paired_figure_dimensions(operon, other, operon_length, plot_ignored)
+
+    # We create a Figure and two Axes and make DNA Features Viewer
+    # use them so that we can stay in control of the dimensions
+    fig, (ax1, ax2) = plt.subplots(nrows=2,
+                                   ncols=1,
+                                   figsize=(figure_width, height_top + height_bottom),
+                                   gridspec_kw={"height_ratios": (height_top, height_bottom)})
+
+    # Plot the top operon
+    create_operon_figure(operon,
+                         plot_ignored,
+                         feature_colors,
+                         color_by_blast_statistic=color_by_blast_statistic,
+                         colormin=lower,
+                         colormax=upper,
+                         existing_ax=ax1,
+                         figure_height=height_top)
+
+    # Plot the bottom operon. We set bounds here so that it exactly
+    # matches the location in the contig of the top operon
+    create_operon_figure(other,
+                         plot_ignored,
+                         feature_colors,
+                         color_by_blast_statistic=color_by_blast_statistic,
+                         colormin=lower,
+                         colormax=upper,
+                         bounds=(lower_coordinates_bound, upper_coordinates_bound),
+                         existing_ax=ax2,
+                         figure_height=height_bottom)
+
+    # Save the figure to disk
+    save_pair_figure(fig, out_filename)
+
+
+def make_operon_pairs(operons: List[Operon], other: List[Operon]) -> List[Tuple[Operon, Operon]]:
     """ Takes two lists of operons and tries to find matching pairs that overlaps the same genomic region.
     The overlaps can be partial, or the span of one can be a subset of the other. The idea here is that
     if we run our pipeline on the same sequencing data with two different databases, the neighborhoods
