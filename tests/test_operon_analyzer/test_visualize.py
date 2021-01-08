@@ -5,7 +5,7 @@ from operon_analyzer.visualize import calculate_adjusted_operon_bounds, \
                                       create_operon_figure, \
                                       build_image_filename, \
                                       _get_feature_color, \
-                                      _make_operon_pairs, \
+                                      make_operon_pairs, \
                                       _plot_clustered_operons
 from operon_analyzer.analyze import cluster_operons_by_feature_order
 from common import get_standard_operon
@@ -13,7 +13,7 @@ import tempfile, os
 import pytest
 
 
-def test_make_operon_pairs():
+def testmake_operon_pairs():
     features = [Feature('cas1', (0, 20), "", 1, "", 1e-30, "", "MDGYACGYAC", 1234)]
 
     # perfect overlap
@@ -40,7 +40,7 @@ def test_make_operon_pairs():
     operons = [operon1, operon2, operon3, operon4, operon5]
     others = [other1, other2, other3good, other3bad, other4, other5]
 
-    pairs = _make_operon_pairs(operons, others)
+    pairs = make_operon_pairs(operons, others)
     # Since all the operons must have the same accession and filename for this test to
     # be meaningful, we're distinguishing them by their bounds alone. Hence this janky
     # comparison to expected values:
