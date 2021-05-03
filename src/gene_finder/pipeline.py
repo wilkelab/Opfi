@@ -20,51 +20,18 @@ from Bio import SeqIO
 
 class Pipeline:
     """
-    Main class for running the CRISPR-transposon identification pipeline.
-    
-    Performs a series of user-specified local alignment steps to identify 
-    putative CRISPR-transposon elements.
-
-    Example:
-
-        Create a pipeline to search for CRISPR-transposon systems
-        in the Vibrio crassostreae genome.
-
-        >>> p = Pipeline()
-
-        Add alignment steps to the pipeline. First, we will do a blast
-        for TnsA/B genes - "seeds" - in the query genome. Regions that fall
-        outside of the span around each hit will be filtered out of 
-        subsequent searches.
-
-        >>> p.add_blast_seed_step(db="blast_databases/tnsAB", name="tnsAB", 
-                                    e_val=0.001, blast_type="PROT")
-
-        Now add a filter step for cas proteins. This will tell the program to
-        to run a blast against a cas reference database, but only for the
-        regions around the hits from the previous step. 
-        Regions ("neighborhoods") that do not contain hits for cas proteins
-        will be filtered out of subsequent searches, as well as the results.
-
-        >>> p.add_blast_filter_step(db="blast_databases/cas", name="cas", 
-                                    e_val=0.001, blast_type="PSI")
-
-        Finally, add a blast step for tnsC and tnsD proteins using any 
-        remaining neighborhoods as queries. Neighborhoods that do not 
-        contain hits will NOT be filtered out during this step.
-
-        >>> p.add_blast_step(db="blast_databases/tnsCD", name="tnsCD", 
-                                e_val=0.001, blast_type="PROT")
-
-        Now, run the pipeline. Results are returned as a dictionary 
-        object containing the hits associated with each neighborhood.
-
-        >>> results = p.run(data="v_crassostreae.fasta")
+    Coordinates protein (or nucleic acid) searches to find gene clusters
+    of interest in genomic/metagenomic data.
     """
 
     def __init__(self):
-        """Initialize a Pipeline object."""
-        # defined in pipeline.run()
+        """
+        Create a pipeline for finding gene cluster candidates.
+        """
+        # Most members are re-assigned later, either when search steps are added 
+        # or when Pipeline.run() is called, but each is intialized here for clarity
+
+        # defined in Pipeline.run()
         self.data_path = None
         self.min_prot_len = None
         self.span = None
@@ -75,13 +42,13 @@ class Pipeline:
         self._steps = []
         
         # collect results about the input data
-        # will be reset each time pipeline.run() is called
+        # will be reset each time Pipeline.run() is called
         self._results = {}
         self._all_hits = {}
 
         # basically give the current state of the output files; that is, 
         # whether any data from this run has been written to disk yet
-        # these are also reset (to this state) when pipeline.run() is called
+        # these are also reset (to this state) when Pipeline.run() is called
         self._appending_results = False
         self._appending_hits = False
 
@@ -95,21 +62,20 @@ class Pipeline:
     
     def __del__(self):
         """
-        Delete the working directory and its contents when 
-        this object is garbage collected.
+        Delete the working directory and its contents when this object is garbage collected.
         """
         if self._working_dir is not None:
             self._working_dir.cleanup()
     
+
     def _setup_run(self, record):
         """
-        Prepare for running the pipeline on a new contig.
-        Since the same setup is re-used on multple contigs
-        (or even multiple fasta files) we want to make sure that
-        old data is cleared out.
+        Prepare for running the pipeline on a new contig. Since the same setup is re-used on 
+        multple contigs (or even multiple fasta files) we want to make sure that old data is 
+        cleared out.
 
-        Also gather info about the current contig and run 
-        orffinder to get all ORFs in this contig.
+        Also gather info about the current contig and call `orffinder` to get all ORFs in
+        this contig.
         """
         self._reset_contig_data()
         self._working_dir = tempfile.TemporaryDirectory()
@@ -121,20 +87,27 @@ class Pipeline:
         self._all_hits[contig_id] = {}
         return contig_id, contig_len, contig_path
     
+
     def _reset_contig_data(self):
-        """Clear out data from a previous contig."""
+        """
+        Clear out data from a previous contig.
+        """
         if self._working_dir is not None:
             self._working_dir.cleanup()
         self._working_results = {}
         self._neighborhood_orfs = {}
         self._all_orfs = None
     
+
     def _reset_results(self):
-        """Clear out results from a previous run."""
+        """
+        Clear out results from a previous run.
+        """
         self._results = {}
         self._all_hits = {}
         self._appending_hits = False
         self._appending_results = False
+
 
     def _open_data(self, data, is_binary):
         """
@@ -161,11 +134,9 @@ class Pipeline:
     
     def _filter(self, min_prot_count):
         """
-        Remove neighborhood from the working results if the number of
+        Remove neighborhoods from the working results if the number of
         new hits added during the filter step is less than the user 
-        specified cutoff.
-
-        Note that if no cutoff is given, the default used is 1.
+        specified cutoff. If no cutoff is given the default used is 1.
         """
         remove = [neighborhood for neighborhood in self._working_results 
                     if self._working_results[neighborhood]["new_hit_count"] < min_prot_count]
@@ -176,8 +147,9 @@ class Pipeline:
     
     
     def _results_update(self, hits, min_prot_count):
-        """Add hits to the results tracker (grouped by neighborhood)."""
-
+        """
+        Add hits to the results tracker (grouped by neighborhood).
+        """
         for hit in hits:
             for neighborhood in self._working_results:
 
@@ -202,8 +174,9 @@ class Pipeline:
 
     
     def _results_update_crispr(self, hits):
-        """Add hits for CRISPR arrays to the results tracker."""
-
+        """
+        Add hits for CRISPR arrays to the results tracker.
+        """
         for hit in hits:
             for neighborhood in self._working_results:
 
@@ -214,8 +187,9 @@ class Pipeline:
 
     
     def _results_update_nucl(self, hits):
-        """Add hits for nucleotide BLAST."""
-
+        """
+        Add hits for nucleotide BLAST.
+        """
         for hit in hits:
             for neighborhood in self._working_results:
 
@@ -237,8 +211,9 @@ class Pipeline:
 
 
     def _get_all_orfs(self, data, id):
-        """Get all of the (translated) open reading frames in this genome."""
-
+        """
+        Get all of the (translated) open reading frames in this genome.
+        """
         orfs = os.path.join(self._working_dir.name, "all_orfs.fasta")
         self._all_orfs = orffinder(sequence=data, output=orfs, 
                                     min_prot_len=self.min_prot_len, description=id)
@@ -263,31 +238,24 @@ class Pipeline:
 
     
     def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
-        """Add a seed step to the pipeline. 
-
-        Internally, this queues a series of sub-steps that
-        serve to identify genomic "neighborhoods" around the proteins of 
-        interest - "seeds" - in the parent genome. 
+        """
+        Define genomic regions of interest by BLASTing against a database of
+        "seeds", i.e., protein encoding genes expected to occur in every 
+        candidate gene cluster.
 
         The individual steps can be summarized as follows:
-        1. Translate all open reading frames contained in the parent genome.
-        2. Blast each ORF against a reference database of target proteins (seeds)
-        3. Record the span to the left and right of each hit (set by the span 
-            parameter during pipeline initialization). This region is a potential 
-            CRISPR-transposon gene neighborhood. Hits with overlapping regions 
-            are merged into a single neighborhood.
-        4. Add nighborhood and hit info to the results tracker.
-        5. Remove ORFs that are not contained within the neighborhood regions
-        from the query database.
+        1. Translate all open reading frames (ORFs) in the input genome/contig.
+        2. BlAST ORFs against the seed protein database `db`. 
+        3. Keep ORFs `self.span` bp up- and -downstream of each hit, discarding all others.
 
         Args:
             db (str): Path to the target (seed) protein database.
             name (str): A unique name/ID for this step in the pipeline.
-            e_val (float): Expect value to use as a threshhold. 
+            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+                better (lower) score.
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
-                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
-                mmseqs2 and diamond support is currently experimental.
+                "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type).
@@ -297,9 +265,11 @@ class Pipeline:
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
                 (i.e everything after the first whitespace in the header). If
-                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                using this option with NCBI BLAST, DO NOT use the `-parse_seqids`
                 flag when creating protein databases with `makeblastdb`.
-            **kwargs: These can be any additional blast parameters,
+            blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
+                if not using the system default.
+            **kwargs: These can be any additional BLAST parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
                 Currently only supported for blastp/psiblast; if blast_type
@@ -327,7 +297,7 @@ class Pipeline:
                                        parse_descriptions=True, start=None, end=None, 
                                        contig_id=None, blast_path=None, **kwargs):
         """
-        Define a genomic region to search with coordinates instead of a bait gene.
+        Define a genomic region of interest with coordinates instead of a bait/seed gene.
 
         An alternative to `add_seed_step`. Most useful for re-annotating 
         putative systems of interest, where the region coordinates are already
@@ -336,17 +306,17 @@ class Pipeline:
         Args:
             db (str): Path to the target database to search against.
             name (str): A unique name/ID for this step in the pipeline.
-            e_val (float): Expect value to use as a threshhold. 
+            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+                better (lower) score.
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
-                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
-                mmseqs2 and diamond support is currently experimental.
+                "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type).
             start (int): Defines the beginning of the region to search (in bp).
                 If no start position is given the first (zero indexed) position
-                in the contig is used.
+                in the genome/contig is used.
             end (int): Defines the end of the region to search (in bp). If no
                 end position is given the last position in the contig is used.
             contig_id(string, optional): An identifier for the contig to search.
@@ -354,7 +324,9 @@ class Pipeline:
                 input file using the coordinates specified. Note that the contig ID 
                 is defined as the substring between the ">" character and the first
                 " " character in the contig header.
-            **kwargs: These can be any additional blast parameters,
+            blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
+                if not using the system default.
+            **kwargs: These can be any additional BLAST parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
                 Currently only supported for blastp/psiblast; if blast_type
@@ -367,24 +339,20 @@ class Pipeline:
 
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
                         sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
-        """Add a filter step to the pipeline.
-
-        Blast genomic neighborhoods against the target database. 
-        Neighborhoods with no hits against the target database will 
-        be filtered out of the results and will not be used in subsequent 
-        searches.
+        """
+        Add a step to BLAST candidate regions against a target database `db`, and filter out
+        candidates that do not have at least `min_prot_count` hits against the target.
 
         Args:
-            db (str): Path to the target (seed) protein database.
+            db (str): Path to the target protein database.
             name (str): A unique name/ID for this step in the pipeline.
-            e_val (float): Expect value to use as a threshhold. 
+            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+                better (lower) score.
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
-                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
-                mmseqs2 and diamond support is currently experimental.
+                "mmseqs" (mmseqs2), or "diamond" (diamond).
             min_prot_count (int, optional): Minimum number of hits 
-                needed for the neighborhood to be retained. Default 
-                is one.
+                needed to keep each candidate.
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type).
@@ -396,7 +364,9 @@ class Pipeline:
                 (i.e everything after the first whitespace in the header). If
                 using this option with NCBI blast, DO NOT use the `-parse_seqids`
                 flag when creating protein databases with `makeblastdb`.  
-            **kwargs: These can be any additional blast parameters,
+            blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
+                if not using the system default.
+            **kwargs: These can be any additional BLAST parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
                 Currently only supported for blastp/psiblast; if blast_type
@@ -418,22 +388,19 @@ class Pipeline:
     
     def add_blast_step(self, db, name, e_val, blast_type, 
                         sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
-        """Add a non-filtering blast step to the pipeline.
-
-        Blast genomic neighborhoods against the target database. 
-        Any hits are appended to the results.
+        """
+        Add a non-filtering BLAST step to the pipeline. That is, BLAST each candidate against
+        the target database `db` without applying any filtering logic. This is most useful
+        for annotating candidates for non-essential or ancillary genes.
 
         Args:
-            db (str): Path to the target (seed) protein database.
+            db (str): Path to the target protein database.
             name (str): A unique name/ID for this step in the pipeline.
-            e_val (float): Expect value to use as a threshhold. 
+            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+                better (lower) score.
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
-                "mmseqs" (mmseqs2), or "diamond" (diamond). Note that
-                mmseqs2 and diamond support is currently experimental.
-            min_prot_count (int, optional): Minimum number of hits 
-                needed for the neighborhood to be retained. Default 
-                is one.
+                "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
                 for mmseqs and diamond (does nothing if blast is the
                 seach type). 
@@ -443,9 +410,11 @@ class Pipeline:
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
                 (i.e everything after the first whitespace in the header). If
-                using this option with NCBI blast, DO NOT use the `-parse_seqids`
+                using this option with NCBI BLAST, DO NOT use the `-parse_seqids`
                 flag when creating protein databases with `makeblastdb`.
-            **kwargs: These can be any additional blast parameters,
+            blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
+                if not using the system default.
+            **kwargs: These can be any additional BLAST parameters,
                 specified as key-value pairs. Note that certain parameters
                 are not allowed, mainly those that control output formatting.
                 Currently only supported for blastp/psiblast; if blast_type
@@ -466,22 +435,24 @@ class Pipeline:
     
     
     def add_crispr_step(self):
-        """Add a step to search for CRISPR arrays.
-        
-        Uses pilercr with default parameters. Hits that 
-        overlap with a genomic neighborhood are appended to
-        the resutls.
         """
-
+        Add a step to search for CRISPR arrays using PILER-CR.
+        """
         self._steps.append(CrisprStep(Pilercr("CRISPR")))
     
+
     def add_blastn_step(self, db, name, e_val, parse_descriptions=False, blastn_path='blastn', **kwargs):
-        """ Add a step to do nucleotide BLAST. """
-        
+        """ 
+        Add a step to do nucleotide BLAST. 
+        """
         self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, blastn_path, kwargs)))
 
 
     def _update_output_sequences(self):
+        """
+        Replace alignment sequences (which contain gap characters) with full ORF sequences 
+        in the final output.
+        """
         for neighborhood, path in self._neighborhood_orfs.items():
             sequences = {}
             for record in SeqIO.parse(path, "fasta"):
@@ -492,7 +463,9 @@ class Pipeline:
 
     
     def _format_results(self, results_data, incremental_output):
-        """Process results into their final CSV format and write them to disk."""
+        """
+        Process results into their final CSV format and write them to disk.
+        """
         # Remove temporary hit counter tag
         for contig in results_data:
             for neighborhood in results_data[contig]:
@@ -508,8 +481,9 @@ class Pipeline:
     
     
     def _record_all_hits(self, all_hit_data):
-        """Write all hits from one or more contigs to disk (in json format)."""
-        
+        """
+        Write all hits from one or more contigs to disk (in json format).
+        """
         filename = "{}_hits.json".format(self.job_id) if self.job_id is not None else "gene_finder_hits.json"
         if self.output_directory is not None and os.path.exists(self.output_directory):
             filename = os.path.join(self.output_directory, filename)
@@ -528,7 +502,9 @@ class Pipeline:
 
 
     def _final_candidate_count(self, contig_id):
-        """Returns the number of candidate systems (per contig) that were found."""
+        """
+        Returns the number of candidate systems (per contig) that were found.
+        """
         return len(self._results[contig_id])
     
     
@@ -563,7 +539,9 @@ class Pipeline:
     def run(self, data, job_id=None, output_directory=None, min_prot_len=60, 
             span=10000, record_all_hits=False, incremental_output=False,
             starting_contig=None, gzip=False) -> dict:
-        """Sequentially execute each step in the pipeline.
+        """
+        Sequentially execute each step in the pipeline, in the order that they
+        were added.
 
         Args:
             data (str): Path to the input data file. Can be a single-
@@ -573,7 +551,8 @@ class Pipeline:
                 will be used as the prefix. In any case, results from
                 the pipeline are written to the file <prefix>_results.csv.
             output_directory (str, optional): The directory to write
-                output data files to.
+                output data files to. If no directory is given then the current
+                (working) directory is used.
             min_prot_len (int, optional): Minimum ORF length (aa).
                 Default is 60.
             span (int, optional): Length (nt) upsteam and downstream
