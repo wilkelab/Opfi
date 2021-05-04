@@ -15,15 +15,14 @@ from gene_finder.utils import get_neighborhood_ranges
 
 
 class Blastp():
-    """Wrapper for NCBI Blastp command line util.
-
-    Really is just a wrapper around biopython's
-    better wrapper.
+    """
+    Wrapper for the NCBI BLASTP command line utility.
     """
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
+
 
     def __init__(self, db, e_val, step_id, parse_descriptions, blastp_path, kwargs):
 
@@ -35,27 +34,34 @@ class Blastp():
         self.blastp_path = blastp_path
         self.kwargs = kwargs
     
+
     def construct_cmd(self, query, out):
+        """
+        Format the BLASTP command into a string that `subprocess.run()` can use.
+        """
         return build_blastp_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out, self.blastp_path)
 
-    def run(self, orfs):
 
+    def run(self, orfs):
+        """
+        Execute the BLASTP search.
+        """
         blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
         cmd = self.construct_cmd(orfs, blast_out)
         subprocess.run(cmd, check=True)
         hits = parse_search_output(blast_out, self.step_id, "blast", self.parse_descriptions)
         return hits
         
-class Blastpsi():
-    """Wrapper for NCBI psiBlast command line util.
 
-    Really is just a wrapper around biopython's
-    better wrapper.
+class Blastpsi():
+    """
+    Wrapper for NCBI psiBLAST command line util.
     """
     BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
         bitscore score length pident \
         nident mismatch positive gapopen \
         gaps ppos qcovhsp qseq"
+
 
     def __init__(self, db, e_val, step_id, parse_descriptions, psiblast_path, kwargs):
 
@@ -67,16 +73,24 @@ class Blastpsi():
         self.psiblast_path = psiblast_path
         self.kwargs = kwargs
     
+
     def construct_cmd(self, query, out):
+        """
+        Format the psiBLAST command into a string that `subprocess.run()` can use.
+        """
         return build_psiblast_command(query, self.db, self.e_val, self.kwargs, self.BLASTOUT_FIELDS, out, self.psiblast_path)
 
-    def run(self, orfs):
 
+    def run(self, orfs):
+        """
+        Execute the psiBLAST search.
+        """
         blast_out = os.path.join(self.tmp_dir.name, "blast_out.tsv")
         cmd = self.construct_cmd(orfs, blast_out)
         subprocess.run(cmd, check=True)
         hits = parse_search_output(blast_out, self.step_id, "blast", self.parse_descriptions)
         return hits
+
 
 class MMseqs():
     """Wrapper for mmseqs command line search util."""
