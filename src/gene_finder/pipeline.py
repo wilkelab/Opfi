@@ -121,6 +121,7 @@ class Pipeline:
         
         return handle
 
+
     def _results_init(self, neighborhood_ranges):
         """
         Create an entry for every gene neighborhood identified
