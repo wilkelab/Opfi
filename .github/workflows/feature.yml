@@ -6,9 +6,6 @@ name: Feature branches
 on:
   pull_request:
     branches-ignore: [ master ]
-  push:
-    branches:
-      - gene-finder-cleanup
 
 jobs:
   build:
