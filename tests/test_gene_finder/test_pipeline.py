@@ -1,4 +1,22 @@
+from typing import Set
+import pytest
 from gene_finder.pipeline import Pipeline
+import subprocess
+import tempfile
+
+
+def mmseqs_db(tmp_dir, fasta, db_name):
+    # convert protein sequences to an mmseqs formatted database
+    db = f"{tmp_dir.name}/{db_name}"
+    subprocess.run(["mmseqs", "createdb", fasta, db], check=True)
+    return db
+
+
+def diamond_db(tmp_dir, fasta, db_name):
+    # convert protein sequences to a diamond formatted database
+    db = f"{tmp_dir.name}/{db_name}"
+    subprocess.run(["diamond", "makedb", "--in", fasta, "-d", db], check=True)
+    return db
 
 
 def test_seed_with_coordinates_step1():
@@ -41,3 +59,33 @@ def test_blastn():
     assert hit['Hit_accession'] == 'Porphyromonas_gingivalis_W83_chr.trna48-SerGGA'
     assert hit['type'] == 'nucleotide'
     assert hit['Query_seq'] == 'CGGAGAGAACAGGATTCGAACCTGCGAACCGGTTTTGCCGGTTACACGCTTTCCAGGCGTGCCTCTTCAACCACTCGAGCACCTCTCC'
+
+
+@pytest.mark.mmseqs
+def test_mmseqs():
+    # Test that we can find the genes cas7 and tniQ in the contig (V. crassostreae J520) using mmseqs
+    tmp_dir = tempfile.TemporaryDirectory()
+    cas7_db = mmseqs_db(tmp_dir, "tests/integration/integration_data/blast_databases/cas7.fasta", "cas7")
+    tniQ_db = mmseqs_db(tmp_dir, "tests/integration/integration_data/blast_databases/tniQ.fasta", "tniQ")
+    data = "tests/integration/integration_data/contigs/v_crass_J520_whole.fasta"
+    p = Pipeline()
+    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="mmseqs", sensitivity=6.0)
+    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="mmseqs", sensitivity=6.0)
+    results = p.run(job_id="blast_test", data=data, output_directory="/tmp", span=10000, min_prot_len=60)
+    genes_names = [hit["Hit_name"] for hit in results["NZ_CCKB01000071.1"]["Loc_75746-96837"]["Hits"].values()]
+    assert set(genes_names) == set(["cas7", "tniQ"])
+
+
+@pytest.mark.diamond
+def test_diamond():
+    # Test that we can find the genes cas7 and tniQ in the contig (V. crassostreae J520) using diamond
+    tmp_dir = tempfile.TemporaryDirectory()
+    cas7_db = diamond_db(tmp_dir, "tests/integration/integration_data/blast_databases/cas7.fasta", "cas7")
+    tniQ_db = diamond_db(tmp_dir, "tests/integration/integration_data/blast_databases/tniQ.fasta", "tniQ")
+    data = "tests/integration/integration_data/contigs/v_crass_J520_whole.fasta"
+    p = Pipeline()
+    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="diamond", sensitivity="--sensitive")
+    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="diamond", sensitivity="--sensitive")
+    results = p.run(job_id="blast_test", data=data, output_directory="/tmp", span=10000, min_prot_len=60)
+    genes_names = [hit["Hit_name"] for hit in results["NZ_CCKB01000071.1"]["Loc_75746-96837"]["Hits"].values()]
+    assert set(genes_names) == set(["cas7", "tniQ"])

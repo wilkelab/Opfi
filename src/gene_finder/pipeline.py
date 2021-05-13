@@ -287,9 +287,9 @@ class Pipeline:
             path = 'psiblast' if blast_path is None else blast_path
             self._steps.append(SeedStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type == "mmseqs":
-            self._steps.append(SeedStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
+            self._steps.append(SeedStep(MMseqs(db, str(e_val), name, sensitivity, parse_descriptions)))
         elif blast_type == "diamond":
-            self._steps.append(SeedStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions)))
+            self._steps.append(SeedStep(Diamond(db, str(e_val), name, sensitivity, parse_descriptions)))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
@@ -380,9 +380,9 @@ class Pipeline:
             path = 'psiblast' if blast_path is None else blast_path
             self._steps.append(FilterStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs), min_prot_count))
         elif blast_type == "mmseqs":
-            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
+            self._steps.append(FilterStep(MMseqs(db, str(e_val), name, sensitivity, parse_descriptions), min_prot_count))
         elif blast_type == "diamond":
-            self._steps.append(FilterStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions), min_prot_count))
+            self._steps.append(FilterStep(Diamond(db, str(e_val), name, sensitivity, parse_descriptions), min_prot_count))
         else:
             raise ValueError("blast type option '{}' not recognized".format(blast_type))
     
@@ -428,9 +428,9 @@ class Pipeline:
             path = 'psiblast' if blast_path is None else blast_path
             self._steps.append(SearchStep(Blastpsi(db, e_val, name, parse_descriptions, path, kwargs)))
         elif blast_type == "mmseqs":
-            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, str(sensitivity), parse_descriptions)))
+            self._steps.append(SearchStep(MMseqs(db, str(e_val), name, sensitivity, parse_descriptions)))
         elif blast_type == "diamond":
-            self._steps.append(SearchStep(Diamond(db, str(e_val), name, str(sensitivity), parse_descriptions)))
+            self._steps.append(SearchStep(Diamond(db, str(e_val), name, sensitivity, parse_descriptions)))
         else:
             raise ValueError("blast type option '{}' not available for filter step".format(blast_type))
     

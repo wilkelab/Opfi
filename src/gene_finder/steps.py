@@ -18,10 +18,7 @@ class Blastp():
     """
     Wrapper for the NCBI BLASTP command line utility.
     """
-    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
-        bitscore score length pident \
-        nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq"
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue bitscore score length pident nident mismatch positive gapopen gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, parse_descriptions, blastp_path, kwargs):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -53,10 +50,7 @@ class Blastpsi():
     """
     Wrapper for NCBI psiBLAST command line utility.
     """
-    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
-        bitscore score length pident \
-        nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq"
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue bitscore score length pident nident mismatch positive gapopen gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, parse_descriptions, psiblast_path, kwargs):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -88,9 +82,7 @@ class MMseqs():
     """
     Wrapper for mmseqs command line search utility.
     """
-    MMSEQSOUT_FIELDS = "qheader target theader evalue \
-        bits raw alnlen pident \
-        nident mismatch gapopen qcov qseq"
+    MMSEQSOUT_FIELDS = "qheader target theader evalue bits raw alnlen pident nident mismatch gapopen qcov qseq"
 
     def __init__(self, db, e_val, step_id, sensitivity, parse_descriptions):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -116,7 +108,7 @@ class MMseqs():
         lowest e-value score.
         """
         results_tsv = "{}/results.tsv".format(self.tmp_dir.name)
-        tsv_fields = self.MMSEQSOUT_FIELDS.split().join(",")
+        tsv_fields = ",".join(self.MMSEQSOUT_FIELDS.split())
 
         # convert raw output from custom mmseqs format to tsv format
         convertalis_cmd = ["mmseqs", "convertalis", query_db, self.target_db, 
@@ -135,8 +127,10 @@ class MMseqs():
         mmseqs_work = os.path.join(self.tmp_dir.name, "tmp")
         os.mkdir(mmseqs_work)
 
-        cmd = ["mmseqs", "search", query_db, self.target_db, result_db, mmseqs_work, "-s",
-                self.sensitivity, "-e", self.e_val, "-v", "0"]
+        cmd = ["mmseqs", "search", query_db, self.target_db, result_db, mmseqs_work, "-e", self.e_val, "-v", "0"]
+        if self.sensitivity is not None:
+            cmd.append("-s")
+            cmd.append(str(self.sensitivity))
         subprocess.run(cmd, check=True)
         # parse output
         hits = self._extract_best_hits(query_db, result_db)
@@ -147,10 +141,7 @@ class Diamond():
     """
     Wrapper for diamond command line search utility.
     """
-    DIAMONDOUT_FIELDS = "qseqid sseqid stitle evalue \
-        bitscore score length pident \
-        nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq"
+    DIAMONDOUT_FIELDS = "qseqid sseqid stitle evalue bitscore score length pident nident mismatch positive gapopen gaps ppos qcovhsp qseq"
 
     def __init__(self, db, e_val, step_id, sensitivity, parse_descriptions):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -165,16 +156,16 @@ class Diamond():
         Execute the diamond blastp search and parse output.
         """
         result = os.path.join(self.tmp_dir.name, "result.tsv")
-        
-        cmd = ["diamond", "blastp", "-q", orfs, "-d", self.db, "-o", result,
-                    "-e", self.e_val, "-k", "1", "--quiet", "-f", 
-                    "6", self.DIAMONDOUT_FIELDS]
-        if self.sensitivity:
-            cmd.append(self.sensitivity)
-        subprocess.run(cmd, check=True, shell=True)
+        cmd = ['diamond', 'blastp', '-q', orfs, '-d', self.db, '-o', result,
+                '-e', self.e_val, '--threads', '1', '--quiet', '-f', '6']
+        cmd = cmd + self.DIAMONDOUT_FIELDS.split()
+        if self.sensitivity is not None:
+            cmd.append(str(self.sensitivity))
+        subprocess.run(cmd, check=True)
         # parse output
         hits = parse_search_output(result, self.step_id, "diamond", self.parse_descriptions)
         return hits       
+
 
 class Pilercr():
     """
@@ -199,10 +190,7 @@ class Blastn():
     """
     Wrapper for NCBI blastn command line utility.
     """
-    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue \
-        bitscore score length pident \
-        nident mismatch positive gapopen \
-        gaps ppos qcovhsp qseq qstart qend sstrand"
+    BLASTOUT_FIELDS = "qseqid sseqid stitle evalue bitscore score length pident nident mismatch positive gapopen gaps ppos qcovhsp qseq qstart qend sstrand"
 
     def __init__(self, db, step_id, e_val, parse_descriptions, blastn_path, kwargs):
         self.tmp_dir = tempfile.TemporaryDirectory()
