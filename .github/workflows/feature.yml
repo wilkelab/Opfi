@@ -6,6 +6,9 @@ name: Feature branches
 on:
   pull_request:
     branches-ignore: [ master ]
+  push:
+    branches:
+      - gene-finder-cleanup
 
 jobs:
   build:
@@ -29,8 +32,8 @@ jobs:
       run: |
         cd lib/pilercr1.06 && sudo make install && cd ../..
         sudo apt install -y ncbi-blast+
-        sudo apt install mmseqs2
-        sudo apt install diamond-aligner
+        sudo apt install -y mmseqs2
+        sudo apt install -y diamond-aligner
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
