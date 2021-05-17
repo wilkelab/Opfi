@@ -63,14 +63,15 @@ def test_blastn():
 
 @pytest.mark.mmseqs
 def test_mmseqs():
-    # Test that we can find the genes cas7 and tniQ in the contig (V. crassostreae J520) using mmseqs
+    # The contig (V. crassostreae s. J520 full genome) contains cas7 & tniQ around position ~85000
+    # We are just testing that we can identify this region using mmseqs as the search tool
     tmp_dir = tempfile.TemporaryDirectory()
     cas7_db = mmseqs_db(tmp_dir, "tests/integration/integration_data/blast_databases/cas7.fasta", "cas7")
     tniQ_db = mmseqs_db(tmp_dir, "tests/integration/integration_data/blast_databases/tniQ.fasta", "tniQ")
     data = "tests/integration/integration_data/contigs/v_crass_J520_whole.fasta"
     p = Pipeline()
-    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="mmseqs", sensitivity=6.0)
-    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="mmseqs", sensitivity=6.0)
+    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="mmseqs")
+    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="mmseqs")
     results = p.run(job_id="blast_test", data=data, output_directory="/tmp", span=10000, min_prot_len=60)
     genes_names = [hit["Hit_name"] for hit in results["NZ_CCKB01000071.1"]["Loc_75746-96837"]["Hits"].values()]
     assert set(genes_names) == set(["cas7", "tniQ"])
@@ -78,14 +79,15 @@ def test_mmseqs():
 
 @pytest.mark.diamond
 def test_diamond():
-    # Test that we can find the genes cas7 and tniQ in the contig (V. crassostreae J520) using diamond
+    # The contig (V. crassostreae s. J520 full genome) contains cas7 & tniQ around position ~85000
+    # We are just testing that we can identify this region using diamond as the search tool
     tmp_dir = tempfile.TemporaryDirectory()
     cas7_db = diamond_db(tmp_dir, "tests/integration/integration_data/blast_databases/cas7.fasta", "cas7")
     tniQ_db = diamond_db(tmp_dir, "tests/integration/integration_data/blast_databases/tniQ.fasta", "tniQ")
     data = "tests/integration/integration_data/contigs/v_crass_J520_whole.fasta"
     p = Pipeline()
-    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="diamond", sensitivity="--sensitive")
-    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="diamond", sensitivity="--sensitive")
+    p.add_seed_step(tniQ_db, "tniQ", 0.001, blast_type="diamond")
+    p.add_filter_step(cas7_db, "cas7", 0.001, blast_type="diamond")
     results = p.run(job_id="blast_test", data=data, output_directory="/tmp", span=10000, min_prot_len=60)
     genes_names = [hit["Hit_name"] for hit in results["NZ_CCKB01000071.1"]["Loc_75746-96837"]["Hits"].values()]
     assert set(genes_names) == set(["cas7", "tniQ"])
