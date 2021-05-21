@@ -16,4 +16,4 @@ Contents
     
     installation
     examples
-    api
+    modules
