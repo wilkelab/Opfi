@@ -22,3 +22,6 @@ lib/pilercr1.06/pilercr
 
 # read the docs generated html
 docs/_build
+
+# python notebook checkpoints
+.ipynb_checkpoints
