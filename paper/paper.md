@@ -38,12 +38,56 @@ Metagenomics is the sequencing and analysis of bacterial genomes sampled directl
 
 # Implementation:
 
-Opfi is implemented entirely in Python, and can be downloaded from the Python package index and installed directly in the user’s compute environment. It consists of two major modules: Gene Finder, for discovery of candidate gene systems, and Operon Analyzer, for filtering, deduplication, visualization, and re-annotation of systems identified by Gene Finder. Each module (or sub-module) generates output in a comma-separated format that is common to the entire package.
+Opfi is implemented entirely in Python, and can be downloaded from the Python package index and installed directly in the user’s compute environment. It consists of two major modules: Gene Finder, for discovery of candidate gene systems, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of systems identified by Gene Finder. Each module (or sub-module) generates output in a comma-separated format that is common to the entire package.
 
-## Gene finder:
+## Example Gene Finder usage:
 
-## Operon Analyzer:
+```python
+from gene_finder.pipeline import Pipeline
+
+p = Pipeline()
+p.add_seed_step(db="databases/common_genes", name="common", e_val=0.001, blast_type="PROT")
+p.add_filter_step(db="databases/signature_genes", name="required", e_val=0.001, blast_type="PROT", min_prot_count=3)
+p.add_blast_step(db="databases/ancillary_genes", name="cas_all", e_val=0.001, blast_type="PROT")
+
+results = p.run(data="my_genome.fasta", output_directory="output")
+```
+
+## Example Operon Analyzer usage:
+
+A toy example of rule-based filtering using Operon Analyzer:
+```python
+from operon_analyzer import analyze, rules
+
+# Selects systems that adhere to the following conditions:
+# 1. Must have an operon composed of gene1, gene2, and signature_gene_1
+# 2. signature_gene_1 must be at least 3000 nucleotides in length
+# 3. The system must also contain signature_gene_2, but it does not have to be in any particular position
+# relative to the other required genes
+rs = RuleSet().contains_group(feature_names = ["gene1", "gene2, signature_gene_1"], max_gap_distance_bp = 50) \
+              .minimum_size("signature_gene_1", 3000))
+              .require("signature_gene_2")
+
+with open("gene_finder_output.csv", "r") as input_csv:
+    with open(f"filtered_gene_finder_output.csv", "w") as output_csv:
+        analyze.evaluate_rules_and_reserialize(input_csv, rs, output_csv)
+```
+
+Gene diagrams can be created for easy visualization of interesting systems:
+```python
+from operon_analyzer import load, visualize
+
+with open("filtered_gene_finder_output.csv", "r") as operon_data:
+    operons = load.load_operons(operon_data)
+    visualize.plot_operons(operons=operons, output_directory="output", nucl_per_line=25000)
+```
 
 # Acknowledgements:
+
+The authors would like to thank the staff of the Texas Advanced Computing Center for providing
+computational resources, and members of the Finkelstein and Wilke labs for helpful
+discussions. This work was supported by an NIGMS grant R01GM124141 (to I.J.F.), the Welch
+Foundation grant F-1808 (to I.J.F.), NIGMS grant R01 GM088344 (to C.O.W.), and the College
+of Natural Sciences Catalyst Award for seed funding.
 
 # References
