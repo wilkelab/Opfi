@@ -65,11 +65,11 @@ from operon_analyzer import analyze, rules
 # 3. The system must also contain signature_gene_2, but it does not have to be in any particular position
 # relative to the other required genes
 rs = RuleSet().contains_group(feature_names = ["gene1", "gene2, signature_gene_1"], max_gap_distance_bp = 50) \
-              .minimum_size("signature_gene_1", 3000))
+              .minimum_size("signature_gene_1", 3000) \
               .require("signature_gene_2")
 
 with open("gene_finder_output.csv", "r") as input_csv:
-    with open(f"filtered_gene_finder_output.csv", "w") as output_csv:
+    with open("filtered_gene_finder_output.csv", "w") as output_csv:
         analyze.evaluate_rules_and_reserialize(input_csv, rs, output_csv)
 ```
 
