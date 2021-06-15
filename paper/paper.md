@@ -48,7 +48,7 @@ from gene_finder.pipeline import Pipeline
 p = Pipeline()
 p.add_seed_step(db="databases/common_genes", name="common", e_val=0.001, blast_type="PROT")
 p.add_filter_step(db="databases/signature_genes", name="required", e_val=0.001, blast_type="PROT", min_prot_count=3)
-p.add_blast_step(db="databases/ancillary_genes", name="cas_all", e_val=0.001, blast_type="PROT")
+p.add_blast_step(db="databases/ancillary_genes", name="ancillary", e_val=0.001, blast_type="PROT")
 
 results = p.run(data="my_genome.fasta", output_directory="output")
 ```
