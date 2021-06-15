@@ -1,3 +1,33 @@
+---
+title: 'Opfi: A Python package for constructing reproducible genomics and metagenomics mining pipelines'
+tags:
+  - Python
+  - genome mining
+  - metagenomics
+  - gene cluster analysis
+authors:
+  - name: Alexis M. Hill^[co-first author]
+    affiliation: 1
+  - name: James R. Rybarski^[co-first author]
+    affiliation: 2
+  - name: Kuang Hu^[co-first author]
+    affiliation: "1,2"
+  - name: Ilya J. Finkelstein
+    affiliation: "2,3"
+  - name: Claus O. Wilke^[corresponding author]
+    affiliation: 1
+affiliations:
+ - name: Department of Integrative Biology, The University of Texas at Austin, Austin, Texas 78712, USA
+   index: 1
+ - name: Department of Molecular Biosciences, The University of Texas at Austin, Austin, Texas 78712, USA
+   index: 2
+ - name: Center for Systems and Synthetic Biology, The University of Texas at Austin, Austin, Texas, 78712, USA
+   index: 3
+date: 15 June 2021
+bibliography: paper.bib
+
+---
+
 # Summary:
 
 Advances in genome sequencing technology have led to an explosion of available metagenomics data, encoding potentially novel genetic systems of academic and biotechnological interest. There is a critical need for tools that can systematically and reproducibly identify genetic systems in large, often low-quality metagenomics data. To this end, we developed Opfi: a modular, rule-based pipeline for identification of functional sets of genes, such as biosynthetic gene clusters or CRISPR-cas defense systems, in large metagenomics datasets. 
