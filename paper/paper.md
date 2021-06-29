@@ -87,6 +87,8 @@ with open("filtered_gene_finder_output.csv", "r") as operon_data:
     visualize.plot_operons(operons=operons, output_directory=".", nucl_per_line=25000)
 ```
 
+!(operon_diagram.png)
+
 # Acknowledgements
 
 The authors would like to thank the staff of the Texas Advanced Computing Center for providing
