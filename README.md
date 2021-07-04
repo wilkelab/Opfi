@@ -1,5 +1,7 @@
 # Opfi
 
+A python package for discovery, annotation, and analysis of gene cassettes in genomics or metagenomics datasets.
+
 ## Requirements
 
 At a minimum, the NCBI BLAST+ software suite should be installed and on the user's PATH. BLAST+ installation instruction can be found [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/). For annotation of CRISPR arrays, Opfi uses PILER-CR, which can be downloaded from the software [home page](https://www.drive5.com/pilercr/). A modified version of PILER-CR that detects mini (two repeat) CRISPR arrays is also available, and can be built with GNU make after cloning or downloading Opfi:
@@ -20,22 +22,25 @@ pip3 install -r requirements.txt
 pip3 install .
 ```
 
-## Gene Finder usage
+## Gene Finder
 
-The gene finder API is centered around the Pipeline class. Typical usage looks something like this:
+The Gene Finder module executes homology searches to identify gene cassettes of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/`)
+
 ```python
 from gene_finder.pipeline import Pipeline
+import os
+
+genomic_data = "GCF_000024045.1_ASM2404v1_genomic.fna.gz"
 
 p = Pipeline()
-p.add_seed_step(db="data/blast_databases/tnsAB", name="tnsAB", e_val=0.001, type="PROT")
-p.add_filter_step(db="data/blast_databases/cas", name="cas", e_val=0.001, type="PROT", min_prot_count=2)
-p.add_blast_step(db="data/blast_databases/tnsCD", name="tnsCD", e_val=0.001, type="PROT")
+p.add_seed_step(db="cas1", name="cas1", e_val=0.001, blast_type="PROT", num_threads=1)
+p.add_filter_step(db="cas_all", name="cas_all", e_val=0.001, blast_type="PROT", num_threads=1)
 p.add_crispr_step()
 
-results = p.run(data="my_genome.fasta", min_prot_len=30, span=10000, outfrmt="CSV", outfile="mygenome.csv")
+# use the input filename as the job id
+job_id = os.path.basename(genomic_data)
+results = p.run(job_id=job_id, data=genomic_data, min_prot_len=90, span=10000, gzip=True)
 ```
-The docstrings in pipeline.py provide more details about pipeline usage, parameters, etc.
-Example scripts to run jobs can be found under extras/.
 
 # Operon Analyzer
 
