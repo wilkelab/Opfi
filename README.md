@@ -1,30 +1,26 @@
 # Opfi
 
-# Gene Finder
-
 ## Requirements
 
-Gene finder uses NCBI BLAST+ applications to perform homology searches, and a slightly modified version of [piler-cr](https://www.drive5.com/pilercr/) to identify CRISPR arrays. 
+At a minimum, the NCBI BLAST+ software suite should be installed and on the user's PATH. BLAST+ installation instruction can be found [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/). For annotation of CRISPR arrays, Opfi uses PILER-CR, which can be downloaded from the software [home page](https://www.drive5.com/pilercr/). A modified version of PILER-CR that detects mini (two repeat) CRISPR arrays is also available, and can be built with GNU make after cloning or downloading Opfi:
 
-You can find NCBI BLAST+ install info [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/).
-
-Instructions for building piler-cr are detailed below.
-
-## Installation
-
-First grab your own fork of Opfi and clone it. Then (from the main project directory) you can do:
-```
-pip3 install .
-pip3 install -r requirements.txt
-```
-
-The last thing you need to do is compile the custom piler-cr source code, which is in lib/pilercr1.06.
 ```
 cd lib/pilercr1.06
 sudo make install
 ```
 
-## Using gene finder
+## Installation
+
+To install Opfi, simply clone the repository and run pip from the project root directory:
+
+```
+git clone https://github.com/wilkelab/Opfi.git
+cd Opfi
+pip3 install -r requirements.txt
+pip3 install .
+```
+
+## Gene Finder usage
 
 The gene finder API is centered around the Pipeline class. Typical usage looks something like this:
 ```python
