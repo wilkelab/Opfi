@@ -13,7 +13,7 @@ sudo make install
 
 ## Installation
 
-To install Opfi, simply clone the repository and run pip from the project root directory:
+To install Opfi, clone the repository and run pip from the project root directory:
 
 ```
 git clone https://github.com/wilkelab/Opfi.git
@@ -24,7 +24,7 @@ pip3 install .
 
 ## Gene Finder
 
-The Gene Finder module executes homology searches to identify gene cassettes of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/`)
+Gene Finder iteratively executes homology searches to identify gene cassettes of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/tutorial.ipynb`).
 
 ```python
 from gene_finder.pipeline import Pipeline
@@ -44,7 +44,7 @@ results = p.run(job_id=job_id, data=genomic_data, min_prot_len=90, span=10000, g
 
 # Operon Analyzer
 
-Operon analyzer filters pipeline results and identifies promising candidate operons according to a given set of criteria, and also contains some tools for visualizing candidates and performing basic statistics.
+Operon Analyzer filters results from Gene Finder, and identifies promising candidate operons according to a given set of criteria. It also contains some tools for visualizing candidates and performing basic statistics.
 
 ## Analysis
 
@@ -84,6 +84,9 @@ if __name__ == '__main__':
   * `contains_any_set_of_features(sets: List[List[str]])`: Returns `True` if the operon contains features with all of the names in at least one of the lists. Useful for determining if an operon contains all of the essential genes for a particular system, for example.
   * `contains_exactly_one_of(feature1_name: str, feature2_name: str)`: An exclusive-or of the presence of two features.  That is, one of the features must be present and the other must not.
   * `contains_at_least_n_features(feature_names: List[str], feature_count: int, count_multiple_copies: bool = False)`: The operon must contain at least `feature_count` features in the list. By default, a matching feature that appears multiple times in the operon will only be counted once; to count multiple copies of the same feature, set `count_multiple_copies=True`.
+  * `contains_group(self, feature_names: List[str], max_gap_distance_bp: int, require_same_orientation: bool)`: The operon must contain a contiguous set of features (in any order) separated by no more than max_gap_distance_bp. Optionally, the user may require that the features must all have the same orientation.
+  * `maximum_size(self, feature_name: str, max_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False)`: The operon must contain at least one feature with feature_name with a size (in base pairs) of max_bp or smaller. If all_matching_features_must_pass is True, every matching Feature must be at least max_bp long.
+  * `minimum_size(self, feature_name: str, min_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False)`: The operon must contain at least one feature with feature_name with a size (in base pairs) of min_bp or larger. If all_matching_features_must_pass is True, every matching Feature must be at least min_bp long. 
   * `custom(rule: 'Rule')`: Add a rule with a user-defined function. 
 
 ### List of available filters
