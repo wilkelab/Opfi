@@ -135,7 +135,7 @@ Simple bar plots can be produced as follows:
 import sys
 import matplotlib.pyplot as plt
 from operon_analyzer.analyze import load_analyzed_operons
-from operon_analyzer.overview import extract_results, count_results
+from operon_analyzer.overview import load_counts
 
 
 def plot_bar_chart(filename, title, data, rotate=True):
@@ -152,9 +152,7 @@ def plot_bar_chart(filename, title, data, rotate=True):
 
 
 if __name__ == '__main__':
-    lines = load_analyzed_operons(sys.stdin)
-    results = extract_results(lines)
-    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = count_results(results)
+    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = load_counts(sys.stdin)
     plot_bar_chart("sole-failure.png", "Number of times that each rule\nwas the only one that failed", sorted(unique_rule_violated.items()))
     plot_bar_chart("total-failures", "Total number of rule failures", sorted(failed_rule_occurrences.items()))
     plot_bar_chart("failures-at-each-contig", "Number of rules failed at each contig", sorted(rule_failure_counts.items()), rotate=False)
