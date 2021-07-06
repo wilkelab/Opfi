@@ -17,11 +17,5 @@ lib/pilercr1.06/pilercr
 # dev tools
 .vscode
 
-# misc
-junk/
-data/
-out
-job_scripts/
-
 # Don't check metadata for property-based tests into version control
 .hypothesis
