@@ -83,12 +83,14 @@ def plot_operons(operons: List[Operon],
                  plot_ignored: bool = True,
                  color_by_blast_statistic: Optional[str] = None,
                  feature_colors: Optional[dict] = {},
-                 nucl_per_line: Optional[int] = None):
+                 nucl_per_line: Optional[int] = None,
+                 show_accession: bool = False,
+                 show_description: bool = False):
     """ Takes Operons and saves plots of them to disk. """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
-        fig = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, nucl_per_line=nucl_per_line)
+        fig = create_operon_figure(operon, plot_ignored, feature_colors, color_by_blast_statistic=color_by_blast_statistic, colormin=lower, colormax=upper, nucl_per_line=nucl_per_line, show_accession=show_accession, show_description=show_description)
         if fig is None:
             continue
         save_operon_figure(fig, out_filename)
@@ -145,7 +147,7 @@ def plot_operon_pair(operon: Operon,
                          colormin=lower,
                          colormax=upper,
                          existing_ax=ax1,
-                         figure_height=height_top)
+                         figure_height=height_top, show_description=True)
 
     # Plot the bottom operon. We set bounds here so that it exactly
     # matches the location in the contig of the top operon
@@ -157,7 +159,7 @@ def plot_operon_pair(operon: Operon,
                          colormax=upper,
                          bounds=(lower_coordinates_bound, upper_coordinates_bound),
                          existing_ax=ax2,
-                         figure_height=height_bottom)
+                         figure_height=height_bottom, show_description=True)
 
     # Save the figure to disk
     save_pair_figure(fig, out_filename)
@@ -225,7 +227,9 @@ def create_operon_figure(operon: Operon,
                          colormin: Optional[float] = None,
                          colormax: Optional[float] = None,
                          figure_height: Optional[int] = None,
-                         nucl_per_line: Optional[int] = None):
+                         nucl_per_line: Optional[int] = None,
+                         show_accession: bool = False,
+                         show_description: bool = False):
     """ Plots all the Features in an Operon. """
     if not plot_ignored and len(operon) == 0:
         return None
@@ -262,6 +266,10 @@ def create_operon_figure(operon: Operon,
         # this is done here and not earlier in the pipeline so that it doesn't
         # affect any rules that need to match on the name
         name = feature.name
+        if show_accession:
+            name = f"{name} {feature.accession}"
+        if show_description:
+            name = f"{name} {feature.description}"
         strand = feature.strand
         if feature.name == "CRISPR array":
             copies, repeat, spacer = feature.description.split(",")
@@ -279,10 +287,10 @@ def create_operon_figure(operon: Operon,
                            features=graphic_features)
 
     if nucl_per_line is not None:
-        fig, _ = record.plot_on_multiple_lines(nucl_per_line=nucl_per_line, max_label_length=64)
+        fig, _ = record.plot_on_multiple_lines(nucl_per_line=nucl_per_line, max_label_length=255)
     else:
         figure_width = max(int(operon_length/900), 5)
-        ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=64)
+        ax, _ = record.plot(figure_width=figure_width, figure_height=figure_height, ax=existing_ax, max_label_length=255)
         fig = ax.figure
     return fig
 

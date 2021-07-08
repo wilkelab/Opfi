@@ -4,8 +4,9 @@ from Bio.SeqRecord import SeqRecord
 import os
 
 def build_protein_fasta(orfs, out_dir, description):
-    """Write orfs to a single fasta file"""
-
+    """
+    Write orfs to a single fasta file.
+    """
     records = []
     # sort orfs by position in parent
     orfs.sort(key=lambda x: min(x[0][0], x[0][1]))
@@ -17,8 +18,10 @@ def build_protein_fasta(orfs, out_dir, description):
 
     SeqIO.write(records, out_dir, "fasta")
 
+
 def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
-    """Convert the index of an amino acid to it's position in the parent 
+    """
+    Convert the index of an amino acid to it's position in the parent 
     nucleotide sequence.
     """
     nuc_index = 0
@@ -36,11 +39,10 @@ def aa_index_conversion(aa_index, frame, strand, parent_len, start=True):
     
     return nuc_index
 
-def get_orfs_in_range(all_orfs, rang):
-    """Given a list of orfs, return only those contained in
-    within a range.
 
-    Called by neighborhood_orffinder.
+def get_orfs_in_range(all_orfs, rang):
+    """
+    Given a list of orfs, return only those contained within a range.
     """
     orfs_in_range = []
     for orf in all_orfs:
@@ -52,10 +54,10 @@ def get_orfs_in_range(all_orfs, rang):
 
     return orfs_in_range
 
-def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
-    """Get all orfs in a single reading frame.
 
-    Called by get_all_orfs.
+def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
+    """
+    Get all orfs in a single reading frame.
     """
     parent_len = len(seq)
     # Add extra Ns to the sequence to ensure we have a complete frame
@@ -88,15 +90,18 @@ def get_orfs_in_frame(seq, frame, strand, min_prot_len, all_orfs):
                 all_orfs.append(orf)
             aa_start = aa_stop + 1
 
-def get_all_orfs(seq, min_prot_len):
-    """Get orfs in all six reading frames."""
 
+def get_all_orfs(seq, min_prot_len):
+    """
+    Get orfs in all six reading frames.
+    """
     all_orfs = []
 
     for strand, nuc in [(+1, seq), (-1, seq.reverse_complement())]:
         for frame in range(3):
             get_orfs_in_frame(nuc, frame, strand, min_prot_len, all_orfs)
     return all_orfs
+
 
 def reader(contig):
     try:
@@ -105,9 +110,10 @@ def reader(contig):
         print("Cannot read input file. Input should be in fasta format and contain only one record.")
     return record.seq
 
-# Actual function to call
+
 def orffinder(sequence, output, min_prot_len=30, description="putative protein"):
-    """Find all open reading frames in a nucleotide sequence.
+    """
+    Find all open reading frames in a nucleotide sequence.
 
     ORFs are translated to amino acid sequences and written to a protein
     fasta. The unique identifier for each translated ORF contains information
@@ -131,9 +137,10 @@ def orffinder(sequence, output, min_prot_len=30, description="putative protein")
     else:
         return output
 
+
 def neighborhood_orffinder(sequence, ranges, outdir, min_prot_len=30, description="putative protein"):
-    """Find open reading frames in a nucleotide sequence that occur 
-    within a certain range/ranges.
+    """
+    Find open reading frames in a nucleotide sequence that occur within a certain range/ranges.
 
     Args:
         sequence (str): Path to the input sequence file (in fasta format).
