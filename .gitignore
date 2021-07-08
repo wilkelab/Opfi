@@ -19,9 +19,3 @@ lib/pilercr1.06/pilercr
 
 # Don't check metadata for property-based tests into version control
 .hypothesis
-
-# read the docs generated html
-docs/_build
-
-# python notebook checkpoints
-.ipynb_checkpoints
