@@ -36,7 +36,7 @@ We use the [pytest](https://docs.pytest.org/en/6.2.x/) framework for creating un
 By contributing, you agree that your contributions will be licensed under its MIT License.
 
 ## Code of Conduct
-We take our open source community seriously and hold ourselves and other contributors to high standards of communication. By participating and contributing to this project, you agree to uphold our [Code of Conduct.]()
+We take our open source community seriously and hold ourselves and other contributors to high standards of communication. By participating and contributing to this project, you agree to uphold our [Code of Conduct](https://github.com/wilkelab/Opfi/blob/contributing-guide/CODE-OF-CONDUCT.md).
 
 ## Attribution
 This document was adapted from the [General Contributing Guidelines](https://github.com/extendr/rextendr/blob/main/CONTRIBUTING.md) of the rextendr project, and from the [contributing template](https://gist.github.com/briandk/3d2e8b3ec8daf5a27a62) developed by [briandk](https://gist.github.com/briandk).
