@@ -1,49 +1,50 @@
 # Opfi
 
-# Gene Finder
+A python package for discovery, annotation, and analysis of gene cassettes in genomics or metagenomics datasets.
 
 ## Requirements
 
-Gene finder uses NCBI BLAST+ applications to perform homology searches, and a slightly modified version of [piler-cr](https://www.drive5.com/pilercr/) to identify CRISPR arrays. 
+At a minimum, the NCBI BLAST+ software suite should be installed and on the user's PATH. BLAST+ installation instruction can be found [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/). For annotation of CRISPR arrays, Opfi uses PILER-CR, which can be downloaded from the software [home page](https://www.drive5.com/pilercr/). A modified version of PILER-CR that detects mini (two repeat) CRISPR arrays is also available, and can be built with GNU make after cloning or downloading Opfi:
 
-You can find NCBI BLAST+ install info [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/).
-
-Instructions for building piler-cr are detailed below.
-
-## Installation
-
-First grab your own fork of Opfi and clone it. Then (from the main project directory) you can do:
-```
-pip3 install .
-pip3 install -r requirements.txt
-```
-
-The last thing you need to do is compile the custom piler-cr source code, which is in lib/pilercr1.06.
 ```
 cd lib/pilercr1.06
 sudo make install
 ```
 
-## Using gene finder
+## Installation
 
-The gene finder API is centered around the Pipeline class. Typical usage looks something like this:
+To install Opfi, clone the repository and run pip from the project root directory:
+
+```
+git clone https://github.com/wilkelab/Opfi.git
+cd Opfi
+pip3 install -r requirements.txt
+pip3 install .
+```
+
+## Gene Finder
+
+Gene Finder iteratively executes homology searches to identify gene cassettes of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/tutorial.ipynb`).
+
 ```python
 from gene_finder.pipeline import Pipeline
+import os
+
+genomic_data = "GCF_000024045.1_ASM2404v1_genomic.fna.gz"
 
 p = Pipeline()
-p.add_seed_step(db="data/blast_databases/tnsAB", name="tnsAB", e_val=0.001, type="PROT")
-p.add_filter_step(db="data/blast_databases/cas", name="cas", e_val=0.001, type="PROT", min_prot_count=2)
-p.add_blast_step(db="data/blast_databases/tnsCD", name="tnsCD", e_val=0.001, type="PROT")
+p.add_seed_step(db="cas1", name="cas1", e_val=0.001, blast_type="PROT", num_threads=1)
+p.add_filter_step(db="cas_all", name="cas_all", e_val=0.001, blast_type="PROT", num_threads=1)
 p.add_crispr_step()
 
-results = p.run(data="my_genome.fasta", min_prot_len=30, span=10000, outfrmt="CSV", outfile="mygenome.csv")
+# use the input filename as the job id
+job_id = os.path.basename(genomic_data)
+results = p.run(job_id=job_id, data=genomic_data, min_prot_len=90, span=10000, gzip=True)
 ```
-The docstrings in pipeline.py provide more details about pipeline usage, parameters, etc.
-Example scripts to run jobs can be found under extras/.
 
 # Operon Analyzer
 
-Operon analyzer filters pipeline results and identifies promising candidate operons according to a given set of criteria, and also contains some tools for visualizing candidates and performing basic statistics.
+Operon Analyzer filters results from Gene Finder, and identifies promising candidate operons according to a given set of criteria. It also contains some tools for visualizing candidates and performing basic statistics.
 
 ## Analysis
 
@@ -83,6 +84,9 @@ if __name__ == '__main__':
   * `contains_any_set_of_features(sets: List[List[str]])`: Returns `True` if the operon contains features with all of the names in at least one of the lists. Useful for determining if an operon contains all of the essential genes for a particular system, for example.
   * `contains_exactly_one_of(feature1_name: str, feature2_name: str)`: An exclusive-or of the presence of two features.  That is, one of the features must be present and the other must not.
   * `contains_at_least_n_features(feature_names: List[str], feature_count: int, count_multiple_copies: bool = False)`: The operon must contain at least `feature_count` features in the list. By default, a matching feature that appears multiple times in the operon will only be counted once; to count multiple copies of the same feature, set `count_multiple_copies=True`.
+  * `contains_group(self, feature_names: List[str], max_gap_distance_bp: int, require_same_orientation: bool)`: The operon must contain a contiguous set of features (in any order) separated by no more than max_gap_distance_bp. Optionally, the user may require that the features must all have the same orientation.
+  * `maximum_size(self, feature_name: str, max_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False)`: The operon must contain at least one feature with feature_name with a size (in base pairs) of max_bp or smaller. If all_matching_features_must_pass is True, every matching Feature must be at least max_bp long.
+  * `minimum_size(self, feature_name: str, min_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False)`: The operon must contain at least one feature with feature_name with a size (in base pairs) of min_bp or larger. If all_matching_features_must_pass is True, every matching Feature must be at least min_bp long. 
   * `custom(rule: 'Rule')`: Add a rule with a user-defined function. 
 
 ### List of available filters
@@ -131,7 +135,7 @@ Simple bar plots can be produced as follows:
 import sys
 import matplotlib.pyplot as plt
 from operon_analyzer.analyze import load_analyzed_operons
-from operon_analyzer.overview import extract_results, count_results
+from operon_analyzer.overview import load_counts
 
 
 def plot_bar_chart(filename, title, data, rotate=True):
@@ -148,9 +152,7 @@ def plot_bar_chart(filename, title, data, rotate=True):
 
 
 if __name__ == '__main__':
-    lines = load_analyzed_operons(sys.stdin)
-    results = extract_results(lines)
-    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = count_results(results)
+    unique_rule_violated, failed_rule_occurrences, rule_failure_counts = load_counts(sys.stdin)
     plot_bar_chart("sole-failure.png", "Number of times that each rule\nwas the only one that failed", sorted(unique_rule_violated.items()))
     plot_bar_chart("total-failures", "Total number of rule failures", sorted(failed_rule_occurrences.items()))
     plot_bar_chart("failures-at-each-contig", "Number of rules failed at each contig", sorted(rule_failure_counts.items()), rotate=False)

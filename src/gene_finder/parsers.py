@@ -2,7 +2,8 @@ import os, json, csv
 
 
 def parse_blastn_output(tsv, step_id, parse_descriptions=True):
-    """Parse output from a search step (in blast tabular format).
+    """
+    Parse output from a search step (in BLAST tabular format).
 
     Expects a tsv file with the following format fields: 
         qseqid sseqid stitle evalue \
@@ -13,7 +14,6 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
     Returns a dictionary of best hits for each query that had a 
     hit, where "best" means the lowest e-value score.
     """
-
     try:
         hits = {}
         with open(tsv, newline='') as tsvfile:
@@ -62,8 +62,10 @@ def parse_blastn_output(tsv, step_id, parse_descriptions=True):
     except csv.Error:
         return {}
 
+
 def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
-    """Parse output from a search step (in blast tabular format).
+    """
+    Parse output from a search step (in BLAST tabular format).
 
     Expects a tsv file with the following format
     fields: qseqid sseqid stitle evalue \
@@ -75,7 +77,6 @@ def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
     Returns a dictionary of best hits for each query that had a 
     hit, where "best" means the lowest e-value score.
     """
-
     try:
         hits = {}
         with open(tsv, newline='') as tsvfile:
@@ -139,11 +140,10 @@ def parse_search_output(tsv, step_id, search_type, parse_descriptions=True):
     except csv.Error:
         return {}
 
-def _is_int(string):
-    """Check if a string can be cast to an int.
 
-    Helps parse_pilercr_summary determine if 
-    a line contains array information.
+def _is_int(string):
+    """
+    Check if a string can be cast to an int.
     """
     try: 
         int(string)
@@ -151,13 +151,13 @@ def _is_int(string):
     except ValueError:
         return False
 
-def _get_column_lables(line):
-    """Extract the following column lables from 
-    pilercr "SUMMARY BY POSITION" table: "Position",
-    "Length", "Copies", "Repeat", "Spacer", "Strand",
-     "Consensus".
 
-    Used by parse_pilercr_summary.
+def _get_column_lables(line):
+    """
+    Extract the following column lables from 
+    pilercr "SUMMARY BY POSITION" table: 
+    "Position", "Length", "Copies", "Repeat", "Spacer", "Strand",
+    "Consensus".
     """
     lables = line.split()
     lables_to_remove = ["Array", "Sequence", "#", "+"]
@@ -166,13 +166,12 @@ def _get_column_lables(line):
     
     return lables
  
+
 def _get_array_info(line, array_num):
     """Extract the following information for an array
-    in pilercr "SUMMARY BY SIMILARITY" table: "Position",
-    "Length", "Copies", "Repeat", "Spacer", "Strand",
+    in pilercr "SUMMARY BY SIMILARITY" table: 
+    "Position", "Length", "Copies", "Repeat", "Spacer", "Strand",
     "Consensus".
-
-    Used by parse_pilercr_summary.
     """
     line = line[25:]
     array_info = line.split()
@@ -180,10 +179,10 @@ def _get_array_info(line, array_num):
     
     return array_id, array_info
 
+
 def parse_pilercr_summary(pilercr_out):
-    """Parse pilercr output.
-    
-    "summary by position" section only.
+    """
+    Parse pilercr output in the "summary by position" section only.
 
     Returns a dictionary of dictionaries, containing
     key-value pairs of infomation associated with
@@ -236,13 +235,12 @@ def parse_pilercr_summary(pilercr_out):
 
     return arrays
 
-def _keep_row(row, hits):
-    """Parser helper function.
 
+def _keep_row(row, hits):
+    """
     Determine if given row represents the best hit for this
     query so far by comparing e-values. 
     """
-
     if row[0] in hits:
         if float(row[3]) < float(hits[row[0]]["Hit_e-val"]):
             return True
@@ -251,14 +249,13 @@ def _keep_row(row, hits):
     else:
         return True
 
-def _reformat_hit_ids(hits, step_id):
-    """Parser helper function.
 
+def _reformat_hit_ids(hits, step_id):
+    """
     For consistency, copy over hit info from a dict where keys are the
     utility-specific query IDs to a dict where keys are in the 
     format created by the other gene finder parsers.
     """
-
     re_hits = {}
     hit_num = 0
     for hit in hits.values():

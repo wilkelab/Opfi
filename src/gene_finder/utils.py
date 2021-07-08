@@ -1,46 +1,24 @@
 import os, shutil
 
 def concatenate(in_dir, file_names):
-    """Concatenate two or more fasta files.
-
-    Merged file is written to the same
-    directory as the input files.
-
-    Args:
-        in_dir (str): Path to input file directory.
-        file_names (list): List of file names.
+    """
+    Concatenate two or more fasta files.
     """
     out = os.path.join(in_dir, "merged_input.fasta")
     if os.path.exists(out):
         os.remove(out)
-    
     with open(out,"wb") as outfile:
         for name in file_names:
             with open(name,"rb") as infile:
-                shutil.copyfileobj(infile, outfile)
-    
+                shutil.copyfileobj(infile, outfile) 
     return out
 
     
 def get_neighborhood_ranges(hits, contig_len, span=20000):
-    """Determine the start and end positions of genomic
-    neighborhoods surrounding one or more blast hit.
-
-    Neighborhood size is set by the span parameter; specifically,
-    this is the number of nucleotides directly to the left and right
-    of the hit.
-
-    The position of the hit is given by the corresponding ORF used 
-    as the query.
-
-    When two or more hits have overlapping neighborhood regions, 
-    the result is merged - i.e, a single neighborhood range is
-    returned for these hits.
-
-    Args:
-        hits (dict): Parsed blast output. 
-        span (int, optional): Number of nucleotides directly to the 
-            left and right of the hit to retain. Default is 20000.
+    """
+    For each BLAST hit in `hits`, get the coordinates of the surrounding genomic neighborhood, which
+    is the area directly `span` bp up- and downstream of each hit. When two or more hits have 
+    overlapping neighborhoods, merge them into a single region.
     """
     # sort the hit dictionary keys by hit start position
     keys_sorted = sorted(hits, key=lambda k: min(int(hits[k]["Query_start-pos"]), int(hits[k]["Query_end-pos"])))

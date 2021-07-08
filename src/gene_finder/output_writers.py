@@ -11,20 +11,30 @@ FIELDNAMES = ["Contig", "Locus coordinates", "Feature",
 
 
 class CSVWriter:
-
+    """
+    Write pipeline output to a CSV formatted file.
+    """
     def __init__(self, results, outfile):
-
+        """
+        Args:
+            results (dict): All candidates identified by the pipeline.
+            outfile (string): The file to write output to.
+        """
         self.results = results
         self.id = None
         self.project_id = None
         self.outfile = outfile
     
-    def _ret_fieldnames(self):
 
+    def _ret_fieldnames(self):
+        # is this still needed?
         return FIELDNAMES
     
+
     def _get_nucleotide_row(self, neighborhood, hit):
-        
+        """
+        Format a row representing a hit identified with nucleotide BLAST.
+        """
         row = [""] * 22
         row[0] = self.id
         row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
@@ -53,8 +63,12 @@ class CSVWriter:
 
         return row
     
+
     def _get_row(self, neighborhood, hit):
-        
+        """
+        Format a row representing a hit identified with protein BLAST (or psiBLAST, mmseqs, or 
+        Diamond).
+        """
         row = [""] * 22
         row[0] = self.id
         row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
@@ -83,8 +97,11 @@ class CSVWriter:
 
         return row
     
-    def _format_array_des(self, hit):
 
+    def _format_array_des(self, hit):
+        """
+        Create a string representation of a CRISPR array hit.
+        """
         copy = hit["Copies"]
         repeat = hit["Repeat"]
         spacer = hit["Spacer"]
@@ -93,8 +110,11 @@ class CSVWriter:
         
         return array_des
 
+
     def _get_crispr_array_row(self, neighborhood, array):
-        
+        """
+        Format a row representing a CRISPR array identified using PILER-CR.
+        """
         row = [""] * 22
         row[0] = self.id
         row[1] = "{}..{}".format(neighborhood["Loc_start-pos"],
@@ -108,8 +128,12 @@ class CSVWriter:
 
         return row
     
-    def _get_rows(self, neighborhood):
 
+    def _get_rows(self, neighborhood):
+        """
+        Create a CSV entry for a candidate identified by the pipeline, where each gene/feature 
+        is represented by a single row.
+        """
         rows = []
         for hit in neighborhood["Hits"]:
             hit_type = neighborhood["Hits"][hit].get('type')
@@ -123,8 +147,19 @@ class CSVWriter:
         
         return rows
 
-    def to_csv(self, project_id, mode):
 
+    def to_csv(self, project_id, mode):
+        """
+        Write candidate CSV data to disk.
+
+        Args:
+            project_id (string): The filename/path for the input data used by this run 
+                of the pipeline. 
+            mode (string): The mode for opening the output file for writing. Usually this
+                will be "w" (for create/write mode), but if the pipeline is being run 
+                incrementally then results may need to be appended to the output file 
+                periodically.
+        """
         with open(self.outfile, mode, newline='') as csvfile:
             writer = csv.writer(csvfile)
             
