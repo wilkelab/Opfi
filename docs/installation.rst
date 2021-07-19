@@ -1,6 +1,8 @@
 Getting Started
 ===============
 
+.. _installation:
+
 Installation
 ------------
 
@@ -22,7 +24,7 @@ Alternatively, you can install the latest version on Github:
 Dependencies
 ------------
 
-Opfi makes use of several third-party softwares for finding and annotating genomic features. Depending on your use case, you may not need to install all of these; however, at a minimum users should have the NCBI BLAST+ application installed in their environment. The following table provides more details about required/optional dependencies, including links to associated application homepages.
+Opfi makes use of several third-party softwares for finding and annotating genomic features. Depending on your use case, you may not need to install all of these; however, at a minimum users should have the NCBI BLAST+ application installed in their environment. The following table provides more details about required/optional dependencies, including links to application homepages.
 
 .. csv-table:: 
    :header: "Application", "Required", "Description", "Anaconda distribution"

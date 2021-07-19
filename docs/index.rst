@@ -3,17 +3,21 @@
     You can adapt this file completely to your liking, but it should at least
     contain the root `toctree` directive.
 
-Opfi - [insert interesting tagline here]
-========================================
+Opfi
+====
 
-Opfi (short for "operon finder") is a bioinformatics tool for identifying and analyzing genomic neighborhoods of interest in huge metagenomic datasets. Opfi consists of two modules that are intended to be used together to create a complete bioinformatics discovery pipeline. `Gene Finder` provides an easy to use Python interface for executing blast searches, and is used to extract potential regions of interest from raw metegenomic data. `Operon Analyzer` provides a suite of methods for filtering, clustering, and visualizing candidates identified by `Gene Finder`.
+Welcome to the Opfi documentation site! Opfi is a modular, rule-based framework for creating gene cassette identification pipelines, particularly for large genomics or metagenomics datasets. 
+
+Opfi is implemented entirely in Python, and can be downloaded from the Python package index. It consists of two major modules: Gene Finder, for discovery of novel gene cassettes, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of systems identified by Gene Finder.
 
 Contents
 --------
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
     
     installation
     examples
+    tips
     modules
+    contributing

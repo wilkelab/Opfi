@@ -1,8 +1,8 @@
-gene\_finder
+Gene Finder
 ============
 
-gene\_finder.pipeline module
-----------------------------
+gene\_finder.pipeline
+---------------------
 
 .. automodule:: gene_finder.pipeline
    :members:
