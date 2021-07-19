@@ -90,7 +90,7 @@ class FilterSet(object):
         return self
 
     def pick_overlapping_features_by_bit_score(self, minimum_overlap_threshold: float):
-        """ If two features overlap by more than `minimum_overlap_threshold`, the one with the lower bit score is ignored. """
+        """ If two features overlap by more than ``minimum_overlap_threshold``, the one with the lower bit score is ignored. """
         self._filters.append(Filter('overlaps-%s',
                                     _pick_overlapping_features_by_bit_score,
                                     minimum_overlap_threshold))
@@ -102,7 +102,12 @@ class FilterSet(object):
         return self
 
     def evaluate(self, operon: Operon):
-        """ Run the filters on the operon and set Features that fail to meet the requirements to be ignored. """
+        """ 
+        Run the filters on the operon and set Features that fail to meet the requirements to be ignored. 
+
+        Args:
+            operon: The :class:`operon_analyzer.genes.Operon` object whose features will be evaluated.
+        """
         for filt in self._filters:
             filt.run(operon)
 
@@ -159,7 +164,7 @@ def _must_be_within_n_bp_of_feature(operon: Operon, ignored_reason_message: str,
 
 
 class RuleSet(object):
-    """ Creates, stores and evaluates `Rule`s that an operon must adhere to."""
+    """ Creates, stores and evaluates :class:`operon_analyzer.rules.Rule` s that an operon must adhere to."""
 
     def __init__(self):
         self._rules = []
@@ -176,16 +181,16 @@ class RuleSet(object):
 
     def max_distance(self, feature1_name: str, feature2_name: str, distance_bp: int, closest_pair_only: bool = False, regex: bool = False):
         """
-        The two given features must be no further than distance_bp base pairs
+        The two given features must be no further than ``distance_bp`` base pairs
         apart. If there is more than one match, all possible pairs must meet the criteria,
-        unless closest_pair_only is True in which case only the closets pair is considered.
+        unless ``closest_pair_only`` is True in which case only the closets pair is considered.
         """
         self._rules.append(Rule('max-distance', _max_distance, feature1_name, feature2_name, distance_bp, closest_pair_only, regex))
         return self
 
     def at_least_n_bp_from_anything(self, feature_name: str, distance_bp: int, regex=False):
         """
-        Requires that a feature be at least `distance_bp` base pairs away from any other feature.
+        Requires that a feature be at least ``distance_bp`` base pairs away from any other feature.
         This is mostly useful for eliminating overlapping features.
         """
         self._rules.append(Rule('at-least-n-bp-from-anything', _at_least_n_bp_from_anything, feature_name, distance_bp, regex))
@@ -193,7 +198,7 @@ class RuleSet(object):
 
     def at_most_n_bp_from_anything(self, feature_name: str, distance_bp: int, regex: bool = False):
         """
-        A given feature must be within distance_bp base pairs of another feature.
+        A given feature must be within ``distance_bp`` base pairs of another feature.
         Requires exactly one matching feature to be present.
         Returns False if the given feature is the only feature.
         """
@@ -233,9 +238,9 @@ class RuleSet(object):
 
     def contains_at_least_n_features(self, feature_names: List[str], feature_count: int, count_multiple_copies: bool = False):
         """
-        The operon must contain at least feature_count features in the list. By default, a
+        The operon must contain at least ``feature_count`` features in the list. By default, a
         matching feature that appears multiple times in the operon will only be counted once;
-        to count multiple copies of the same feature, set `count_multiple_copies=True`.
+        to count multiple copies of the same feature, set ``count_multiple_copies`` to True.
         """
         serialized_list = "|".join(feature_names)
         custom_repr = f'contains-at-least-n-features:{serialized_list}-{feature_count}-{count_multiple_copies}'
@@ -248,7 +253,7 @@ class RuleSet(object):
         return self
 
     def contains_group(self, feature_names: List[str], max_gap_distance_bp: int, require_same_orientation: bool):
-        """ The operon must contain a contiguous set of features (in any order) separated by no more than max_gap_distance_bp.
+        """ The operon must contain a contiguous set of features (in any order) separated by no more than ``max_gap_distance_bp``.
         Optionally, the user may require that the features must all have the same orientation. """
         self._rules.append(Rule('contains_group',
                                 _contains_group,
@@ -258,8 +263,8 @@ class RuleSet(object):
         return self
 
     def maximum_size(self, feature_name: str, max_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False):
-        """ The operon must contain at least one feature with feature_name with a size (in base pairs) of max_bp or smaller.
-        If all_matching_features_must_pass is True, every matching Feature must be at least max_bp long. """
+        """ The operon must contain at least one feature with ``feature_name`` with a size (in base pairs) of ``max_bp`` or smaller.
+        If ``all_matching_features_must_pass`` is True, every matching Feature must be at least ``max_bp`` long. """
         self._rules.append(Rule('maximum_size',
                                 _maximum_size,
                                 feature_name,
@@ -269,8 +274,8 @@ class RuleSet(object):
         return self
 
     def minimum_size(self, feature_name: str, min_bp: int, all_matching_features_must_pass: bool = False, regex: bool = False):
-        """ The operon must contain at least one feature with feature_name with a size (in base pairs) of min_bp or larger.
-        If all_matching_features_must_pass is True, every matching Feature must be at least min_bp long. """
+        """ The operon must contain at least one feature with ``feature_name`` with a size (in base pairs) of ``min_bp`` or larger.
+        If ``all_matching_features_must_pass`` is True, every matching Feature must be at least ``min_bp`` long. """
         self._rules.append(Rule('minimum_size',
                                 _minimum_size,
                                 feature_name,
@@ -285,7 +290,12 @@ class RuleSet(object):
         return self
 
     def evaluate(self, operon: Operon) -> Result:
-        """ See if an operon adheres to all rules. """
+        """ 
+        See if an operon adheres to all rules.
+
+        Args:
+            operon: The :class:`operon_analyzer.genes.Operon` object to evaluate.
+        """
         assert self._rules, "RuleSet does not have any Rules"
         result = Result(operon)
         for rule in self._rules:

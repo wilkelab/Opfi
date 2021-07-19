@@ -26,7 +26,7 @@ start_regex = re.compile(r'^(\d+)D')
 def find_self_targeting_spacers(operons: List[genes.Operon], min_matching_fraction: float, num_processes: int = 32):
     """
     For each given Operon, this will determine if CRISPR spacers target a location in the operon's parent contig.
-    Matches with more than min_matching_fraction homology will be added to the Operon as a Feature named "CRISPR target".
+    Matches with more than ``min_matching_fraction`` homology will be added to the Operon as a Feature named "CRISPR target".
     """
     pool = multiprocessing.Pool(min(num_processes, len(operons)))
     results = []
