@@ -10,7 +10,7 @@ BrokenSpacer = namedtuple('BrokenSpacer', ['position', 'repeat_len', 'sequence']
 
 
 def parse_pilercr_output(text: str, start: int, end: int):
-    """ Takes the text of piler-cr raw output, and a start and end coordinate for an operon's
+    """ Takes the text of :program:`pilercr` raw output, and a start and end coordinate for an operon's
     neighborhood, and extracts all spacers in that region. """
     if text is None:
         # There were no spacers in this contig

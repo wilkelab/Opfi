@@ -86,7 +86,23 @@ def plot_operons(operons: List[Operon],
                  nucl_per_line: Optional[int] = None,
                  show_accession: bool = False,
                  show_description: bool = False):
-    """ Takes Operons and saves plots of them to disk. """
+    """ 
+    Takes :class:`operon_analyzer.genes.Operon` objects and saves plots of them to disk. 
+
+    Args:
+        operons (list): Operons to be plotted.
+        output_directory (str): Path to the directory to save operon plots to.
+        plot_ignored (bool, optional): Toggles plotting of features that were marked as ignorable 
+            by :class:`operon_analyzer.rules.FilterSet` .
+        color_by_blast_statistic (str, optional): Map an alignment quality statistic using the virdis
+            color scale. For a list of alignment statistics captured by Opfi, see :ref:`opfi-output-format` .
+        feature_colors (dict, optional): If a labeled database was used during candidate identification,
+            features can be colored accordingly using "label": "feature-color" pairs. For more information
+            about labeling sequence databases, see :ref:`labeling-sequences` .
+        nucl_per_line (int, optional): Length (in base pairs) to wrap gene diagrams on. 
+        show_accession (bool, optional): Show the accession number of the best hit for each plotted feature.
+        show_description (bool, optional): Show the description of the best hit for each plotted feature.
+    """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic)
     for operon in operons:
         out_filename = build_image_filename(operon, output_directory)
@@ -109,9 +125,22 @@ def _calculate_paired_figure_dimensions(operon: Operon, other: Operon, operon_le
 def plot_operon_pairs(operons: List[Operon], other_operons: List[Operon], output_directory: str,
                       color_by_blast_statistic: Optional[str] = None,
                       plot_ignored: bool = False, feature_colors: Optional[dict] = {}):
-    """ Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
+    """ 
+    Takes two lists of presumably related Operons, pairs them up such that the pairs overlap the same genomic region,
     and plots one on top of the other. This allows side-by-side comparison of two different pipeline runs, so that you can, for example,
     run your regular pipeline, then re-BLAST with a more general protein database like nr, and easily see how the annotations differ. 
+
+    Args:
+        operons (list): Operons to be plotted.
+        other_operons (list): Related operons to be plotted for comparison.
+        output_directory (str): Path to the directory to save operon plots to.
+        plot_ignored (bool, optional): Toggles plotting of features that were marked as ignorable 
+            by :class:`operon_analyzer.rules.FilterSet` .
+        color_by_blast_statistic (str, optional): Map an alignment quality statistic using the virdis
+            color scale. For a list of alignment statistics captured by Opfi, see :ref:`opfi-output-format` .
+        feature_colors (dict, optional): If a labeled database was used during candidate identification,
+            features can be colored accordingly using "label": "feature-color" pairs. For more information
+            about labeling sequence databases, see :ref:`labeling-sequences` .
     """
     lower, upper = _find_colormap_bounds(operons, color_by_blast_statistic, other_operons=other_operons)
     for operon, other in make_operon_pairs(operons, other_operons):
@@ -338,15 +367,22 @@ def make_clustered_stacked_operon_plots(operons: Iterable[Operon],
     some set of data with a curated database, then re-BLAST it against a more general database, and compare the two
     directly in a cluster-specific manner.
 
-    If a FilterSet was used during analysis, that same FilterSet should be evaluated on each operon before passing it
+    If a :class:`operon_analyzer.rules.FilterSet` was used during analysis, that same set should be evaluated on each operon before passing it
     into this function.
 
-    operons:            the operons of interest
-    other_operons:      reannotated operons
-    image_directory:    the directory where all subdirectories will be created. Will be created if it does not exist
-    min_count:          groups must have at least this many systems in order to be plotted
-    plot_ignored:       plot ignored features
-    feature_colors:     a dictionary of feature names and their colors
+    Args:
+        operons (iterable): The operons of interest.
+        other_operons (iterable): Reannotated operons.
+        image_directory (str): The directory where all subdirectories will be created. Will be created if it does not exist.
+        min_count (int, optional): Groups must have at least this many systems in order to be plotted. Default is 10.
+        plot_ignored (bool, optional): Toggles plotting of features that were marked as ignorable 
+            by :class:`operon_analyzer.rules.FilterSet` .
+        color_by_blast_statistic (str, optional): Map an alignment quality statistic using the virdis
+            color scale. For a list of alignment statistics captured by Opfi, see :ref:`opfi-output-format` .
+        feature_colors (dict, optional): If a labeled database was used during candidate identification,
+            features can be colored accordingly using "label": "feature-color" pairs. For more information
+            about labeling sequence databases, see :ref:`labeling-sequences` .
+        nucl_per_line (int, optional): Length (in base pairs) to wrap gene diagrams on. 
     """
     if not os.path.exists(image_directory):
         os.makedirs(image_directory)
@@ -365,22 +401,29 @@ def make_clustered_operon_plots(analysis_csv: str,
                                 feature_colors: Optional[dict] = None,
                                 nucl_per_line: Optional[int] = None
                                 ):
-    """ Clusters operons by the order of their features and plots them in separate directories,
-    adding the number of systems to the directory name. Only systems that passed the Ruleset will
-    be eligible to be plotted.
+    """ 
+    Clusters operons by the order of their features and plots them in separate directories,
+    adding the number of systems to the directory name. Only systems that passed the rules specified as a
+    :class:`operon_analyzer.rules.RuleSet` object will be eligible to be plotted.
 
-    If a FilterSet was used during analysis, that same FilterSet should be evaluated on each operon before passing it
-    into this function.
+    If a :class:`operon_analyzer.rules.FilterSet` was used during analysis, that same FilterSet should be evaluated 
+    on each operon before passing it into this function.
 
-    analysis_csv:       path to the CSV file created by operon analyzer
-    operons:            the operons of interest
-    image_directory:    the directory where all subdirectories will be created. Will be created if it does not exist
-    min_count:          groups must have at least this many systems in order to be plotted
-    diff_against_csv:   path to a CSV file created by operon analyzer. Any clusters in this file
-                        will be skipped when clustering operons from analysis_csv. The point of
-                        this is to see only new systems when making slight alterations to rules
-    plot_ignored:       plot ignored features
-    feature_colors:     a dictionary of feature names and their colors
+    Args:
+        analysis_csv (str): Path to the CSV file created by :func:`operon_analyzer.analyze.analyze` .
+        operons (iterable): The operons of interest.
+        image_directory (str): The directory where all subdirectories will be created. Will be created if it does not exist.
+        min_count (int, optional): Groups must have at least this many systems in order to be plotted. Default is 10.
+        diff_against_csv (str): Path to a CSV file created by operon analyzer. Any clusters in this file 
+            will be skipped when clustering operons from analysis_csv. The point of 
+            this is to see only new systems when making slight alterations to rules.
+        plot_ignored (bool, optional): Toggles plotting of features that were marked as ignorable 
+            by :class:`operon_analyzer.rules.FilterSet` .
+        color_by_blast_statistic (str, optional): Map an alignment quality statistic using the virdis
+            color scale. For a list of alignment statistics captured by Opfi, see :ref:`opfi-output-format` .
+        feature_colors (dict, optional): If a labeled database was used during candidate identification,
+            features can be colored accordingly using "label": "feature-color" pairs. For more information
+            about labeling sequence databases, see :ref:`labeling-sequences` .
     """
     with open(analysis_csv) as f:
         passing_contigs = _load_passing_contigs(f)
