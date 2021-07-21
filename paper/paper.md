@@ -1,5 +1,5 @@
 ---
-title: 'Opfi: A Python package for identification of gene cassettes in large genomics and metagenomics datasets'
+title: 'Opfi: A Python package for identification of gene cassettes in large genomics and metagenomics data sets'
 tags:
   - Python
   - genome mining
@@ -30,7 +30,7 @@ bibliography: paper.bib
 
 # Summary
 
-Advances in genome sequencing technology have led to an explosion of available metagenomics data, much of which may encode novel genetic systems of academic and biotechnological interest. There is a critical need for tools that can systematically and reproducibly identify genetic systems in large, often low-quality metagenomics data. To this end, we developed Opfi: a modular, rule-based pipeline for identification of functional sets of genes, such as biosynthetic gene clusters or CRISPR-cas defense systems, in large metagenomics datasets. 
+Advances in genome sequencing technology have led to an explosion of available metagenomics data, much of which may encode novel genetic systems of academic and biotechnological interest. There is a critical need for tools that can systematically and reproducibly identify genetic systems in large, often low-quality metagenomics data. To this end, we developed Opfi: a modular, rule-based pipeline for identification of functional sets of genes, such as biosynthetic gene clusters or CRISPR-cas defense systems, in large metagenomics data sets. 
 
 # Statement of need
 
