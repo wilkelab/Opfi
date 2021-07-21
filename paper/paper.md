@@ -82,9 +82,10 @@ Opfi integrates the `DNAFeaturesViewer` package [@Zulkower:2020] to generate gen
 ```python
 from operon_analyzer import load, visualize
 
+out_directory = "."
 with open("filtered_gene_finder_output.csv", "r") as operon_data:
     operons = load.load_operons(operon_data)
-    visualize.plot_operons(operons=operons, output_directory=".", nucl_per_line=25000)
+    visualize.plot_operons(operons, out_directory, nucl_per_line=25000)
 ```
 
 ![One of two type-I CRISPR-Cas gene systems present in the genome of Rippkaea orientalis PCC 8802 (cyanobacteria).\label{fig:operon}](operon_diagram.png)
