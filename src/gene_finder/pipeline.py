@@ -240,14 +240,7 @@ class Pipeline:
     
     def add_seed_step(self, db, name, e_val, blast_type, sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """
-        Define genomic regions of interest by BLASTing against a database of
-        "seeds", i.e., protein encoding genes expected to occur in every 
-        candidate gene cluster.
-
-        The individual steps can be summarized as follows:
-        1. Translate all open reading frames (ORFs) in the input genome/contig.
-        2. BlAST ORFs against the seed protein database `db`. 
-        3. Keep ORFs `self.span` bp up- and -downstream of each hit, discarding all others.
+        Find genomic regions that contain at least one "seed" sequence.
 
         Args:
             db (str): Path to the target (seed) protein database.
@@ -258,7 +251,7 @@ class Pipeline:
                 This can be either "PROT" (blastp), "PSI" (psiblast),
                 "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
-                for mmseqs and diamond (does nothing if blast is the
+                for mmseqs and diamond (does nothing if BLAST is the
                 seach type).
             parse_descriptions (bool, optional): By default, reference protein
                 descriptions (from fasta headers) are parsed for gene name labels;
@@ -266,8 +259,8 @@ class Pipeline:
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
                 (i.e everything after the first whitespace in the header). If
-                using this option with NCBI BLAST, DO NOT use the `-parse_seqids`
-                flag when creating protein databases with `makeblastdb`.
+                using this option with NCBI BLAST, DO NOT use the ``-parse_seqids``
+                flag when creating protein databases with :program:`makeblastdb`.
             blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
                 if not using the system default.
             **kwargs: These can be any additional BLAST parameters,
@@ -276,9 +269,9 @@ class Pipeline:
                 Currently only supported for blastp/psiblast; if blast_type
                 is set to mmseqs or diamond, kwargs will be silently ignored.
 
-        Notes:
-            Only one seed step should be added to the pipeline, and it should
-            be first. Additional steps can occur in any order.
+        Note:
+            This should be the first step added to a :class:`gene_finder.pipeline.Pipeline` object.
+            Additional gene finding steps can be added in any order. 
         """
         if blast_type in ("PROT", "blastp"):
             path = 'blastp' if blast_path is None else blast_path
@@ -298,27 +291,35 @@ class Pipeline:
                                        parse_descriptions=True, start=None, end=None, 
                                        contig_id=None, blast_path=None, **kwargs):
         """
-        Define a genomic region of interest with coordinates instead of a bait/seed gene.
+        Define a genomic region of interest with coordinates instead of a seed sequence.
 
-        An alternative to `add_seed_step`. Most useful for re-annotating 
+        An alternative to :meth:`gene_finder.pipeline.Pipeline.add_seed_step`. Most useful for re-annotating 
         putative systems of interest, where the region coordinates are already
         known.
 
         Args:
             db (str): Path to the target database to search against.
             name (str): A unique name/ID for this step in the pipeline.
-            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+            e_val (float): Expect value to use. Only keep hits with an equivalent or
                 better (lower) score.
             blast_type (str): Specifies which search program to use. 
                 This can be either "PROT" (blastp), "PSI" (psiblast),
                 "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
-                for mmseqs and diamond (does nothing if blast is the
+                for mmseqs and diamond (does nothing if BLAST is the
                 seach type).
-            start (int): Defines the beginning of the region to search (in bp).
+            parse_descriptions (bool, optional): By default, reference protein
+                descriptions (from fasta headers) are parsed for gene name labels;
+                specifically, descriptions are split on whitespace characters
+                and the second item is used for the label. Make this false to 
+                simply use the whole protein description for the label 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI BLAST, DO NOT use the ``-parse_seqids``
+                flag when creating protein databases with :program:`makeblastdb`.
+            start (int): Defines the beginning of the region to search, in base pairs (bp).
                 If no start position is given the first (zero indexed) position
                 in the genome/contig is used.
-            end (int): Defines the end of the region to search (in bp). If no
+            end (int): Defines the end of the region to search, in base pairs (bp). If no
                 end position is given the last position in the contig is used.
             contig_id(string, optional): An identifier for the contig to search.
                 If no ID is given, the pipeline will search every contig in the
@@ -341,11 +342,11 @@ class Pipeline:
     def add_filter_step(self, db, name, e_val, blast_type, min_prot_count=1, 
                         sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """
-        Add a step to BLAST candidate regions against a target database `db`, and filter out
-        candidates that do not have at least `min_prot_count` hits against the target.
+        Add a step to search candidate regions for target sequences, and filter out
+        candidates that do not have at least ``min_prot_count`` matching sequences.
 
         Args:
-            db (str): Path to the target protein database.
+            db (str): Path to the target protein sequence database.
             name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use. Only keep hits with a an equivalent or
                 better (lower) score.
@@ -355,7 +356,7 @@ class Pipeline:
             min_prot_count (int, optional): Minimum number of hits 
                 needed to keep each candidate.
             sensitivity (str): Sets the sensitivity param 
-                for mmseqs and diamond (does nothing if blast is the
+                for mmseqs and diamond (does nothing if BLAST is the
                 seach type).
             parse_descriptions (bool, optional): By default, reference protein
                 descriptions (from fasta headers) are parsed for gene name labels;
@@ -363,8 +364,8 @@ class Pipeline:
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
                 (i.e everything after the first whitespace in the header). If
-                using this option with NCBI blast, DO NOT use the `-parse_seqids`
-                flag when creating protein databases with `makeblastdb`.  
+                using this option with NCBI blast, DO NOT use the ``-parse_seqids``
+                flag when creating protein databases with :program:`makeblastdb`.  
             blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
                 if not using the system default.
             **kwargs: These can be any additional BLAST parameters,
@@ -390,12 +391,12 @@ class Pipeline:
     def add_blast_step(self, db, name, e_val, blast_type, 
                         sensitivity=None, parse_descriptions=True, blast_path=None, **kwargs):
         """
-        Add a non-filtering BLAST step to the pipeline. That is, BLAST each candidate against
-        the target database `db` without applying any filtering logic. This is most useful
+        Add a non-filtering search step to the pipeline. That is, search each candidate 
+        for target sequences without applying any filtering logic. This is most useful
         for annotating candidates for non-essential or ancillary genes.
 
         Args:
-            db (str): Path to the target protein database.
+            db (str): Path to the target protein sequence database.
             name (str): A unique name/ID for this step in the pipeline.
             e_val (float): Expect value to use. Only keep hits with a an equivalent or
                 better (lower) score.
@@ -403,7 +404,7 @@ class Pipeline:
                 This can be either "PROT" (blastp), "PSI" (psiblast),
                 "mmseqs" (mmseqs2), or "diamond" (diamond).
             sensitivity (str): Sets the sensitivity param 
-                for mmseqs and diamond (does nothing if blast is the
+                for mmseqs and diamond (does nothing if BLAST is the
                 seach type). 
             parse_descriptions (bool, optional): By default, reference protein
                 descriptions (from fasta headers) are parsed for gene name labels;
@@ -411,8 +412,8 @@ class Pipeline:
                 and the second item is used for the label. Make this false to 
                 simply use the whole protein description for the label 
                 (i.e everything after the first whitespace in the header). If
-                using this option with NCBI BLAST, DO NOT use the `-parse_seqids`
-                flag when creating protein databases with `makeblastdb`.
+                using this option with NCBI BLAST, DO NOT use the ``-parse_seqids``
+                flag when creating protein databases with :program:`makeblastdb`.
             blast_path (string, optional): Path to the blastp/mmseqs/diamond program,
                 if not using the system default.
             **kwargs: These can be any additional BLAST parameters,
@@ -445,6 +446,27 @@ class Pipeline:
     def add_blastn_step(self, db, name, e_val, parse_descriptions=False, blastn_path='blastn', **kwargs):
         """ 
         Add a step to do nucleotide BLAST. 
+
+        Args:
+            db (str): Path to the target protein sequence database.
+            name (str): A unique name/ID for this step in the pipeline.
+            e_val (float): Expect value to use. Only keep hits with a an equivalent or
+                better (lower) score.
+            parse_descriptions (bool, optional): By default, reference protein
+                descriptions (from fasta headers) are parsed for gene name labels;
+                specifically, descriptions are split on whitespace characters
+                and the second item is used for the label. Make this false to 
+                simply use the whole protein description for the label 
+                (i.e everything after the first whitespace in the header). If
+                using this option with NCBI BLAST, DO NOT use the ``-parse_seqids``
+                flag when creating protein databases with :program:`makeblastdb`.
+            blast_path (string, optional): Path to the blastn program,
+                if not using the system default.
+            **kwargs: These can be any additional BLAST parameters,
+                specified as key-value pairs. Note that certain parameters
+                are not allowed, mainly those that control output formatting.
+                Currently only supported for blastp/psiblast; if blast_type
+                is set to mmseqs or diamond, kwargs will be silently ignored.
         """
         self._steps.append(BlastnStep(Blastn(db, name, e_val, parse_descriptions, blastn_path, kwargs)))
 
@@ -541,8 +563,7 @@ class Pipeline:
             span=10000, record_all_hits=False, incremental_output=False,
             starting_contig=None, gzip=False) -> dict:
         """
-        Sequentially execute each step in the pipeline, in the order that they
-        were added.
+        Execute each step in the pipeline, in the order they were added.
 
         Args:
             data (str): Path to the input data file. Can be a single-
@@ -560,29 +581,27 @@ class Pipeline:
                 of each seed hit to keep. Defines the aproximate size
                 of the genomic neighborhoods that will be used as the
                 search space after the seed step.
-            record_all_hits (bool, optional): Write data about all hits 
+            record_all_hits (bool, optional): Write data about all genes found 
                 (even discarded ones) to the file <job_id>_hits.json,
                 grouped by contig. Note that this contains much of the same
                 information as is in the results CSV file; nevertheless, it
-                may be useful for collecting metadata about the run.
+                may be useful for analysis or troubleshooting a search.
             incremental_output (bool, optional): Write results to disk
-                incrementally, i.e after each contig is processed. Using
-                this option also creates a checkpoint file that gives the
-                ID of the contig that is currently being processed; if the
-                job finishes successfully, this file will be automatically
-                cleaned up. This feature is particularly useful for long-running
-                jobs. 
+                after each contig is processed. Using this option also creates a 
+                checkpoint file that gives the ID of the contig that is currently 
+                being processed; if the job finishes successfully, this file will 
+                be automatically cleaned up. This feature is especially useful 
+                for long-running jobs. 
             starting_contig (bool, optional): The sequence identifier of
                 the contig where the run should begin. In other words, 
                 skip over records in the input file until
                 the specified contig is reached, and then run the pipeline
                 as normal. This is usually used in conjunction with 
-                `incremental_output`.
+                ``incremental_output``.
             gzip (bool, optional): Was this file compressed with gzip? 
 
         Returns:   
-            Results (dict): Candidate systems, grouped by contig id
-                and genomic location.
+            dict: Candidate systems, grouped by contig id and genomic location.
         """
         self._reset_results()
         self.data_path = data

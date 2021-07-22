@@ -1,5 +1,7 @@
 # Opfi
 
+[![Documentation Status](https://readthedocs.org/projects/opfi/badge/?version=latest)](https://opfi.readthedocs.io/en/latest/?badge=latest)
+
 A python package for discovery, annotation, and analysis of gene cassettes in genomics or metagenomics datasets.
 
 ## Requirements

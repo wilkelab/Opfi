@@ -7,7 +7,10 @@ from Bio.Seq import Seq
 
 
 class Feature(object):
-    """ Represents a gene or CRISPR repeat array. """
+    """ 
+    Represents a gene or CRISPR repeat array. This is used internally by :class:`operon_analyzer.genes.Operon`, 
+    but appears in the auto-generated documentation for reference. 
+    """
 
     def __init__(self,
                  name: str,
@@ -100,7 +103,7 @@ class Feature(object):
 
 class Operon(object):
     """
-    Provides access to Features that were found in the same genomic region,
+    Provides access to features that were found in the same genomic region,
     which presumably comprise an actual operon. Whether this is true in reality
     must be determined by the user, if that is meaningful to them.
     """

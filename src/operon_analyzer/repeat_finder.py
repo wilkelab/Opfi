@@ -54,14 +54,15 @@ class BufferedSequence(object):
 
 def find_inverted_repeats(operon: genes.Operon, buffer_around_operon: int, min_repeat_size: int):
     """
-    Searches an operon and the DNA flanking it for inverted repeats. If found, they will be added to the operon
-    as Feature objects with the name "TIR" and the sequence. The strand will be set to 1 for the upstream sequence and
-    -1 for the downstream sequence.
+    Searches an operon and the DNA flanking it for inverted repeats using :program:`GenericRepeatFinder`. 
+    If found, they will be added to the operon as Feature objects with the name "TIR" and the sequence. 
+    The strand will be set to 1 for the upstream sequence and -1 for the downstream sequence.
 
-    operon:     the Operon object
-    buffer_around_operon:   the number of base pairs on either side of the operon to search in addition to the operon's
-                            internal sequence
-    min_repeat_size:        the minimum number of base pairs that an inverted repeat must have
+    Args:
+        operon (Operon): The :class:`operon_analyzer.genes.Operon` object.
+        buffer_around_operon (int): The number of base pairs on either side of the operon to search in addition to the operon's 
+            internal sequence.
+        min_repeat_size (int): The minimum number of base pairs that an inverted repeat must have.
     """
     contig_sequence = load.load_sequence(operon)
     _find_inverted_repeats(operon, contig_sequence, buffer_around_operon, min_repeat_size)
