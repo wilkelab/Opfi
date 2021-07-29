@@ -13,12 +13,15 @@ Coordinates = Tuple[int, int]
 
 def assemble_operons(lines: Iterator[PipelineRecord]) -> Iterator[Operon]:
     """
-    Takes the output from the CRISPR-transposon pipeline, loads all features,
-    and assembles them into putative Operons.
+    Takes the output from :class:`gene_finder.pipeline.Pipeline` and loads all features,
+    then assembles them into :class:`operon_analyzer.genes.Operon` objects.
 
     To keep things memory efficient while not allowing redundant operons from being loaded,
     we keep track of the hash of each operon, which is just an integer. Even for very
     large metagenomic databases this should use less than a gigabyte of memory.
+
+    This is a helper function used by the loaders in :mod:`operon_analyzer.load`, but
+    appears in the auto-generated documentation for reference.
     """
     hashes = set()
     first = next(lines)

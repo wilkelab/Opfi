@@ -6,7 +6,9 @@ from operon_analyzer.analyze import load_analyzed_operons
 def load_counts(lines: IO[str]) -> Tuple[Dict[str, int],
                                          Dict[str, int],
                                          Dict[int, int]]:
-    """ Takes a stream of the output from analysis.py and computes some useful statistics. """
+    """ Takes a stream of the output from :func:`operon_analyzer.analyze.analyze` and computes some useful statistics. Namely,
+    the number of times each rule was the only one broken for a contig, the number of times each rule was broken regardless of context,
+    and the occurrences of the count of broken rules per contig. """
     operons = load_analyzed_operons(lines)
     results = _extract_results(operons)
     unique_rule_violated, failed_rule_occurrences, rule_failure_counts = _count_results(results)
