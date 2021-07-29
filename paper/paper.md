@@ -1,5 +1,5 @@
 ---
-title: 'Opfi: A Python package for identification of gene cassettes in large genomics and metagenomics data sets'
+title: 'Opfi: A Python package for identifing gene cassettes in large genomics and metagenomics data sets'
 tags:
   - Python
   - bioinformatics
@@ -23,14 +23,14 @@ affiliations:
    index: 2
  - name: Center for Systems and Synthetic Biology, The University of Texas at Austin, Austin, Texas, 78712, USA
    index: 3
-date: 15 June 2021
+date: 28 July 2021
 bibliography: paper.bib
 
 ---
 
 # Summary
 
-Advances in genome sequencing technology have led to an explosion of available metagenomics data, much of which may encode novel gene systems of academic and biotechnological interest. There is a critical need for tools that can systematically and reproducibly identify gene systems in large, often low-quality metagenomics data. Therefore, we developed Opfi: a modular, rule-based pipeline for identification of functional sets of genes, such as biosynthetic gene clusters or CRISPR-cas defense systems, in large genomics or metagenomics data sets. 
+Advances in genome sequencing technology have led to an explosion of available metagenomics data, much of which may encode novel gene systems of academic and biotechnological interest. There is a critical need for tools that can systematically and reproducibly identify gene systems in large, often low-quality metagenomics data. Therefore, we developed Opfi: a modular, rule-based pipeline for identifying functional sets of genes, such as biosynthetic gene clusters or CRISPR-Cas defense systems, in large genomics or metagenomics data sets. 
 
 # Statement of need
 
@@ -38,11 +38,11 @@ Metagenomics is the sequencing and analysis of bacterial genomes sampled directl
 
 # Implementation
 
-Opfi is implemented entirely in Python, and can be downloaded from the Python package index and installed directly in the user’s compute environment. It consists of two major components: Gene Finder, for discovery of novel gene cassettes, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of gene cassettes identified by Gene Finder. All modules generate output in a comma-separated format that is common to the entire package.
+Opfi is implemented entirely in Python, and can be downloaded from the Python package index and installed directly in the user’s compute environment. It consists of two major components: Gene Finder, for discovery of novel gene cassettes, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of gene cassettes identified by Gene Finder. All modules generate output in a comma-separated (CSV) format that is common to the entire package.
 
 ## Example Gene Finder usage
 
-The following example script searches for putative CRISPR-Cas loci in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Information about the biological significance of this example, as well as data inputs and descriptions, can be found in the `tutorials` directory in the project GitHub repository. The example illustrates the use of the `Pipeline` class for setting up a gene cassette search. First, `add_seed_step` specifies a step to annotate cas1 genes, using NCBI Blastp and a database of representative Cas1 protein sequences. The regions directly up- and downstream of each Cas1 hit define the candidate search space, which is reasonable since Cas1 is a highly conserved protein common to the majority of known CRISPR-cas loci. Next, `add_filter_step` adds a step to annotate candidate regions for additonal cas genes. Regions that do not consist of at least one putative cas gene are discarded ("filtered") from the master list of putative systems. Finally, `add_crispr_step` adds a step to search remaining candidates for CRISPR arrays, i.e. regions of alternatating ~30 bp direct repeat and variable sequences, using the PILER-CR repeat finding software [@Edgar:2007]. 
+The following example script searches for putative CRISPR-Cas loci in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Information about the biological significance of this example, as well as data inputs and descriptions, can be found in the `tutorials` directory in the project GitHub repository. The example illustrates the use of the `Pipeline` class for setting up a gene cassette search. First, `add_seed_step` specifies a step to annotate cas1 genes, using NCBI Blastp and a database of representative Cas1 protein sequences. 10,000 bp regions directly up- and downstream of each Cas1 hit are selected for further analysis, and all other regions are discarded. Next, `add_filter_step` adds a step to annotate candidate regions for additonal cas genes. Candidates that do not have at least one additional cas gene are discarded ("filtered") from the master list of putative systems. Finally, `add_crispr_step` adds a step to search remaining candidates for CRISPR arrays, i.e. regions of alternatating ~30 bp direct repeat and variable sequences, using the PILER-CR repeat finding software [@Edgar:2007]. 
 
 ```python
 from gene_finder.pipeline import Pipeline
@@ -56,14 +56,16 @@ p.add_seed_step(db="cas1", name="cas1", e_val=0.001, blast_type="PROT")
 p.add_filter_step(db="cas_all", name="cas", e_val=0.001, blast_type="PROT")
 p.add_crispr_step()
 
-results = p.run(job_id=job_id, data=genomic_data, gzip=True)
+p.run(job_id=job_id, data=genomic_data, span=10000, gzip=True)
 ```
+
+Running this code creates the CSV file "r_orientalis_results.csv", which contains information about each system identified; in this example, that is two canonical CRISPR-Cas systems, and one locus with weak homology to cas genes. Each line in the file represents a single putative feature in a candidate locus. Features from the same candidate are grouped together in the CSV. Detailed information about the output format is available on the Opfi documentation site (<https://opfi.readthedocs.io/>).
 
 ## Example Operon Analyzer usage
 
-In the previous example, passing systems must meet the relatively permissive criterion of having at least one cas1 gene co-localized with one additional cas gene. This is sufficient to identify CRISPR-Cas loci, but may capture regions that do not contain functional CRISPR-Cas systems. Improbale systems could be eliminated at the homology search phase by making the acceptance threshold more restrictive, or by reducing the size of the search space. However, we have implemented a module that facilitates rule-based filtering of candidate systems identified by Gene Finder, to reduce "false positive" candidates or select only those with a desired genomic oragnization. 
+In the previous example, passing systems must meet the relatively permissive criterion of having at least one cas1 gene co-localized with one additional cas gene. This is sufficient to identify CRISPR-Cas loci, but may also capture regions that do not contain functional CRISPR-Cas systems, but rather consist of open reading frames with weak homology to cas genes. These improbable systems could be eliminated during the homology search by making the match acceptance threshold more restrictive (i.e by decreasing the e-value), however, this could result in the loss of interesting, highly diverged systems. Therefore, we implemented a module that enables post- homology search filtering of candidate systems, using flexible rules that can be combined to create sophisticated elimination functions. This allows the user to first perform a broad homology search with permissive parameters, and then apply rules to cull unlikely candidates without losing interesting and/or novel systems. Additionally, rules may be useful for selecting candidates with a specific genomic composition for downstream analysis.
 
-The following script takes the output generated by the previous example and reconstructs each systems as an `Operon` object. The `RuleSet` class is used to assess each system; here, passing candidates must contain two cascade genes (cas5 and cas7) no more than 1000 base pairs apart, and at least one cas3 (effector) gene. A complete list of rules can be found on the package documentation site (<https://opfi.readthedocs.io/>). In this example, only high-confidence type-I CRISPR-Cas systems are selected, and the passing systems are re-serialized to CSV format. 
+Rule-based filtering is illustrated with the following example. The sample script takes the output generated by the previous example and reconstructs each system as an `Operon` object. The `RuleSet` class is used to assess each candidate; here, passing systems must contain two cascade genes (cas5 and cas7) no more than 1000 base pairs apart, and at least one cas3 (effector) gene. For a complete list of rules, see the Opfi documentation. 
 
 ```python
 from operon_analyzer import analyze, rules
@@ -77,7 +79,11 @@ with open("r_orientalis_results.csv", "r") as input_csv:
         analyze.evaluate_rules_and_reserialize(input_csv, rs, output_csv)
 ```
 
-Opfi integrates the `DNAFeaturesViewer` package [@Zulkower:2020] to generate gene diagrams of candidate systems. Each input system is visualized as a single PNG image. The sample script below reads in output from the previous example, and generates two gene diagram images, one for each CRISPR-Cas system present in Rippkaea orientalis. One image is provided for reference in \autoref{fig:operon}.
+After running this code, the file "filtered_output.csv" contains only high-confidence type-I CRISPR-Cas operons (re-serialized to CSV format) that passed all rules in the rule set. 
+
+## Candidate visualization
+
+Opfi integrates the `DNAFeaturesViewer` package [@Zulkower:2020] to create gene diagrams of candidate systems. Each input system is visualized as a single PNG image. The sample script below reads in output from the previous example, and generates two gene diagram images, one for each CRISPR-Cas system present in Rippkaea orientalis. One image is provided for reference in \autoref{fig:operon}.
 
 ```python
 from operon_analyzer import load, visualize
