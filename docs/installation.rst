@@ -38,9 +38,15 @@ Opfi makes use of several third-party softwares for finding and annotating genom
 Testing your build
 ------------------
 
-Users who opt to build Opfi from source can test their build by running the command `pytest --runslow` from the project root directory. Note that this assumes NCBI BLAST+ has already been installed. The following flags can direct pytest to test any optional depencies, as needed.
+Users who opt to build Opfi from source can test their build by running ``pytest`` from the project root directory. The following flags will direct pytest to run specific sets of tests (in addition to the core suite):
 
-* `--rundiamond`: run tests that require Diamond.
-* `--runmmseqs`: run tests that require MMseqs2.
-* `--runpiler`: run tests that require PILER-CR.
-* `--rungrf`: run tests that require GenericRepeatFinder.
+* ``--runmmseqs``: Run tests that require MMseqs2.
+* ``--rundiamond``: Run tests that require Diamond.
+* ``--runslow``: Run integration/end-to-end tests.
+* ``--runprop``: Run very slow property tests.
+
+For most users, running ``pytest --runslow`` is recommended. 
+
+.. note::
+
+    Several tests in the core suite require :program:`BLAST`, :program:`PILER-CR`, and/or :program:`GenericRepeatFinder`. Running ``pytest`` without first installing these dependencies will cause these tests to fail. 
