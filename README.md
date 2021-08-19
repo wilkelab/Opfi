@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/opfi/badge/?version=latest)](https://opfi.readthedocs.io/en/latest/?badge=latest)
 
-A python package for discovery, annotation, and analysis of gene cassettes in genomics or metagenomics datasets.
+A python package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ pip3 install .
 
 ## Gene Finder
 
-Gene Finder iteratively executes homology searches to identify gene cassettes of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/tutorial.ipynb`).
+Gene Finder iteratively executes homology searches to identify gene clusters of interest. Below is an example script that sets up a search for putative CRISPR-Cas systems in the Rippkaea orientalis PCC 8802 (cyanobacteria) genome. Data inputs are provided in the Opfi tutorial (`tutorials/tutorial.ipynb`).
 
 ```python
 from gene_finder.pipeline import Pipeline
