@@ -6,6 +6,3 @@ PyYAML==5.4
 dna-features-viewer==3.0.1
 more-itertools==8.4.0
 parasail==1.2
-sphinx==4.0.1
-sphinx-rtd-theme==0.5.2
-docutils==0.16
