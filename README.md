@@ -15,12 +15,17 @@ sudo make install
 
 ## Installation
 
-To install Opfi, clone the repository and run pip from the project root directory:
+You can install Opfi with Pip:
+
+```
+pip3 install opfi
+```
+
+Alternatively, you can install the latest version on Github:
 
 ```
 git clone https://github.com/wilkelab/Opfi.git
 cd Opfi
-pip3 install -r requirements.txt
 pip3 install .
 ```
 
