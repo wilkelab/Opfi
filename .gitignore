@@ -1,17 +1,16 @@
 # virtual environments
 env/
 env_test/
+env-dist/
 
-# distribution stuff
+# distribution artifacts
 dist/
 .eggs/
-
-# build stuff
-__pycache__/
 opfi.egg-info/
-.eggs/
-*.o
 build/
+
+# don't include compiled pilercr
+*.o
 lib/pilercr1.06/pilercr
 
 # dev tools
@@ -25,3 +24,5 @@ docs/_build
 
 # python notebook checkpoints
 .ipynb_checkpoints
+
+__pycache__/
