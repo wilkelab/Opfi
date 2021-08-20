@@ -19,7 +19,6 @@ Alternatively, you can install the latest version on Github:
     git clone https://github.com/alexismhill3/Opfi.git
     cd Opfi
     pip3 install .
-    pip3 install -r requirements.txt
 
 Dependencies
 ------------

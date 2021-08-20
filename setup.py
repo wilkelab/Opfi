@@ -1,17 +1,14 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
 setuptools.setup(
     name="opfi", 
     version="0.1.0",
     author="Alexis M Hill, James Rybarski",
     author_email="alexismhill3@gmail.com",
-    description="A suite of tools for finding and analyzing genomic systems of interest.",
-    # long_description=long_description,
-    # long_description_content_type="text/markdown",
-    url="https://github.com/alexismhill3/CRISPR-Transposons",
+    description="A package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.",
+    long_description=open('README.md').read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/wilkelab/Opfi",
     packages=setuptools.find_packages('src'),
     package_dir={'': 'src'},
     classifiers=[
@@ -20,5 +17,14 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    setup_requires=['wheel'],
+    install_requires=[
+        "biopython==1.76", 
+        "pytest==5.3.2",
+        "hypothesis==5.1.1", 
+        "matplotlib==3.2.1", 
+        "PyYAML==5.4", 
+        "dna-features-viewer==3.0.1", 
+        "more-itertools==8.4.0", 
+        "parasail==1.2", 
+        ]
 )
