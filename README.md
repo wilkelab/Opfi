@@ -1,6 +1,7 @@
 # Opfi
 
 [![Documentation Status](https://readthedocs.org/projects/opfi/badge/?version=latest)](https://opfi.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](http://img.shields.io/pypi/v/opfi.svg)](https://pypi.python.org/pypi/opfi/)
 
 A python package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.
 
