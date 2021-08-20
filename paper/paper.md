@@ -1,5 +1,5 @@
 ---
-title: 'Opfi: A Python package for identifing gene clusters in large genomics and metagenomics data sets'
+title: 'Opfi: A Python package for identifying gene clusters in large genomics and metagenomics data sets'
 tags:
   - Python
   - bioinformatics
