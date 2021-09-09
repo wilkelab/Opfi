@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="opfi", 
-    version="0.1.0",
+    version="0.1.1",
     author="Alexis M Hill, James Rybarski",
     author_email="alexismhill3@gmail.com",
     description="A package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.",
