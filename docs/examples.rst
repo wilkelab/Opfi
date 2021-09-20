@@ -8,14 +8,14 @@ Example 1: Finding CRISPR-Cas systems in a cyanobacteria genome
 
 In this example, we will annotate and visualize CRISPR-Cas systems in the cyanobacteria species Rippkaea orientalis. CRISPR-Cas is a widespread bacterial defense system, found in at least 50% of all known prokaryotic species. This system is significant in that it can be leveraged as a precision gene editing tool, an advancement that was awarded the 2020 Nobel Prize in Chemistry. The genome of R. orientalis harbors two complete CRISPR-Cas loci (one chromosomal, and one extrachromosomal/plasmid).
 
-You can download the complete assembled genome `here <https://www.ncbi.nlm.nih.gov/assembly/GCF_000024045.1/>`_; it is also available at `<https://github.com/wilkelab/Opfi>`_ under ``tutorials/data``, along with the other data files necessary to run these examples, and an interactive jupyter notebook version of this tutorial. 
+You can download the complete assembled genome `here <https://www.ncbi.nlm.nih.gov/assembly/GCF_000024045.1/>`_; it is also available at `<https://github.com/wilkelab/Opfi>`_ under ``tutorials``, along with the other data files necessary to run these examples, and an interactive jupyter notebook version of this tutorial. 
 
 To run the code snippets here, Opfi must be installed, along with NCBI BLAST+ **and** PILER-CR. More detailed installation instructions can be found in the :ref:`installation` section. 
 
 1. Use the makeblastdb utility to convert a Cas protein database to BLAST format
 ################################################################################
 
-We start by converting a Cas sequence database to a format that BLAST can recognize, using the command line utility :program:`makeblastdb`, which is part of the core NCBI BLAST+ distribution. A set of ~20,000 non-redundant Cas sequences, downloaded from `Uniprot <https://www.uniprot.org/uniref/>`_ is available as a tar archive ``tutorials/data/cas_database.tar.gz`` . We'll make a new directory, "blastdb", and extract sequences there:
+We start by converting a Cas sequence database to a format that BLAST can recognize, using the command line utility :program:`makeblastdb`, which is part of the core NCBI BLAST+ distribution. A set of ~20,000 non-redundant Cas sequences, downloaded from `Uniprot <https://www.uniprot.org/uniref/>`_ is available as a tar archive ``tutorials/cas_database.tar.gz`` . We'll make a new directory, "blastdb", and extract sequences there:
 
 .. code-block:: bash
 
@@ -49,7 +49,7 @@ The following bit of code uses Opfi's :mod:`gene_finder.pipeline` module to sear
     from gene_finder.pipeline import Pipeline
     import os
 
-    genomic_data = "data/GCF_000024045.1_ASM2404v1_genomic.fna.gz"
+    genomic_data = "GCF_000024045.1_ASM2404v1_genomic.fna.gz"
     output_directory = "example_1_output"
 
     p = Pipeline()
@@ -176,7 +176,7 @@ To do this, we'll leverage the :mod:`operon_analyzer.rules` and :mod:`operon_ana
     rulesets.append(rules.RuleSet().contains_at_least_n_features(feature_names = ["cas1", "cas2", "cas12"], feature_count = 3))
 
     for rs, cas_type in zip(rulesets, cas_types):
-        with open("data/refseq_fusobacteria.csv", "r") as input_csv:
+        with open("refseq_fusobacteria.csv", "r") as input_csv:
             with open(f"example_2_output/refseq_fuso_filtered_type{cas_type}.csv", "w") as output_csv:
                 analyze.evaluate_rules_and_reserialize(input_csv, rs, fs, output_csv)
 
