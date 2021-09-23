@@ -68,8 +68,7 @@ def test_with_blast(temporary_directory):
     
     assert len(results) == 1
     hits = results["NZ_CCKB01000071.1"]["Loc_78093-114093"]["Hits"]
-    assert len(hits) == 11
-    assert "Array_0" in hits
+    assert len(hits) == 10
 
 
 @pytest.mark.slow
@@ -106,7 +105,6 @@ def test_gzip_fasta(temporary_directory):
 
     hits = results["KB405063.1"]["Loc_0-23815"]["Hits"]
     assert "Cas_all_hit-0" in hits
-    assert "Array_0" in hits
     
 
 @pytest.mark.slow
@@ -129,10 +127,9 @@ def test_record_all_hits_1(temporary_directory):
 
     with open(os.path.join(temporary_directory.name, "gene_finder_hits.json"), "r") as f:
         hits = json.load(f)["KB405063.1"]["hits"]
-        assert len(hits) == 3
+        assert len(hits) == 2
         assert "tnsAB" in hits
         assert "cas_all" in hits
-        assert "CRISPR" in hits
 
 
 @pytest.mark.slow
