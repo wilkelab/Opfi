@@ -193,7 +193,7 @@ def visualize(condition: str):
                 if op is None:
                     continue
                 good_operons.append(op)
-        plot_operons(good_operons, tempdir)
+        plot_operons(good_operons, tempdir, nucl_per_line=25000)
         files = os.listdir(tempdir)
         count = len([f for f in files if f.endswith(".png")])
     except Exception as e:
