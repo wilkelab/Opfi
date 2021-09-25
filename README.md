@@ -2,12 +2,13 @@
 
 [![Documentation Status](https://readthedocs.org/projects/opfi/badge/?version=latest)](https://opfi.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](http://img.shields.io/pypi/v/opfi.svg)](https://pypi.python.org/pypi/opfi/)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/opfi/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
 
 A python package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.
 
 ## Installation
 
-The recommended way to install Opfi is with [Bioconda](https://bioconda.github.io/), which requires the [conda](https://docs.conda.io/en/latest/) package manager. This will install Opfi and all of its dependencies (which you can read more about [here]()).
+The recommended way to install Opfi is with [Bioconda](https://bioconda.github.io/), which requires the [conda](https://docs.conda.io/en/latest/) package manager. This will install Opfi and all of its dependencies (which you can read more about [here](https://opfi.readthedocs.io/en/latest/installation.html)).
 
 Currently, Bioconda supports only 64-bit Linux and Mac OS. Windows users can still install Opfi with pip (see below); however, the complete installation procedure has not been fully tested on a Windows system. 
 
@@ -18,7 +19,8 @@ First, set up conda and Bioconda following the [quickstart](https://bioconda.git
 ```
 conda install -c bioconda opfi
 ```
-And that's it! Note that this will install Opfi in the conda environment that is currently active. To create a fresh environment with Opfi, do:
+
+And that's it! Note that this will install Opfi in the conda environment that is currently active. To create a fresh environment with Opfi installed, do:
 
 ```
 conda create --name opfi-env -c bioconda opfi
@@ -27,12 +29,13 @@ conda activate opfi-env
 
 ### Install with pip 
 
-This method does not automatically install non-Python dependencies, so they will need to be installed separately following their individual installation instructions. A complete list, with links to each software homepage, is available [here](). Once this step is complete, install Opfi with pip by running:
+This method does not automatically install non-Python dependencies, so they will need to be installed separately, following their individual installation instructions. A complete list of required software is available [here](https://opfi.readthedocs.io/en/latest/installation.html#dependencies). Once this step is complete, install Opfi with pip by running:
 
 ```
 pip install opfi
 ```
-For information about installing for development, check out the [documentation site]().
+
+For information about installing for development, check out the [documentation site](https://opfi.readthedocs.io/en/latest/installation.html).
 
 ## Gene Finder
 
