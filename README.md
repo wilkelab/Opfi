@@ -5,30 +5,34 @@
 
 A python package for discovery, annotation, and analysis of gene clusters in genomics or metagenomics datasets.
 
-## Requirements
-
-At a minimum, the NCBI BLAST+ software suite should be installed and on the user's PATH. BLAST+ installation instruction can be found [here](https://www.ncbi.nlm.nih.gov/books/NBK279671/). For annotation of CRISPR arrays, Opfi uses PILER-CR, which can be downloaded from the software [home page](https://www.drive5.com/pilercr/). A modified version of PILER-CR that detects mini (two repeat) CRISPR arrays is also available, and can be built with GNU make after cloning or downloading Opfi:
-
-```
-cd lib/pilercr1.06
-sudo make install
-```
-
 ## Installation
 
-You can install Opfi with Pip:
+The recommended way to install Opfi is with [Bioconda](https://bioconda.github.io/), which requires the [conda](https://docs.conda.io/en/latest/) package manager. This will install Opfi and all of its dependencies (which you can read more about [here]()).
+
+Currently, Bioconda supports only 64-bit Linux and Mac OS. Windows users can still install Opfi with pip (see below); however, the complete installation procedure has not been fully tested on a Windows system. 
+
+### Install with conda (Linux and Mac OS only)
+
+First, set up conda and Bioconda following the [quickstart](https://bioconda.github.io/user/install.html) guide. Once this is done, run:
 
 ```
-pip3 install opfi
+conda install -c bioconda opfi
+```
+And that's it! Note that this will install Opfi in the conda environment that is currently active. To create a fresh environment with Opfi, do:
+
+```
+conda create --name opfi-env -c bioconda opfi
+conda activate opfi-env
 ```
 
-Alternatively, you can install the latest version on Github:
+### Install with pip 
+
+This method does not automatically install non-Python dependencies, so they will need to be installed separately following their individual installation instructions. A complete list, with links to each software homepage, is available [here](). Once this step is complete, install Opfi with pip by running:
 
 ```
-git clone https://github.com/wilkelab/Opfi.git
-cd Opfi
-pip3 install .
+pip install opfi
 ```
+For information about installing for development, check out the [documentation site]().
 
 ## Gene Finder
 
