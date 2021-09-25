@@ -10,7 +10,7 @@ In this example, we will annotate and visualize CRISPR-Cas systems in the cyanob
 
 You can download the complete assembled genome `here <https://www.ncbi.nlm.nih.gov/assembly/GCF_000024045.1/>`_; it is also available at `<https://github.com/wilkelab/Opfi>`_ under ``tutorials``, along with the other data files necessary to run these examples, and an interactive jupyter notebook version of this tutorial. 
 
-To run the code snippets here, Opfi must be installed, along with NCBI BLAST+ **and** PILER-CR. More detailed installation instructions can be found in the :ref:`installation` section. 
+This tutorial assumes the user has already installed Opfi and all dependencies (if installing with conda, this is done automatically). Some familiarity with BLAST and the basic homology search algorithm may also be helpful, but is not required. 
 
 1. Use the makeblastdb utility to convert a Cas protein database to BLAST format
 ################################################################################
