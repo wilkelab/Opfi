@@ -78,7 +78,7 @@ Dependencies
 
 Opfi uses the following bioinformatics software packages to find and annotate genomic features:
 
-.. csv-table:: 
+.. csv-table:: Software dependencies
    :header: "Application", "Description"
 
    "`NCBI BLAST+ <https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs>`_", "Protein and nucleic acid homology search tool"
@@ -87,16 +87,17 @@ Opfi uses the following bioinformatics software packages to find and annotate ge
    "`PILER-CR <https://www.drive5.com/pilercr/>`_", "CRISPR repeat detection"
    "`Generic Repeat Finder <https://github.com/bioinfolabmu/GenericRepeatFinder>`_", "Transposon-associated repeat detection"
 
-The first three (BLAST+, Diamond, and MMseqs2) are popular homology search tools, and are used in :class:`gene_finder.pipeline.Pipeline` for gene annotation. The user specifies which homology search tool to use during pipeline setup (see :class:`gene_finder.pipeline.Pipeline` for details). Note that the BLAST+ distribution contains multiple utilities for homology searches, three of which (blastp, blastn, and PSI-BLAST) are currently supported by Opfi. 
+The first three (BLAST+, Diamond, and MMseqs2) are popular homology search applications, that is, programs that look for local similarities between input sequences (either protein or nucleic acid) and a target. These are used by Opfi in :class:`gene_finder.pipeline.Pipeline` for annotation of genes or non-coding regions of interest in the input genome/contig. The user specifies which homology search tool to use during pipeline setup (see :class:`gene_finder.pipeline.Pipeline` for details). Note that the BLAST+ distribution contains multiple programs for homology searching, three of which (blastp, blastn, and PSI-BLAST) are currently supported by Opfi. 
 
-The primary difference between these tools is in their speed/sensitivity trade-offs. The following table is based on our own user experience, and may help users decide which tool best meets their needs. Note that performance tests are inherently hardware and context dependent, so this should be taken as a loose guide, rather than a definitive comparison. 
+The following table summarizes the main difference between each homology search program. It may help users decide which application will best meet their needs. Note that performance tests are inherently hardware and context dependent, so this should be taken as a loose guide, rather than a definitive comparison. 
 
-.. csv-table::
-    :header: "Application", "Relative sensitivity", "Relative speed"
+.. csv-table:: Comparison of homology search programs supported by Opfi
+    :header: "Application", "Relative sensitivity", "Relative speed", "Requires a protein or nucleic acid sequence database?"
 
-    "Diamond", "+", "++++"
-    "MMseqs2", "++", "+++"
-    "blastp", "+++", "++"
-    "PSI-BLAST", "++++", "+"
+    "Diamond", `+`, `++++`, "protein"
+    "MMseqs2", `++`, `+++`, "protein"
+    "blastp", `+++`, `++`, "protein"
+    "PSI-BLAST", `++++`, `+`, "protein"
+    "blastn", "NA", "NA", "nucleic acid"
 
-The last two software dependencies, PILER-CR and Generic Repeat Finder (GRF), deal with annotation of repetive sequences in DNA. PILER-CR can identify CRISPR arrays, regions of alternatating ~30 bp direct repeat and variable sequences that play a role in prokaryotic immunity. GRF identifies repetitive sequences..
+The last two software dependencies, PILER-CR and Generic Repeat Finder (GRF), deal with annotation of repetive sequences in DNA. PILER-CR identifies CRISPR arrays, regions of alternatating ~30 bp direct repeat and variable sequences that play a role in prokaryotic immunity. GRF identifies repeats associated with transposable elements, such as terminal inverted repeats (TIRs) and long terminal repeats (LTRs).

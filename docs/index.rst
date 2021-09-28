@@ -6,9 +6,9 @@
 Opfi
 ====
 
-Welcome to the Opfi documentation site! Opfi is a modular, rule-based framework for creating gene cassette identification pipelines, particularly for large genomics or metagenomics datasets. 
+Welcome to the Opfi documentation site! Opfi is a modular, rule-based framework for creating gene cluster identification pipelines, particularly for large genomics or metagenomics datasets. 
 
-Opfi is implemented entirely in Python, and can be downloaded from the Python package index. It consists of two major modules: Gene Finder, for discovery of novel gene cassettes, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of systems identified by Gene Finder.
+Opfi is implemented entirely in Python, and can be downloaded with conda or the from the Python Package Index. It consists of two major modules: Gene Finder, for discovery of novel gene clusters, and Operon Analyzer, for rule-based filtering, deduplication, visualization, and re-annotation of systems identified by Gene Finder.
 
 Contents
 --------
