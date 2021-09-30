@@ -6,7 +6,7 @@ Inputs and Outputs
 Building sequence databases
 ---------------------------
 
-To search for gene cassettes with Opfi, users must compile representative protein (or nucleic acid) sequences for any genes expected in target casettes (or for any non-essential accessory genes of interest). These may be from a pre-existing, private collection of sequences (perhaps from a previous bioinformatics analysis). Alternatively, users may download sequences from a publically available database such as `Uniprot <https://www.uniprot.org/>`_ (maintained by the `European Bioinformatics Institute <https://www.ebi.ac.uk/>`_ ) or one of the `databases <https://www.ncbi.nlm.nih.gov/>`_ provided by the National Center for Biotechnology Information. 
+To search for gene clusters with Opfi, users must compile representative protein (or nucleic acid) sequences for any genes expected in target clusters (or for any non-essential accessory genes of interest). These may be from a pre-existing, private collection of sequences (perhaps from a previous bioinformatics analysis). Alternatively, users may download sequences from a publically available database such as `Uniprot <https://www.uniprot.org/>`_ (maintained by the `European Bioinformatics Institute <https://www.ebi.ac.uk/>`_ ) or one of the `databases <https://www.ncbi.nlm.nih.gov/>`_ provided by the National Center for Biotechnology Information. 
 
 Once target sequences have been compiled, they must be converted to an application-specific database format. Opfi currently supports :program:`BLAST+`, :program:`mmseqs2`, and :program:`diamond` for homology searching:
 
@@ -47,7 +47,7 @@ The sequence definition (defline) comes directly after the ``>`` character, and 
 Annotating sequence databases
 #############################
 
-To take full advantage of the rule-based filtering methods in :mod:`operon_analyzer.rules`, users are encouraged to annotate reference sequences with a name/label that is easily searched. Labels can be as broad or as specific as is necessary to provide meaningful annotation of target gene cassettes.
+To take full advantage of the rule-based filtering methods in :mod:`operon_analyzer.rules`, users are encouraged to annotate reference sequences with a name/label that is easily searched. Labels can be as broad or as specific as is necessary to provide meaningful annotation of target gene clusters.
 
 Gene labels are parsed from sequence deflines; specifically, Opfi looks for the second word/token following the ``>`` character. For example, the following FASTA sequence has been annotated with the label "cas1":
 
@@ -147,7 +147,7 @@ Results from :class:`gene_finder.pipeline.Pipeline` searches are written to a si
     :file: csv/example_output.csv
     :header-rows: 0
 
-The first two columns contain the input genome/contig sequence ID (sometimes called an accession number) and the coordinates of the candidate gene cassette, respectively. Since an input file can have multiple genomic sequences, these two fields together uniquely specify a candidate gene cassette. Each row represents a single annotated feature in the candidate locus. Features from the same candidate are always grouped together in the CSV. 
+The first two columns contain the input genome/contig sequence ID (sometimes called an accession number) and the coordinates of the candidate gene cluster, respectively. Since an input file can have multiple genomic sequences, these two fields together uniquely specify a candidate gene cluster. Each row represents a single annotated feature in the candidate locus. Features from the same candidate are always grouped together in the CSV. 
 
 Descriptions of each output field are provided below. Alignment statistic naming conventions are from the BLAST documentation, see `BLAST+ appendices <https://www.ncbi.nlm.nih.gov/books/NBK279684/>`_ (specifically "outfmt" in table C1). This `glossary <https://www.ncbi.nlm.nih.gov/books/NBK62051/>`_ of common BLAST terms may also be useful in interpreting alignment statistic meaning. 
 

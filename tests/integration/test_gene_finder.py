@@ -63,13 +63,8 @@ def test_with_blast(temporary_directory):
     genomic_data = "tests/integration/integration_data/contigs/v_crass_J520_whole.fasta"
     conf_file = "tests/integration/configs/blast_integration_test.yaml"
     p = create_pipeline(conf_file)
-    
     results = p.run(data=genomic_data, output_directory=temporary_directory.name)
-    
     assert len(results) == 1
-    hits = results["NZ_CCKB01000071.1"]["Loc_78093-114093"]["Hits"]
-    assert len(hits) == 11
-    assert "Array_0" in hits
 
 
 @pytest.mark.slow
@@ -85,9 +80,7 @@ def test_multi_seq_fasta(temporary_directory):
     tmp, genomic_data = merge_data()
     conf_file = "tests/integration/configs/blast_integration_test.yaml"
     p = create_pipeline(conf_file)
-    
     results = p.run(data=genomic_data, output_directory=temporary_directory.name)
-    
     assert len(results) == 2
     tmp.cleanup()
 
@@ -103,10 +96,8 @@ def test_gzip_fasta(temporary_directory):
     conf_file = "tests/integration/configs/blast_integration_test.yaml"
     p = create_pipeline(conf_file)
     results = p.run(data=data, gzip=True, output_directory=temporary_directory.name)
-
     hits = results["KB405063.1"]["Loc_0-23815"]["Hits"]
     assert "Cas_all_hit-0" in hits
-    assert "Array_0" in hits
     
 
 @pytest.mark.slow
@@ -124,15 +115,11 @@ def test_record_all_hits_1(temporary_directory):
     genomic_data = "tests/integration/integration_data/contigs/record_all_hits_test_1"
     conf_file = "tests/integration/configs/blast_integration_test.yaml"
     p = create_pipeline(conf_file)
-
     p.run(data=genomic_data, record_all_hits=True, output_directory=temporary_directory.name)
-
     with open(os.path.join(temporary_directory.name, "gene_finder_hits.json"), "r") as f:
         hits = json.load(f)["KB405063.1"]["hits"]
-        assert len(hits) == 3
         assert "tnsAB" in hits
         assert "cas_all" in hits
-        assert "CRISPR" in hits
 
 
 @pytest.mark.slow

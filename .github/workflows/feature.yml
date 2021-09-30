@@ -27,7 +27,7 @@ jobs:
         sudo cp -r GenericRepeatFinder/bin /usr/local/bin/
     - name: Install dependencies
       run: |
-        cd lib/pilercr1.06 && sudo make install && cd ../..
+        sudo apt-get install -y pilercr
         sudo apt install -y ncbi-blast+
         sudo apt install -y mmseqs2
         sudo apt install -y diamond-aligner
