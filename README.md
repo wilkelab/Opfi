@@ -61,6 +61,8 @@ results = p.run(job_id=job_id, data=genomic_data, min_prot_len=90, span=10000, g
 
 Operon Analyzer filters results from Gene Finder, and identifies promising candidate operons according to a given set of criteria. It also contains some tools for visualizing candidates and performing basic statistics.
 
+Please note that the use of the word "operon" throughout this library is somewhat of an artifact from early development. At this time, Opfi does not predict whether a candidate system represents a true operon, that is, a set of genes under the control of a single promoter. Although a candidate gene cluster may certainly qualify as an operon, it is currently up to the user to make that distinction. 
+
 ## Analysis
 
 The analysis module provides tools to identify operons that conform to certain rules, such as requiring that they contain a certain gene, or that two genes are within a given distance of each other (the full list is given below). CSV output is written to stdout, which identifies the outcome of the analysis for each putative operon.
