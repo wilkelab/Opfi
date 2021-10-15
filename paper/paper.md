@@ -30,7 +30,7 @@ bibliography: paper.bib
 
 # Summary
 
-Gene clusters perform a diverse set of functions, many of which are relevant to biotechnology. There is a need for software tools that can extract candidate gene clusters from the vast amount of available genomic data. Therefore, we developed Opfi: a modular pipeline for identification of arbitrary gene clusters in assembled genomic or metagenomic sequences. Opfi contains functions for annotation, de-deduplication, and visualization of putative gene clusters. It utilizes a customizable rule-based filtering approach for selection of candidate systems that adhere to user-defined criteria. Opfi is implemented in Python, and is available on the Python Package Index and the Bioconda channel.  
+Gene clusters perform a diverse set of functions, many of which are relevant to biotechnology. There is a need for software tools that can extract candidate gene clusters from the vast amount of available genomic data. Therefore, we developed Opfi: a modular pipeline for identification of arbitrary gene clusters in assembled genomic or metagenomic sequences. Opfi contains functions for annotation, de-deduplication, and visualization of putative gene clusters. It utilizes a customizable rule-based filtering approach for selection of candidate systems that adhere to user-defined criteria. Opfi is implemented in Python, and is available on the Python Package Index and on Bioconda [@Grüning:2018].  
 
 # Statement of need
 
@@ -38,7 +38,7 @@ Gene clusters are sets of co-localized, often contiguous genes that together per
 
 # Implementation
 
-Opfi is implemented in Python, and uses several bioinformatics tools for feature annotation [@Camacho:2009; @Steinegger:2017; @Buchfink:2021; @Edgar:2007; @Shi:2019]. Users can install Opfi and all of its dependencies from Bioconda, using the conda package manager. Opfi consists of two major components: Gene Finder, for discovery of gene clusters, and Operon Analyzer, for rule-based filtering, deduplication, and visualization of gene clusters identified by Gene Finder. All modules generate output in a comma-separated (CSV) format that is common to the entire package.
+Opfi is implemented in Python, and uses several bioinformatics tools for feature annotation [@Camacho:2009; @Steinegger:2017; @Buchfink:2021; @Edgar:2007; @Shi:2019]. Users can install Opfi and all of its dependencies through Bioconda [@Grüning:2018]. Opfi consists of two major components: Gene Finder, for discovery of gene clusters, and Operon Analyzer, for rule-based filtering, deduplication, and visualization of gene clusters identified by Gene Finder. All modules generate output in a comma-separated (CSV) format that is common to the entire package.
 
 ## Example Gene Finder usage
 
